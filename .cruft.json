@@ -1,0 +1,18 @@
+{
+  "template": "git@github.com:castorfou/PyFoundry.git",
+  "commit": "8e6f97d895f270f5d77fd9562ec0e22e0f5a3776",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "project_name": "lmelp-mobile",
+      "project_slug": "lmelp-mobile",
+      "description": "Application Android pour consulter le contenu de Le Masque et la Plume (LMELP) — émission littéraire de France Inter — hors connexion.",
+      "python_version": "3.11",
+      "github_username": "castorfou",
+      "use_node": "y",
+      "_template": "git@github.com:castorfou/PyFoundry.git",
+      "_commit": "8e6f97d895f270f5d77fd9562ec0e22e0f5a3776"
+    }
+  },
+  "directory": null
+}
