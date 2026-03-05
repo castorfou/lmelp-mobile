@@ -1,0 +1,102 @@
+name: Build and Release APK
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ------------------------------------------------------------------
+      # Step 1: Generate SQLite database from MongoDB
+      # Requires secret MONGO_URI to be configured in GitHub repo settings.
+      # If not configured, the pre-committed lmelp.db in assets/ is used.
+      # ------------------------------------------------------------------
+      - name: Install Python dependencies
+        run: pip install pymongo numpy scipy click
+
+      - name: Export MongoDB to SQLite
+        if: ${{ secrets.MONGO_URI != '' }}
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+        run: |
+          python scripts/export_mongo_to_sqlite.py \
+            --mongo-uri "$MONGO_URI" \
+            --output app/src/main/assets/lmelp.db \
+            --force
+
+      - name: Verify SQLite database
+        run: |
+          python scripts/export_mongo_to_sqlite.py \
+            --verify app/src/main/assets/lmelp.db
+
+      # ------------------------------------------------------------------
+      # Step 2: Build Android APK
+      # ------------------------------------------------------------------
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      # ------------------------------------------------------------------
+      # Step 3: Sign APK (requires keystore secrets)
+      # ------------------------------------------------------------------
+      - name: Sign APK
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+
+      # ------------------------------------------------------------------
+      # Step 4: Create GitHub Release
+      # ------------------------------------------------------------------
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: "lmelp-mobile ${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## lmelp-mobile ${{ steps.version.outputs.VERSION }}
+
+            ### Installation
+            1. Télécharger `lmelp-mobile-${{ steps.version.outputs.VERSION }}.apk`
+            2. Sur Android : Paramètres → Sécurité → Sources inconnues → Activer
+            3. Ouvrir le fichier APK téléchargé
+
+            ### Données embarquées
+            - Source : MongoDB masque_et_la_plume
+            - Date d'export : voir Paramètres → À propos dans l'appli
+          files: |
+            app/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

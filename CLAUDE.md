@@ -1,0 +1,326 @@
+# CLAUDE.md — lmelp-mobile
+
+Guide pour Claude Code lors du développement de l'application Android **lmelp-mobile**.
+
+## Vue d'ensemble du projet
+
+Application Android **offline-first** pour consulter le contenu de Le Masque et la Plume.
+
+- **Langage** : Kotlin
+- **UI** : Jetpack Compose
+- **Base de données** : Room (SQLite embarqué dans l'APK)
+- **Architecture** : MVVM (Model-View-ViewModel)
+- **Script d'export** : Python 3.11+ (MongoDB → SQLite)
+
+## Structure du projet
+
+```
+├── app/src/main/
+│   ├── assets/lmelp.db              # Base SQLite embarquée (NE PAS éditer manuellement)
+│   └── java/com/lmelp/mobile/
+│       ├── data/
+│       │   ├── db/                  # Room Database, DAOs
+│       │   ├── model/               # Entities Room + data classes
+│       │   └── repository/          # Repositories (source unique de vérité)
+│       ├── ui/
+│       │   ├── theme/               # Couleurs, typographie, thème
+│       │   ├── components/          # Composables réutilisables
+│       │   ├── emissions/           # Écran Émissions
+│       │   ├── palmares/            # Écran Palmarès
+│       │   ├── critiques/           # Écran Critiques
+│       │   ├── search/              # Écran Recherche
+│       │   └── recommendations/    # Écran Recommandations
+│       ├── viewmodel/               # ViewModels par feature
+│       └── MainActivity.kt
+├── scripts/
+│   └── export_mongo_to_sqlite.py
+├── docs/
+│   ├── architecture.md
+│   ├── data-schema.md
+│   └── ci-cd.md
+└── pyproject.toml
+```
+
+## Commandes essentielles
+
+### Android
+
+```bash
+# Build debug APK
+./gradlew assembleDebug
+
+# Build release APK
+./gradlew assembleRelease
+
+# Installer sur device/émulateur connecté
+./gradlew installDebug
+
+# Lancer les tests
+./gradlew test
+./gradlew connectedAndroidTest
+
+# Lint
+./gradlew lint
+```
+
+### Script Python (export données)
+
+```bash
+# Installer dépendances
+uv pip install -e .
+
+# Export complet MongoDB → SQLite
+python scripts/export_mongo_to_sqlite.py \
+  --mongo-uri mongodb://localhost:27017 \
+  --output app/src/main/assets/lmelp.db
+
+# Export avec base existante (mise à jour)
+python scripts/export_mongo_to_sqlite.py \
+  --mongo-uri mongodb://localhost:27017 \
+  --output app/src/main/assets/lmelp.db \
+  --force
+
+# Vérifier l'intégrité de la base générée
+python scripts/export_mongo_to_sqlite.py \
+  --verify app/src/main/assets/lmelp.db
+
+# Linting Python
+ruff check scripts/
+ruff format scripts/
+```
+
+## Architecture MVVM
+
+```
+UI (Composables)
+    ↕ observe StateFlow
+ViewModel
+    ↕ suspend functions
+Repository
+    ↕ coroutines
+Room DAO
+    ↕
+SQLite (lmelp.db)
+```
+
+**Règles :**
+- Les Composables n'accèdent JAMAIS directement aux DAOs
+- Les ViewModels exposent `StateFlow<UiState>` (pas LiveData)
+- Les Repositories sont les seuls à parler aux DAOs
+- Toute opération base de données dans une coroutine (`viewModelScope`)
+
+## Patterns Kotlin/Compose à suivre
+
+### ViewModel pattern
+
+```kotlin
+// ✅ CORRECT
+data class EmissionsUiState(
+    val isLoading: Boolean = false,
+    val emissions: List<EmissionUi> = emptyList(),
+    val error: String? = null
+)
+
+class EmissionsViewModel(private val repository: EmissionsRepository) : ViewModel() {
+    private val _uiState = MutableStateFlow(EmissionsUiState())
+    val uiState: StateFlow<EmissionsUiState> = _uiState.asStateFlow()
+
+    init {
+        loadEmissions()
+    }
+
+    private fun loadEmissions() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val emissions = repository.getAllEmissions()
+                _uiState.update { it.copy(isLoading = false, emissions = emissions) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+}
+```
+
+### Composable pattern
+
+```kotlin
+// ✅ CORRECT - Séparer Screen (avec ViewModel) et Content (sans ViewModel)
+@Composable
+fun EmissionsScreen(
+    viewModel: EmissionsViewModel = viewModel(),
+    onEmissionClick: (String) -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    EmissionsContent(uiState = uiState, onEmissionClick = onEmissionClick)
+}
+
+@Composable
+fun EmissionsContent(
+    uiState: EmissionsUiState,
+    onEmissionClick: (String) -> Unit
+) {
+    when {
+        uiState.isLoading -> LoadingIndicator()
+        uiState.error != null -> ErrorMessage(uiState.error)
+        else -> EmissionsList(uiState.emissions, onEmissionClick)
+    }
+}
+```
+
+### Room DAO pattern
+
+```kotlin
+// ✅ CORRECT - Toujours suspend ou Flow
+@Dao
+interface EmissionsDao {
+    @Query("SELECT * FROM emissions ORDER BY date DESC")
+    suspend fun getAllEmissions(): List<EmissionEntity>
+
+    @Query("SELECT * FROM emissions WHERE id = :id")
+    suspend fun getEmissionById(id: String): EmissionEntity?
+
+    // Flow pour données réactives si nécessaire
+    @Query("SELECT * FROM emissions ORDER BY date DESC")
+    fun observeAllEmissions(): Flow<List<EmissionEntity>>
+}
+```
+
+## Base SQLite embarquée — règles critiques
+
+### Initialisation au premier lancement
+
+```kotlin
+// ✅ CORRECT - Copier l'asset vers data/ au premier lancement
+val db = Room.databaseBuilder(context, LmelpDatabase::class.java, "lmelp.db")
+    .createFromAsset("lmelp.db")  // Copie depuis assets/ si absent
+    .fallbackToDestructiveMigration()  // En dev : rebuild si schema change
+    .build()
+```
+
+### Versioning de la base
+
+- Chaque export SQLite incrémente `PRAGMA user_version` dans le fichier
+- L'appli affiche la date du dernier export dans les paramètres
+- En cas de mismatch de version : `fallbackToDestructiveMigration()` acceptable (données readonly)
+
+## Schéma SQLite
+
+Voir [docs/data-schema.md](docs/data-schema.md) pour le schéma complet.
+
+**Tables principales :**
+- `emissions` — émissions avec date, durée
+- `episodes` — épisodes liés aux émissions
+- `livres` — livres avec titre, auteur, éditeur
+- `auteurs` — auteurs
+- `critiques` — les 25 critiques
+- `avis` — avis individuels (note 1-10, commentaire)
+- `palmares` — vue précalculée (note moyenne par livre)
+- `recommendations` — recommandations SVD précalculées
+
+**Données précalculées à l'export :**
+- Palmarès (moyenne des notes par livre)
+- Recommandations SVD (coûteuses à calculer sur mobile)
+- Noms des auteurs/critiques dénormalisés dans `avis` pour éviter les jointures
+
+## Recherche full-text
+
+SQLite FTS5 pour la recherche :
+
+```sql
+-- Table virtuelle FTS5
+CREATE VIRTUAL TABLE search_index USING fts5(
+    type,        -- 'emission' | 'livre' | 'auteur' | 'critique'
+    ref_id,      -- ID de l'entité référencée
+    content,     -- Texte indexé
+    tokenize = 'unicode61 remove_diacritics 2'  -- Insensible aux accents
+);
+```
+
+## Conventions de nommage
+
+| Contexte | Convention | Exemple |
+|----------|-----------|---------|
+| Fichiers Kotlin | PascalCase | `EmissionsViewModel.kt` |
+| Composables | PascalCase | `EmissionCard` |
+| ViewModels | `XxxViewModel` | `EmissionsViewModel` |
+| DAOs | `XxxDao` | `EmissionsDao` |
+| Entities Room | `XxxEntity` | `EmissionEntity` |
+| UI models | `XxxUi` | `EmissionUi` |
+| Repositories | `XxxRepository` | `EmissionsRepository` |
+| Packages | lowercase | `com.lmelp.mobile.ui.emissions` |
+
+## Tests
+
+```kotlin
+// Tests ViewModel (JUnit + coroutines)
+// Tests DAO (in-memory Room database)
+// Tests Composables (Compose UI testing)
+
+// Exemple DAO test
+@RunWith(AndroidJUnit4::class)
+class EmissionsDaoTest {
+    private lateinit var db: LmelpDatabase
+    private lateinit var dao: EmissionsDao
+
+    @Before
+    fun setup() {
+        db = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            LmelpDatabase::class.java
+        ).build()
+        dao = db.emissionsDao()
+    }
+
+    @After
+    fun teardown() { db.close() }
+}
+```
+
+## Script Python d'export
+
+Le script `scripts/export_mongo_to_sqlite.py` :
+
+- Se connecte à MongoDB `masque_et_la_plume`
+- Exporte les collections nécessaires vers SQLite
+- Précalcule le palmarès et les recommandations SVD
+- Construit l'index FTS5 pour la recherche
+- Écrit `PRAGMA user_version` avec timestamp Unix
+
+**Linting Python :**
+- Ruff (format + check)
+- MyPy pour le type checking
+- Configuration dans `pyproject.toml`
+
+## CI/CD — GitHub Actions
+
+Workflow `release.yml` déclenché sur tag `v*.*.*` :
+1. Export MongoDB → SQLite (si secret `MONGO_URI` configuré)
+2. Build APK signé
+3. Création GitHub Release avec l'APK en asset
+
+Voir [docs/ci-cd.md](docs/ci-cd.md) pour la configuration complète.
+
+## Anti-patterns à éviter
+
+```kotlin
+// ❌ Ne jamais faire d'opération DB sur le main thread
+val emissions = dao.getAllEmissions()  // Crash sur Android !
+
+// ❌ Ne jamais exposer des Entity Room directement à l'UI
+data class EmissionEntity(...)  // Pas dans les Composables
+
+// ❌ Ne jamais hardcoder le chemin de la base
+val db = SQLiteDatabase.openDatabase("/data/data/.../lmelp.db", ...)
+
+// ❌ Ne pas utiliser LiveData (préférer StateFlow)
+val emissions: LiveData<List<...>> = ...
+```
+
+## Ressources
+
+- [back-office-lmelp](https://github.com/castorfou/back-office-lmelp) — source des données
+- [Jetpack Compose docs](https://developer.android.com/jetpack/compose)
+- [Room docs](https://developer.android.com/training/data-storage/room)
+- [Architecture Guide Android](https://developer.android.com/topic/architecture)

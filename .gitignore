@@ -1,0 +1,90 @@
+# ============================================================
+# Android
+# ============================================================
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Generated SQLite database (do not commit — generate with script)
+app/src/main/assets/lmelp.db
+
+# Keystore (never commit signing keys)
+*.jks
+*.keystore
+keystore.properties
+
+# APK / AAB outputs
+*.apk
+*.aab
+*.ap_
+
+# ProGuard
+proguard/
+
+# ============================================================
+# Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.env
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# MyPy cache
+.mypy_cache/
+.dmypy.json
+
+# Ruff cache
+.ruff_cache/
+
+# uv
+.uv/
+
+# ============================================================
+# Generated files
+# ============================================================
+# Debug SQLite exports
+/tmp/
+*.db
+!app/src/main/assets/*.db.sha256  # Keep checksum files if used
+
+# ============================================================
+# IDE
+# ============================================================
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+
+# ============================================================
+# OS
+# ============================================================
+.DS_Store
+Thumbs.db
+desktop.ini
