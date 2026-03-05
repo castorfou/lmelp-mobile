@@ -134,7 +134,7 @@ classmethod-decorators = ["classmethod", "pydantic.validator"]
 [tool.ruff.lint.per-file-ignores]
 # Règles spécifiques par type de fichier
 "notebooks/*.py" = ["E402", "F401", "F841"]  # Imports, unused vars OK en notebooks
-"scripts/*.py" = ["T201"]                    # print() OK dans les scripts
+"scripts/*.py" = ["T201", "ERA001"]          # print() OK, séparateurs de sections OK
 "tests/*.py" = ["S101", "PLR2004"]          # assert OK, magic values OK en tests
 
 # Configuration MyPy - Vérification de types statique
