@@ -1,5 +1,6 @@
 package com.lmelp.mobile.data.repository
 
+import androidx.sqlite.db.SimpleSQLiteQuery
 import com.lmelp.mobile.data.db.SearchDao
 import com.lmelp.mobile.data.model.SearchResultUi
 
@@ -12,7 +13,11 @@ class SearchRepository(
         val ftsQuery = query.trim().split(" ")
             .filter { it.isNotBlank() }
             .joinToString(" ") { "$it*" }
-        return searchDao.search(ftsQuery).map {
+        val sql = SimpleSQLiteQuery(
+            "SELECT type, ref_id AS refId, content FROM search_index WHERE search_index MATCH ? LIMIT 50",
+            arrayOf(ftsQuery)
+        )
+        return searchDao.searchRaw(sql).map {
             SearchResultUi(type = it.type, refId = it.refId, content = it.content)
         }
     }
