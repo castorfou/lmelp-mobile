@@ -62,36 +62,36 @@ PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS episodes (
-    id          TEXT PRIMARY KEY,
+    id          TEXT NOT NULL PRIMARY KEY,
     titre       TEXT NOT NULL,
     date        TEXT,
     description TEXT,
     url         TEXT,
     duree       INTEGER,
-    masked      INTEGER DEFAULT 0
+    masked      INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS emissions (
-    id           TEXT PRIMARY KEY,
+    id           TEXT NOT NULL PRIMARY KEY,
     episode_id   TEXT NOT NULL,
     date         TEXT NOT NULL,
     duree        INTEGER,
     animateur_id TEXT,
-    nb_avis      INTEGER DEFAULT 0,
-    has_summary  INTEGER DEFAULT 0,
+    nb_avis      INTEGER NOT NULL DEFAULT 0,
+    has_summary  INTEGER NOT NULL DEFAULT 0,
     created_at   TEXT,
     updated_at   TEXT,
     FOREIGN KEY (episode_id) REFERENCES episodes(id)
 );
 
 CREATE TABLE IF NOT EXISTS auteurs (
-    id          TEXT PRIMARY KEY,
+    id          TEXT NOT NULL PRIMARY KEY,
     nom         TEXT NOT NULL,
     url_babelio TEXT
 );
 
 CREATE TABLE IF NOT EXISTS livres (
-    id          TEXT PRIMARY KEY,
+    id          TEXT NOT NULL PRIMARY KEY,
     titre       TEXT NOT NULL,
     auteur_id   TEXT,
     auteur_nom  TEXT,
@@ -103,14 +103,14 @@ CREATE TABLE IF NOT EXISTS livres (
 );
 
 CREATE TABLE IF NOT EXISTS critiques (
-    id        TEXT PRIMARY KEY,
+    id        TEXT NOT NULL PRIMARY KEY,
     nom       TEXT NOT NULL,
-    animateur INTEGER DEFAULT 0,
-    nb_avis   INTEGER DEFAULT 0
+    animateur INTEGER NOT NULL DEFAULT 0,
+    nb_avis   INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS avis (
-    id           TEXT PRIMARY KEY,
+    id           TEXT NOT NULL PRIMARY KEY,
     emission_id  TEXT NOT NULL,
     livre_id     TEXT NOT NULL,
     critique_id  TEXT NOT NULL,
@@ -135,25 +135,23 @@ CREATE TABLE IF NOT EXISTS emission_livres (
 );
 
 CREATE TABLE IF NOT EXISTS avis_critiques (
-    id             TEXT PRIMARY KEY,
+    id             TEXT NOT NULL PRIMARY KEY,
     emission_id    TEXT,
     episode_title  TEXT,
     episode_date   TEXT,
     summary        TEXT,
     animateur      TEXT,
-    critiques_json TEXT,
-    FOREIGN KEY (emission_id) REFERENCES emissions(id)
+    critiques_json TEXT
 );
 
 CREATE TABLE IF NOT EXISTS palmares (
     rank         INTEGER NOT NULL,
-    livre_id     TEXT PRIMARY KEY,
+    livre_id     TEXT NOT NULL PRIMARY KEY,
     titre        TEXT NOT NULL,
     auteur_nom   TEXT,
     note_moyenne REAL NOT NULL,
     nb_avis      INTEGER NOT NULL,
-    nb_critiques INTEGER NOT NULL,
-    FOREIGN KEY (livre_id) REFERENCES livres(id)
+    nb_critiques INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS recommendations (
@@ -164,33 +162,24 @@ CREATE TABLE IF NOT EXISTS recommendations (
     score_hybride REAL NOT NULL,
     svd_predict   REAL,
     masque_mean   REAL,
-    masque_count  INTEGER,
-    FOREIGN KEY (livre_id) REFERENCES livres(id)
+    masque_count  INTEGER
 );
 
-CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
+CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts4(
     type,
-    ref_id UNINDEXED,
+    ref_id,
     content,
-    tokenize = 'unicode61 remove_diacritics 2'
+    notindexed=type,
+    notindexed=ref_id
 );
 
 CREATE TABLE IF NOT EXISTS db_metadata (
-    key   TEXT PRIMARY KEY,
+    key   TEXT NOT NULL PRIMARY KEY,
     value TEXT NOT NULL
 );
 
--- Indexes
-CREATE INDEX IF NOT EXISTS idx_avis_emission  ON avis(emission_id);
-CREATE INDEX IF NOT EXISTS idx_avis_livre     ON avis(livre_id);
-CREATE INDEX IF NOT EXISTS idx_avis_critique  ON avis(critique_id);
-CREATE INDEX IF NOT EXISTS idx_avis_note      ON avis(note);
-CREATE INDEX IF NOT EXISTS idx_el_emission    ON emission_livres(emission_id);
-CREATE INDEX IF NOT EXISTS idx_el_livre       ON emission_livres(livre_id);
-CREATE INDEX IF NOT EXISTS idx_livres_auteur  ON livres(auteur_id);
-CREATE INDEX IF NOT EXISTS idx_emissions_date ON emissions(date DESC);
-CREATE INDEX IF NOT EXISTS idx_palmares_rank  ON palmares(rank);
-CREATE INDEX IF NOT EXISTS idx_reco_rank      ON recommendations(rank);
+-- Index required by Room @Index annotation on EmissionLivreEntity
+CREATE INDEX IF NOT EXISTS index_emission_livres_livre_id ON emission_livres(livre_id);
 """
 
 

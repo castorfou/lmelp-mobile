@@ -14,7 +14,7 @@ data class EpisodeEntity(
     val description: String?,
     val url: String?,
     val duree: Int?,
-    val masked: Int = 0
+    @ColumnInfo(defaultValue = "0") val masked: Int = 0
 )
 
 @Entity(
@@ -31,8 +31,8 @@ data class EmissionEntity(
     val date: String,
     val duree: Int?,
     @ColumnInfo(name = "animateur_id") val animateurId: String?,
-    @ColumnInfo(name = "nb_avis") val nbAvis: Int = 0,
-    @ColumnInfo(name = "has_summary") val hasSummary: Int = 0,
+    @ColumnInfo(name = "nb_avis", defaultValue = "0") val nbAvis: Int = 0,
+    @ColumnInfo(name = "has_summary", defaultValue = "0") val hasSummary: Int = 0,
     @ColumnInfo(name = "created_at") val createdAt: String?,
     @ColumnInfo(name = "updated_at") val updatedAt: String?
 )
@@ -67,8 +67,8 @@ data class LivreEntity(
 data class CritiqueEntity(
     @PrimaryKey val id: String,
     val nom: String,
-    val animateur: Int = 0,
-    @ColumnInfo(name = "nb_avis") val nbAvis: Int = 0
+    @ColumnInfo(defaultValue = "0") val animateur: Int = 0,
+    @ColumnInfo(name = "nb_avis", defaultValue = "0") val nbAvis: Int = 0
 )
 
 @Entity(

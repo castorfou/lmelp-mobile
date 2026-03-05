@@ -1,5 +1,6 @@
 package com.lmelp.mobile.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -40,9 +41,12 @@ class EmissionsViewModel(private val repository: EmissionsRepository) : ViewMode
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
+                Log.d("EmissionsVM", "Loading emissions...")
                 val emissions = repository.getAllEmissions()
+                Log.d("EmissionsVM", "Loaded ${emissions.size} emissions")
                 _uiState.update { it.copy(isLoading = false, emissions = emissions) }
             } catch (e: Exception) {
+                Log.e("EmissionsVM", "Error loading emissions: ${e.message}", e)
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
         }

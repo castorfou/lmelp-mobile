@@ -1,6 +1,7 @@
 package com.lmelp.mobile.data.db
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -51,15 +52,24 @@ abstract class LmelpDatabase : RoomDatabase() {
 
         fun getInstance(context: Context): LmelpDatabase {
             return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    LmelpDatabase::class.java,
-                    "lmelp.db"
-                )
-                    .createFromAsset("lmelp.db")
-                    .fallbackToDestructiveMigration()
-                    .build()
-                    .also { INSTANCE = it }
+                INSTANCE ?: try {
+                    Log.d("LmelpDB", "Building database instance...")
+                    Room.databaseBuilder(
+                        context.applicationContext,
+                        LmelpDatabase::class.java,
+                        "lmelp.db"
+                    )
+                        .createFromAsset("lmelp.db")
+                        .fallbackToDestructiveMigration()
+                        .build()
+                        .also {
+                            INSTANCE = it
+                            Log.d("LmelpDB", "Database instance created successfully")
+                        }
+                } catch (e: Exception) {
+                    Log.e("LmelpDB", "Failed to create database: ${e.message}", e)
+                    throw e
+                }
             }
         }
     }
