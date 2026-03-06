@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.lmelp.mobile.data.model.RecommendationUi
 import com.lmelp.mobile.data.repository.RecommendationsRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +34,7 @@ class RecommendationsViewModel(private val repository: RecommendationsRepository
                 val recommendations = repository.getAllRecommendations()
                 _uiState.update { it.copy(isLoading = false, recommendations = recommendations) }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
         }

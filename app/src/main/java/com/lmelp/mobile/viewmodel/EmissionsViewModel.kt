@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.lmelp.mobile.data.model.EmissionDetailUi
 import com.lmelp.mobile.data.model.EmissionUi
 import com.lmelp.mobile.data.repository.EmissionsRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,6 +47,7 @@ class EmissionsViewModel(private val repository: EmissionsRepository) : ViewMode
                 Log.d("EmissionsVM", "Loaded ${emissions.size} emissions")
                 _uiState.update { it.copy(isLoading = false, emissions = emissions) }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Log.e("EmissionsVM", "Error loading emissions: ${e.message}", e)
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
@@ -59,6 +61,7 @@ class EmissionsViewModel(private val repository: EmissionsRepository) : ViewMode
                 val detail = repository.getEmissionDetail(emissionId)
                 _detailState.update { it.copy(isLoading = false, emission = detail) }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _detailState.update { it.copy(isLoading = false, error = e.message) }
             }
         }

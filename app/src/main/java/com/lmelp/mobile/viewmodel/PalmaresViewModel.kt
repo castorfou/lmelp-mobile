@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.lmelp.mobile.data.model.PalmaresUi
 import com.lmelp.mobile.data.repository.PalmaresRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +34,7 @@ class PalmaresViewModel(private val repository: PalmaresRepository) : ViewModel(
                 val palmares = repository.getAllPalmares()
                 _uiState.update { it.copy(isLoading = false, palmares = palmares) }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
         }

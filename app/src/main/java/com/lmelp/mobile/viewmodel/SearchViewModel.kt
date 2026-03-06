@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.lmelp.mobile.data.model.SearchResultUi
 import com.lmelp.mobile.data.repository.SearchRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,6 +42,7 @@ class SearchViewModel(private val repository: SearchRepository) : ViewModel() {
                 val results = repository.search(query)
                 _uiState.update { it.copy(isLoading = false, results = results) }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
         }

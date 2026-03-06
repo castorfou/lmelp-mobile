@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.lmelp.mobile.data.model.CritiqueUi
 import com.lmelp.mobile.data.repository.CritiquesRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +34,7 @@ class CritiquesViewModel(private val repository: CritiquesRepository) : ViewMode
                 val critiques = repository.getAllCritiques()
                 _uiState.update { it.copy(isLoading = false, critiques = critiques) }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
         }
