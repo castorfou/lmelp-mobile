@@ -973,6 +973,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
+    { name = "cruft" },
     { name = "gitpython" },
     { name = "ipykernel" },
     { name = "ipywidgets" },
@@ -1010,6 +1011,7 @@ dev = [
 requires-dist = [
     { name = "click", specifier = ">=8.1" },
     { name = "click", marker = "extra == 'dev'", specifier = "==8.2.1" },
+    { name = "cruft", specifier = ">=2.16.0" },
     { name = "cruft", marker = "extra == 'dev'" },
     { name = "gitpython" },
     { name = "ipykernel" },
