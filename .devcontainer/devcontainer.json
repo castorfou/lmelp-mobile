@@ -16,7 +16,9 @@
         "PYTHONPATH": "/workspaces/lmelp-mobile/src",
         "UV_VENV_CLEAR": "1",
         "UV_LINK_MODE": "copy",
-        "TZ": "${localEnv:TZ}"
+        "TZ": "${localEnv:TZ}",
+        "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
+        "ANDROID_HOME": "/home/vscode/android-sdk"
     },
 
     "customizations": {

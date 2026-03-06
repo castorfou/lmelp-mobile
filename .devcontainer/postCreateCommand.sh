@@ -176,11 +176,57 @@ Features: ruff, mypy, pre-commit hooks"
     echo "Configuration Git terminée"
 }
 
+# Installation Java 17 et Android SDK
+setup_android_dev() {
+    echo "Configuration de l'environnement Android..."
+
+    # Java 17
+    echo "Installation de OpenJDK 17..."
+    sudo apt-get install -y -qq openjdk-17-jdk
+    export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+
+    # Android SDK command-line tools
+    ANDROID_HOME=/home/vscode/android-sdk
+    CMDLINE_TOOLS_VERSION="11076708"
+    CMDLINE_TOOLS_ZIP="commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip"
+
+    echo "Téléchargement des Android command-line tools..."
+    mkdir -p "$ANDROID_HOME/cmdline-tools"
+    curl -sSL "https://dl.google.com/android/repository/${CMDLINE_TOOLS_ZIP}" \
+        -o "/tmp/${CMDLINE_TOOLS_ZIP}"
+    unzip -q "/tmp/${CMDLINE_TOOLS_ZIP}" -d "$ANDROID_HOME/cmdline-tools"
+    mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+    rm "/tmp/${CMDLINE_TOOLS_ZIP}"
+
+    export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+    # Accepter les licences et installer les composants nécessaires
+    echo "Installation des composants Android SDK (platform 35, build-tools 35.0.0)..."
+    yes | sdkmanager --licenses > /dev/null 2>&1 || true
+    sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+    # Persistance des variables d'environnement
+    for shell_config in "$HOME/.bashrc" "$HOME/.zshrc"; do
+        if [[ -f "$shell_config" ]]; then
+            grep -q "JAVA_HOME" "$shell_config" || cat >> "$shell_config" <<'ENVEOF'
+
+# Android dev environment
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export ANDROID_HOME=/home/vscode/android-sdk
+export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+ENVEOF
+        fi
+    done
+
+    echo "✅ Environnement Android configuré (Java 17 + SDK 35)"
+}
+
 # Exécution des étapes
 update_system
 ensure_uv
 create_python_environment
 setup_git
+setup_android_dev
 
 echo ""
 echo "=================================================================="
