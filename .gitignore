@@ -17,8 +17,8 @@
 .cxx
 local.properties
 
-# Generated SQLite database (do not commit — generate with script)
-app/src/main/assets/lmelp.db
+# Generated SQLite database — committée pour embarquement dans l'APK (flux V1)
+# !app/src/main/assets/lmelp.db
 
 # Keystore (never commit signing keys)
 *.jks
@@ -45,6 +45,7 @@ __pycache__/
 venv/
 env/
 .env
+site
 
 # Distribution / packaging
 dist/
@@ -65,10 +66,11 @@ build/
 # ============================================================
 # Generated files
 # ============================================================
-# Debug SQLite exports
+# Debug SQLite exports (sauf la DB embarquée dans l'APK)
 /tmp/
 *.db
-!app/src/main/assets/*.db.sha256  # Keep checksum files if used
+!app/src/main/assets/lmelp.db
+!app/src/main/assets/*.db.sha256
 
 # ============================================================
 # IDE

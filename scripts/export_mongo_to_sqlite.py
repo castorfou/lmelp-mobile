@@ -25,6 +25,7 @@ from pymongo import MongoClient
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import svds
 
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -61,36 +62,36 @@ PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS episodes (
-    id          TEXT PRIMARY KEY,
+    id          TEXT NOT NULL PRIMARY KEY,
     titre       TEXT NOT NULL,
     date        TEXT,
     description TEXT,
     url         TEXT,
     duree       INTEGER,
-    masked      INTEGER DEFAULT 0
+    masked      INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS emissions (
-    id           TEXT PRIMARY KEY,
+    id           TEXT NOT NULL PRIMARY KEY,
     episode_id   TEXT NOT NULL,
     date         TEXT NOT NULL,
     duree        INTEGER,
     animateur_id TEXT,
-    nb_avis      INTEGER DEFAULT 0,
-    has_summary  INTEGER DEFAULT 0,
+    nb_avis      INTEGER NOT NULL DEFAULT 0,
+    has_summary  INTEGER NOT NULL DEFAULT 0,
     created_at   TEXT,
     updated_at   TEXT,
     FOREIGN KEY (episode_id) REFERENCES episodes(id)
 );
 
 CREATE TABLE IF NOT EXISTS auteurs (
-    id          TEXT PRIMARY KEY,
+    id          TEXT NOT NULL PRIMARY KEY,
     nom         TEXT NOT NULL,
     url_babelio TEXT
 );
 
 CREATE TABLE IF NOT EXISTS livres (
-    id          TEXT PRIMARY KEY,
+    id          TEXT NOT NULL PRIMARY KEY,
     titre       TEXT NOT NULL,
     auteur_id   TEXT,
     auteur_nom  TEXT,
@@ -102,14 +103,14 @@ CREATE TABLE IF NOT EXISTS livres (
 );
 
 CREATE TABLE IF NOT EXISTS critiques (
-    id        TEXT PRIMARY KEY,
+    id        TEXT NOT NULL PRIMARY KEY,
     nom       TEXT NOT NULL,
-    animateur INTEGER DEFAULT 0,
-    nb_avis   INTEGER DEFAULT 0
+    animateur INTEGER NOT NULL DEFAULT 0,
+    nb_avis   INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS avis (
-    id           TEXT PRIMARY KEY,
+    id           TEXT NOT NULL PRIMARY KEY,
     emission_id  TEXT NOT NULL,
     livre_id     TEXT NOT NULL,
     critique_id  TEXT NOT NULL,
@@ -134,25 +135,23 @@ CREATE TABLE IF NOT EXISTS emission_livres (
 );
 
 CREATE TABLE IF NOT EXISTS avis_critiques (
-    id             TEXT PRIMARY KEY,
+    id             TEXT NOT NULL PRIMARY KEY,
     emission_id    TEXT,
     episode_title  TEXT,
     episode_date   TEXT,
     summary        TEXT,
     animateur      TEXT,
-    critiques_json TEXT,
-    FOREIGN KEY (emission_id) REFERENCES emissions(id)
+    critiques_json TEXT
 );
 
 CREATE TABLE IF NOT EXISTS palmares (
     rank         INTEGER NOT NULL,
-    livre_id     TEXT PRIMARY KEY,
+    livre_id     TEXT NOT NULL PRIMARY KEY,
     titre        TEXT NOT NULL,
     auteur_nom   TEXT,
     note_moyenne REAL NOT NULL,
     nb_avis      INTEGER NOT NULL,
-    nb_critiques INTEGER NOT NULL,
-    FOREIGN KEY (livre_id) REFERENCES livres(id)
+    nb_critiques INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS recommendations (
@@ -163,33 +162,24 @@ CREATE TABLE IF NOT EXISTS recommendations (
     score_hybride REAL NOT NULL,
     svd_predict   REAL,
     masque_mean   REAL,
-    masque_count  INTEGER,
-    FOREIGN KEY (livre_id) REFERENCES livres(id)
+    masque_count  INTEGER
 );
 
-CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
+CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts4(
     type,
-    ref_id UNINDEXED,
+    ref_id,
     content,
-    tokenize = 'unicode61 remove_diacritics 2'
+    notindexed=type,
+    notindexed=ref_id
 );
 
 CREATE TABLE IF NOT EXISTS db_metadata (
-    key   TEXT PRIMARY KEY,
+    key   TEXT NOT NULL PRIMARY KEY,
     value TEXT NOT NULL
 );
 
--- Indexes
-CREATE INDEX IF NOT EXISTS idx_avis_emission  ON avis(emission_id);
-CREATE INDEX IF NOT EXISTS idx_avis_livre     ON avis(livre_id);
-CREATE INDEX IF NOT EXISTS idx_avis_critique  ON avis(critique_id);
-CREATE INDEX IF NOT EXISTS idx_avis_note      ON avis(note);
-CREATE INDEX IF NOT EXISTS idx_el_emission    ON emission_livres(emission_id);
-CREATE INDEX IF NOT EXISTS idx_el_livre       ON emission_livres(livre_id);
-CREATE INDEX IF NOT EXISTS idx_livres_auteur  ON livres(auteur_id);
-CREATE INDEX IF NOT EXISTS idx_emissions_date ON emissions(date DESC);
-CREATE INDEX IF NOT EXISTS idx_palmares_rank  ON palmares(rank);
-CREATE INDEX IF NOT EXISTS idx_reco_rank      ON recommendations(rank);
+-- Index required by Room @Index annotation on EmissionLivreEntity
+CREATE INDEX IF NOT EXISTS index_emission_livres_livre_id ON emission_livres(livre_id);
 """
 
 
@@ -213,9 +203,7 @@ def export_episodes(mongo_db: Any, cur: sqlite3.Cursor) -> None:
         )
         for ep in episodes
     ]
-    cur.executemany(
-        "INSERT OR REPLACE INTO episodes VALUES (?,?,?,?,?,?,?)", rows
-    )
+    cur.executemany("INSERT OR REPLACE INTO episodes VALUES (?,?,?,?,?,?,?)", rows)
     logger.info(f"  → {len(rows)} episodes")
 
 
@@ -241,26 +229,24 @@ def export_livres(
     logger.info("Exporting livres...")
     livres = list(mongo_db.livres.find({}))
     rows = []
-    for l in livres:
-        lid = str_id(l["_id"])
-        auteur_id = str_id(l["auteur_id"]) if l.get("auteur_id") else None
+    for livre in livres:
+        lid = str_id(livre["_id"])
+        auteur_id = str_id(livre["auteur_id"]) if livre.get("auteur_id") else None
         auteur_nom = auteur_noms.get(auteur_id, "") if auteur_id else ""
-        editeur = l.get("editeur") or ""
+        editeur = livre.get("editeur") or ""
         rows.append(
             (
                 lid,
-                l.get("titre", ""),
+                livre.get("titre", ""),
                 auteur_id,
                 auteur_nom,
                 editeur,
-                l.get("url_babelio"),
-                iso_date(l.get("created_at")),
-                iso_date(l.get("updated_at")),
+                livre.get("url_babelio"),
+                iso_date(livre.get("created_at")),
+                iso_date(livre.get("updated_at")),
             )
         )
-    cur.executemany(
-        "INSERT OR REPLACE INTO livres VALUES (?,?,?,?,?,?,?,?)", rows
-    )
+    cur.executemany("INSERT OR REPLACE INTO livres VALUES (?,?,?,?,?,?,?,?)", rows)
     logger.info(f"  → {len(rows)} livres")
 
 
@@ -280,9 +266,7 @@ def export_critiques(mongo_db: Any, cur: sqlite3.Cursor) -> dict[str, str]:
     return critique_noms
 
 
-def export_emissions(
-    mongo_db: Any, cur: sqlite3.Cursor
-) -> dict[str, str]:
+def export_emissions(mongo_db: Any, cur: sqlite3.Cursor) -> dict[str, str]:
     """Export emissions and return episode_oid_str → emission_id mapping."""
     logger.info("Exporting emissions...")
     emissions = list(mongo_db.emissions.find({}))
@@ -305,9 +289,7 @@ def export_emissions(
                 iso_date(e.get("updated_at")),
             )
         )
-    cur.executemany(
-        "INSERT OR REPLACE INTO emissions VALUES (?,?,?,?,?,?,?,?,?)", rows
-    )
+    cur.executemany("INSERT OR REPLACE INTO emissions VALUES (?,?,?,?,?,?,?,?,?)", rows)
     logger.info(f"  → {len(rows)} emissions")
     return episode_to_emission
 
@@ -337,7 +319,9 @@ def export_avis(
         if emission_id and livre_oid:
             emission_livres_pairs.add((emission_id, livre_oid))
 
-        critique_nom = critique_noms.get(critique_oid, a.get("critique_nom_extrait", ""))
+        critique_nom = critique_noms.get(
+            critique_oid, a.get("critique_nom_extrait", "")
+        )
 
         rows.append(
             (
@@ -355,9 +339,7 @@ def export_avis(
             )
         )
 
-    cur.executemany(
-        "INSERT OR REPLACE INTO avis VALUES (?,?,?,?,?,?,?,?,?,?,?)", rows
-    )
+    cur.executemany("INSERT OR REPLACE INTO avis VALUES (?,?,?,?,?,?,?,?,?,?,?)", rows)
 
     # Populate emission_livres junction table
     cur.executemany(
@@ -372,7 +354,9 @@ def export_avis(
         )
     """)
 
-    logger.info(f"  → {len(rows)} avis, {len(emission_livres_pairs)} emission-livre pairs")
+    logger.info(
+        f"  → {len(rows)} avis, {len(emission_livres_pairs)} emission-livre pairs"
+    )
 
 
 def export_avis_critiques(
@@ -415,9 +399,7 @@ def export_avis_critiques(
 
     # Update has_summary on emissions
     for eid in emission_ids_with_summary:
-        cur.execute(
-            "UPDATE emissions SET has_summary = 1 WHERE id = ?", (eid,)
-        )
+        cur.execute("UPDATE emissions SET has_summary = 1 WHERE id = ?", (eid,))
 
     logger.info(f"  → {len(rows)} avis_critiques")
 
@@ -475,7 +457,7 @@ def compute_recommendations(cur: sqlite3.Cursor, n_factors: int = 20) -> None:
     critique_ids = sorted({r[0] for r in rows_data})
     livre_ids = sorted({r[1] for r in rows_data})
     c_idx = {c: i for i, c in enumerate(critique_ids)}
-    l_idx = {l: i for i, l in enumerate(livre_ids)}
+    l_idx = {lid: i for i, lid in enumerate(livre_ids)}
 
     n_critiques = len(critique_ids)
     n_livres = len(livre_ids)
@@ -487,9 +469,7 @@ def compute_recommendations(cur: sqlite3.Cursor, n_factors: int = 20) -> None:
         col_idx.append(l_idx[livre_id])
         data.append(float(note))
 
-    matrix = csr_matrix(
-        (data, (row_idx, col_idx)), shape=(n_critiques, n_livres)
-    )
+    matrix = csr_matrix((data, (row_idx, col_idx)), shape=(n_critiques, n_livres))
 
     # Center by livre mean
     livre_means = np.array(matrix.mean(axis=0)).flatten()
@@ -499,8 +479,6 @@ def compute_recommendations(cur: sqlite3.Cursor, n_factors: int = 20) -> None:
     # SVD
     k = min(n_factors, min(n_critiques, n_livres) - 1)
     u, sigma, vt = svds(csr_matrix(matrix_centered), k=k)
-    predicted = u.dot(np.diag(sigma)).dot(vt) + livre_means
-
     # Global critic (average over all critiques — simulates a "new user")
     global_critic_idx = np.mean(u, axis=0)
     svd_scores = global_critic_idx.dot(np.diag(sigma)).dot(vt) + livre_means
@@ -538,8 +516,16 @@ def compute_recommendations(cur: sqlite3.Cursor, n_factors: int = 20) -> None:
     ):
         titre, auteur_nom = livre_titles.get(livre_id, ("", ""))
         rows_to_insert.append(
-            (rank, livre_id, titre, auteur_nom,
-             round(hybrid, 4), round(svd, 4), round(masque_mean, 2), masque_count)
+            (
+                rank,
+                livre_id,
+                titre,
+                auteur_nom,
+                round(hybrid, 4),
+                round(svd, 4),
+                round(masque_mean, 2),
+                masque_count,
+            )
         )
 
     cur.executemany(
@@ -627,8 +613,9 @@ def write_metadata(cur: sqlite3.Cursor) -> None:
     ]
     cur.executemany("INSERT OR REPLACE INTO db_metadata VALUES (?,?)", metadata)
 
-    # Set PRAGMA user_version for Room version detection
-    cur.execute(f"PRAGMA user_version = {version % 2147483647}")
+    # user_version = 1 (version du schéma Room — fixe, indépendant de la date d'export)
+    # La date d'export est dans db_metadata("export_date")
+    cur.execute("PRAGMA user_version = 1")
 
     logger.info(
         f"  Metadata: version={version}, date={now.strftime('%Y-%m-%d')}, "
@@ -646,13 +633,22 @@ def verify_database(db_path: Path) -> None:
     con = sqlite3.connect(db_path)
     cur = con.cursor()
 
-    tables = ["episodes", "emissions", "livres", "auteurs", "critiques",
-              "avis", "palmares", "recommendations", "avis_critiques"]
+    tables = [
+        "episodes",
+        "emissions",
+        "livres",
+        "auteurs",
+        "critiques",
+        "avis",
+        "palmares",
+        "recommendations",
+        "avis_critiques",
+    ]
 
-    click.echo(f"\n{'='*50}")
+    click.echo(f"\n{'=' * 50}")
     click.echo(f"Database: {db_path}")
     click.echo(f"Size: {db_path.stat().st_size / 1024 / 1024:.1f} MB")
-    click.echo(f"{'='*50}")
+    click.echo(f"{'=' * 50}")
     for table in tables:
         count = cur.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
         click.echo(f"  {table:<25} {count:>6} rows")
@@ -660,7 +656,7 @@ def verify_database(db_path: Path) -> None:
     meta = dict(cur.execute("SELECT key, value FROM db_metadata").fetchall())
     click.echo(f"\nExport date  : {meta.get('export_date', 'unknown')}")
     click.echo(f"Version      : {meta.get('version', 'unknown')}")
-    click.echo(f"{'='*50}\n")
+    click.echo(f"{'=' * 50}\n")
     con.close()
 
 
