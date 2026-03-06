@@ -67,7 +67,6 @@ jobs:
       # Step 3: Sign APK (requires keystore secrets)
       # ------------------------------------------------------------------
       - name: Sign APK
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         continue-on-error: true
         uses: r0adkll/sign-android-release@v1
         id: sign_app
