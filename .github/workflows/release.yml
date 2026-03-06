@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*.*.*'
+    branches-ignore:
+      - '**'
 
 jobs:
   build:
@@ -27,14 +29,17 @@ jobs:
         run: pip install pymongo numpy scipy click
 
       - name: Export MongoDB to SQLite
-        if: ${{ secrets.MONGO_URI != '' }}
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
         run: |
-          python scripts/export_mongo_to_sqlite.py \
-            --mongo-uri "$MONGO_URI" \
-            --output app/src/main/assets/lmelp.db \
-            --force
+          if [ -n "$MONGO_URI" ]; then
+            python scripts/export_mongo_to_sqlite.py \
+              --mongo-uri "$MONGO_URI" \
+              --output app/src/main/assets/lmelp.db \
+              --force
+          else
+            echo "MONGO_URI not configured, using pre-committed lmelp.db"
+          fi
 
       - name: Verify SQLite database
         run: |
@@ -64,6 +69,7 @@ jobs:
       # ------------------------------------------------------------------
       - name: Sign APK
         if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        continue-on-error: true
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
