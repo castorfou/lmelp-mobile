@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(uv pip install pre-commit -q)"
+      "Bash(git log :*)",
+      "Bash(mkdocs build --strict)"
     ]
   }
 }

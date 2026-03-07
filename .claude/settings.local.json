@@ -1,10 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(adb -s 46191FDAP00831 shell pm clear com.lmelp.mobile)",
-      "Bash(adb -s 46191FDAP00831 install -r /workspaces/lmelp-mobile/app/build/outputs/apk/debug/app-debug.apk)",
-      "Bash(gh issue view 3 --repo castorfou/lmelp-mobile)",
-      "Bash(gh issue view 3)"
+      "Bash(git add:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue develop:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run watch:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)"
     ]
   }
 }

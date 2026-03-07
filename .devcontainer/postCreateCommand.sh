@@ -206,14 +206,15 @@ setup_android_dev() {
     sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 
     # Persistance des variables d'environnement
+    PROJECT_PATH=$(pwd)
     for shell_config in "$HOME/.bashrc" "$HOME/.zshrc"; do
         if [[ -f "$shell_config" ]]; then
-            grep -q "JAVA_HOME" "$shell_config" || cat >> "$shell_config" <<'ENVEOF'
+            grep -q "JAVA_HOME" "$shell_config" || cat >> "$shell_config" <<ENVEOF
 
 # Android dev environment
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 export ANDROID_HOME=/home/vscode/android-sdk
-export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+export PATH="\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/platform-tools:$PROJECT_PATH/scripts:\$PATH"
 ENVEOF
         fi
     done

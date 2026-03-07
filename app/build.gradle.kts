@@ -1,8 +1,29 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+}
+
+// Hash court du commit git courant
+val gitCommit: String by lazy {
+    try {
+        val process = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
+            .directory(rootDir)
+            .redirectErrorStream(true)
+            .start()
+        process.inputStream.bufferedReader().readLine()?.trim() ?: "unknown"
+    } catch (e: Exception) {
+        "unknown"
+    }
+}
+
+// Date du build au format dd/MM/yy
+val buildDate: String by lazy {
+    SimpleDateFormat("dd/MM/yy").format(Date())
 }
 
 android {
@@ -17,6 +38,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
+        buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
     }
 
     buildTypes {
@@ -37,6 +61,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
