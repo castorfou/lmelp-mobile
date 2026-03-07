@@ -215,7 +215,7 @@ fun NavTilesGrid(
                     .fillMaxHeight()
             )
             NavTileItem(
-                tile = NavTile("Recherche", Icons.Default.Search, TileColorBleu, "search"),
+                tile = NavTile("Recherche", Icons.Default.Search, TileColorVert, "search"),
                 onClick = { onNavigate("search") },
                 modifier = Modifier
                     .weight(1.5f)

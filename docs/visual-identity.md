@@ -25,9 +25,9 @@ Trois couleurs issues de l'image officielle du podcast :
 
 | Nom | Hex | Source | Usage |
 |-----|-----|--------|-------|
-| Bleu | `#1565C0` | Bleu institutionnel | Émissions, Recherche |
+| Bleu | `#1565C0` | Bleu institutionnel | Émissions |
 | Bordeaux | `#A10127` | Carré France Inter | Conseils, Critiques |
-| Vert | `#00897B` | Fond derrière Rebecca Manzoni | Palmarès |
+| Vert | `#00897B` | Fond derrière Rebecca Manzoni | Palmarès, Recherche |
 
 ### Règle d'adjacence des tuiles
 
@@ -44,7 +44,7 @@ Disposition actuelle validée :
 │                 │  (bordeaux)  │
 ├──────────┬──────┴──────────────┤
 │ Critiques│     Recherche       │
-│(bordeaux)│     (bleu)          │
+│(bordeaux)│     (vert)          │
 └──────────┴─────────────────────┘
 ```
 
