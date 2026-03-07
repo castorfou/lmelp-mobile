@@ -15,7 +15,8 @@ import kotlinx.coroutines.launch
 data class PalmaresUiState(
     val isLoading: Boolean = false,
     val palmares: List<PalmaresUi> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val afficherLus: Boolean = false
 )
 
 class PalmaresViewModel(private val repository: PalmaresRepository) : ViewModel() {
@@ -27,11 +28,16 @@ class PalmaresViewModel(private val repository: PalmaresRepository) : ViewModel(
         loadPalmares()
     }
 
+    fun setAfficherLus(afficher: Boolean) {
+        _uiState.update { it.copy(afficherLus = afficher) }
+        loadPalmares()
+    }
+
     private fun loadPalmares() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val palmares = repository.getAllPalmares()
+                val palmares = repository.getPalmaresFiltres(_uiState.value.afficherLus)
                 _uiState.update { it.copy(isLoading = false, palmares = palmares) }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e

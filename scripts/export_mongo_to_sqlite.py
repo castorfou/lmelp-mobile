@@ -14,16 +14,14 @@ import json
 import logging
 import sqlite3
 import time
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import click
-import numpy as np
 from bson import ObjectId
 from pymongo import MongoClient
-from scipy.sparse import csr_matrix
-from scipy.sparse.linalg import svds
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -145,13 +143,16 @@ CREATE TABLE IF NOT EXISTS avis_critiques (
 );
 
 CREATE TABLE IF NOT EXISTS palmares (
-    rank         INTEGER NOT NULL,
-    livre_id     TEXT NOT NULL PRIMARY KEY,
-    titre        TEXT NOT NULL,
-    auteur_nom   TEXT,
-    note_moyenne REAL NOT NULL,
-    nb_avis      INTEGER NOT NULL,
-    nb_critiques INTEGER NOT NULL
+    rank                INTEGER NOT NULL,
+    livre_id            TEXT NOT NULL PRIMARY KEY,
+    titre               TEXT NOT NULL,
+    auteur_nom          TEXT,
+    note_moyenne        REAL NOT NULL,
+    nb_avis             INTEGER NOT NULL,
+    nb_critiques        INTEGER NOT NULL,
+    calibre_in_library  INTEGER NOT NULL DEFAULT 0,
+    calibre_lu          INTEGER NOT NULL DEFAULT 0,
+    calibre_rating      REAL
 );
 
 CREATE TABLE IF NOT EXISTS recommendations (
@@ -410,7 +411,7 @@ def export_avis_critiques(
 
 
 def compute_palmares(cur: sqlite3.Cursor) -> None:
-    logger.info("Computing palmares...")
+    logger.info("Computing palmares (nb_avis >= 2)...")
     cur.execute("""
         INSERT INTO palmares (rank, livre_id, titre, auteur_nom,
                               note_moyenne, nb_avis, nb_critiques)
@@ -426,10 +427,115 @@ def compute_palmares(cur: sqlite3.Cursor) -> None:
         JOIN livres l ON l.id = a.livre_id
         WHERE a.note IS NOT NULL
         GROUP BY l.id
+        HAVING COUNT(a.id) >= 2
         ORDER BY AVG(a.note) DESC
     """)
     count = cur.execute("SELECT COUNT(*) FROM palmares").fetchone()[0]
     logger.info(f"  → {count} livres in palmares")
+
+
+def _normalize_title(titre: str) -> str:
+    """Normalise un titre pour le matching : minuscules + suppression accents."""
+    nfkd = unicodedata.normalize("NFKD", titre)
+    ascii_str = nfkd.encode("ascii", "ignore").decode("ascii")
+    return ascii_str.lower().strip()
+
+
+def import_calibre_data(
+    cur: sqlite3.Cursor,
+    calibre_db_path: str,
+    virtual_library_tag: str | None = None,
+) -> None:
+    """Croise les livres du palmarès avec la bibliothèque Calibre.
+
+    Met à jour calibre_in_library, calibre_lu et calibre_rating dans palmares.
+    """
+    logger.info(f"Importing Calibre data from: {calibre_db_path}")
+
+    try:
+        cal_con = sqlite3.connect(calibre_db_path)
+        cal_con.row_factory = sqlite3.Row
+        cal_cur = cal_con.cursor()
+
+        # Trouve l'id de la colonne personnalisée 'read'
+        read_col_id: int | None = None
+        row = cal_cur.execute(
+            "SELECT id FROM custom_columns WHERE label = 'read'"
+        ).fetchone()
+        if row:
+            read_col_id = row["id"]
+            logger.info(f"  Calibre 'read' custom column id: {read_col_id}")
+        else:
+            logger.warning("  Colonne 'read' non trouvée dans Calibre")
+
+        # Charge les livres Calibre (avec filtre bibliothèque virtuelle si fourni)
+        if virtual_library_tag:
+            cal_cur.execute(
+                """
+                SELECT b.id, b.title FROM books b
+                JOIN books_tags_link btl ON b.id = btl.book
+                JOIN tags t ON btl.tag = t.id
+                WHERE t.name = ?
+            """,
+                (virtual_library_tag,),
+            )
+        else:
+            cal_cur.execute("SELECT id, title FROM books")
+
+        calibre_books = cal_cur.fetchall()
+
+        # Index Calibre : titre normalisé → id
+        calibre_index: dict[str, int] = {}
+        for book in calibre_books:
+            norm = _normalize_title(book["title"])
+            calibre_index[norm] = book["id"]
+
+        logger.info(f"  {len(calibre_index)} livres Calibre chargés")
+
+        # Palmares livres
+        palmares_rows = cur.execute("SELECT livre_id, titre FROM palmares").fetchall()
+        matched = 0
+
+        for livre_id, titre in palmares_rows:
+            norm = _normalize_title(titre)
+            calibre_id = calibre_index.get(norm)
+            if calibre_id is None:
+                continue
+
+            # Statut lu
+            calibre_lu = 0
+            if read_col_id is not None:
+                lu_row = cal_cur.execute(
+                    f"SELECT value FROM custom_column_{read_col_id} WHERE book = ?",
+                    (calibre_id,),
+                ).fetchone()
+                if lu_row and lu_row["value"]:
+                    calibre_lu = 1
+
+            # Rating
+            calibre_rating: float | None = None
+            rating_row = cal_cur.execute(
+                """SELECT r.rating FROM ratings r
+                   JOIN books_ratings_link brl ON r.id = brl.rating
+                   WHERE brl.book = ?""",
+                (calibre_id,),
+            ).fetchone()
+            if rating_row and rating_row["rating"] is not None:
+                calibre_rating = float(rating_row["rating"])
+
+            cur.execute(
+                """UPDATE palmares
+                   SET calibre_in_library = 1, calibre_lu = ?, calibre_rating = ?
+                   WHERE livre_id = ?""",
+                (calibre_lu, calibre_rating, livre_id),
+            )
+            matched += 1
+
+        cal_con.close()
+        logger.info(f"  → {matched} livres matchés avec Calibre")
+
+    except Exception as e:
+        logger.error(f"Erreur import Calibre : {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -442,6 +548,10 @@ def compute_recommendations(cur: sqlite3.Cursor, n_factors: int = 20) -> None:
     Collaborative filtering SVD sur la matrice critiques × livres.
     Score hybride : 70% SVD + 30% moyenne Masque.
     """
+    import numpy as np
+    from scipy.sparse import csr_matrix
+    from scipy.sparse.linalg import svds
+
     logger.info("Computing SVD recommendations...")
 
     # Load avis matrix
@@ -697,12 +807,25 @@ def verify_database(db_path: Path) -> None:
     show_default=True,
     help="Number of SVD factors for recommendations",
 )
+@click.option(
+    "--calibre-db",
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to Calibre metadata.db (optional, enriches palmares with lu/rating)",
+)
+@click.option(
+    "--calibre-virtual-library",
+    default=None,
+    help="Calibre virtual library tag to filter books (e.g. 'guillaume')",
+)
 def main(
     mongo_uri: str,
     output: str,
     force: bool,
     verify: str | None,
     svd_factors: int,
+    calibre_db: str | None,
+    calibre_virtual_library: str | None,
 ) -> None:
     """Export MongoDB masque_et_la_plume to SQLite for lmelp-mobile."""
 
@@ -744,6 +867,8 @@ def main(
 
     # Precalculations
     compute_palmares(cur)
+    if calibre_db:
+        import_calibre_data(cur, calibre_db, calibre_virtual_library)
     compute_recommendations(cur, n_factors=svd_factors)
     build_search_index(cur)
     update_critique_stats(cur)

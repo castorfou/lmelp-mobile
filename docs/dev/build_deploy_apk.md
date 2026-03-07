@@ -1,5 +1,7 @@
 ## build apk depuis vscode
 
+
+
 ```bash
 JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ANDROID_HOME=/home/vscode/android-sdk ./gradlew assembleDebug
 ```
@@ -33,4 +35,28 @@ deploy.sh
 
 ```bash
 ~/android-sdk/platform-tools/adb uninstall com.lmelp.mobile
+```
+
+## regenerer la DB asset
+
+`app/src/main/assets/lmelp.db`
+
+
+### sans calibre
+
+```bash
+python scripts/export_mongo_to_sqlite.py \
+  --mongo-uri mongodb://localhost:27018 \
+  --output app/src/main/assets/lmelp.db \
+  --force
+```
+### avec calibre
+
+```bash
+python scripts/export_mongo_to_sqlite.py \
+  --mongo-uri mongodb://localhost:27018 \
+  --output app/src/main/assets/lmelp.db \
+  --force \
+  --calibre-db "/home/vscode/Calibre Library/metadata.db" \
+  --calibre-virtual-library guillaume
 ```
