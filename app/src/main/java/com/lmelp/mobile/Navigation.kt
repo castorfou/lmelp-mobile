@@ -7,16 +7,19 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.lmelp.mobile.ui.about.AboutScreen
 import com.lmelp.mobile.ui.critiques.CritiquesScreen
 import com.lmelp.mobile.ui.emissions.EmissionDetailScreen
 import com.lmelp.mobile.ui.emissions.EmissionsScreen
 import com.lmelp.mobile.ui.emissions.LivreDetailScreen
+import com.lmelp.mobile.ui.home.HomeScreen
 import com.lmelp.mobile.ui.palmares.PalmaresScreen
 import com.lmelp.mobile.ui.recommendations.RecommendationsScreen
 import com.lmelp.mobile.ui.search.SearchScreen
 
 object Routes {
     const val HOME = "home"
+    const val ABOUT = "about"
     const val EMISSIONS = "emissions"
     const val EMISSION_DETAIL = "emission/{emissionId}"
     const val LIVRE_DETAIL = "livre/{livreId}"
@@ -35,7 +38,19 @@ fun LmelpNavHost(
     app: LmelpApp,
     modifier: Modifier = Modifier
 ) {
-    NavHost(navController = navController, startDestination = Routes.EMISSIONS, modifier = modifier) {
+    NavHost(navController = navController, startDestination = Routes.HOME, modifier = modifier) {
+
+        composable(Routes.HOME) {
+            HomeScreen(
+                repository = app.metadataRepository,
+                onNavigate = { route -> navController.navigate(route) },
+                onSettingsClick = { navController.navigate(Routes.ABOUT) }
+            )
+        }
+
+        composable(Routes.ABOUT) {
+            AboutScreen()
+        }
 
         composable(Routes.EMISSIONS) {
             EmissionsScreen(
