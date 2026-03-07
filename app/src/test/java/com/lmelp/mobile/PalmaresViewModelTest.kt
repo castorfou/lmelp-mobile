@@ -51,9 +51,9 @@ class PalmaresViewModelTest {
     )
 
     @Test
-    fun `par defaut afficherLus=false et palmares charges`() = runTest {
+    fun `par defaut afficherNonLus=true afficherLus=false`() = runTest {
         val dao = mock<PalmaresDao>()
-        whenever(dao.getPalmaresFiltres(afficherLus = false)).thenReturn(
+        whenever(dao.getPalmaresFiltres(afficherLus = 0, afficherNonLus = 1)).thenReturn(
             listOf(fakeEntity(1, "id1", "Livre A"), fakeEntity(2, "id2", "Livre B"))
         )
         val repo = PalmaresRepository(dao)
@@ -64,18 +64,19 @@ class PalmaresViewModelTest {
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
         assertFalse(state.afficherLus)
+        assertTrue(state.afficherNonLus)
         assertEquals(2, state.palmares.size)
         assertEquals("Livre A", state.palmares[0].titre)
         assertNull(state.error)
-        verify(dao).getPalmaresFiltres(afficherLus = false)
+        verify(dao).getPalmaresFiltres(afficherLus = 0, afficherNonLus = 1)
     }
 
     @Test
-    fun `setAfficherLus true recharge le palmares`() = runTest {
+    fun `setAfficherLus true avec afficherNonLus true affiche tout`() = runTest {
         val dao = mock<PalmaresDao>()
-        whenever(dao.getPalmaresFiltres(afficherLus = false)).thenReturn(emptyList())
-        whenever(dao.getPalmaresFiltres(afficherLus = true)).thenReturn(
-            listOf(fakeEntity(1, "id1", "Livre Lu"))
+        whenever(dao.getPalmaresFiltres(afficherLus = 0, afficherNonLus = 1)).thenReturn(emptyList())
+        whenever(dao.getPalmaresFiltres(afficherLus = 1, afficherNonLus = 1)).thenReturn(
+            listOf(fakeEntity(1, "id1", "Livre Lu"), fakeEntity(2, "id2", "Livre Non Lu"))
         )
         val repo = PalmaresRepository(dao)
         val viewModel = PalmaresViewModel(repo)
@@ -86,15 +87,36 @@ class PalmaresViewModelTest {
 
         val state = viewModel.uiState.value
         assertTrue(state.afficherLus)
-        assertEquals(1, state.palmares.size)
-        assertEquals("Livre Lu", state.palmares[0].titre)
-        verify(dao).getPalmaresFiltres(afficherLus = true)
+        assertTrue(state.afficherNonLus)
+        assertEquals(2, state.palmares.size)
+        verify(dao).getPalmaresFiltres(afficherLus = 1, afficherNonLus = 1)
+    }
+
+    @Test
+    fun `les deux filtres off retourne liste vide`() = runTest {
+        val dao = mock<PalmaresDao>()
+        whenever(dao.getPalmaresFiltres(afficherLus = 0, afficherNonLus = 1)).thenReturn(
+            listOf(fakeEntity(1, "id1", "Livre A"))
+        )
+        whenever(dao.getPalmaresFiltres(afficherLus = 0, afficherNonLus = 0)).thenReturn(emptyList())
+        val repo = PalmaresRepository(dao)
+        val viewModel = PalmaresViewModel(repo)
+        advanceUntilIdle()
+
+        viewModel.setAfficherNonLus(false)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.afficherNonLus)
+        assertFalse(state.afficherLus)
+        assertTrue(state.palmares.isEmpty())
+        verify(dao).getPalmaresFiltres(afficherLus = 0, afficherNonLus = 0)
     }
 
     @Test
     fun `error case repository throws expose erreur`() = runTest {
         val dao = mock<PalmaresDao>()
-        whenever(dao.getPalmaresFiltres(afficherLus = false)).thenThrow(RuntimeException("DB error"))
+        whenever(dao.getPalmaresFiltres(afficherLus = 0, afficherNonLus = 1)).thenThrow(RuntimeException("DB error"))
         val repo = PalmaresRepository(dao)
         val viewModel = PalmaresViewModel(repo)
 

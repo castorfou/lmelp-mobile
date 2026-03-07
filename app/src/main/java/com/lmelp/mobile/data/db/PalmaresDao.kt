@@ -16,8 +16,11 @@ interface PalmaresDao {
     @Query("""
         SELECT * FROM palmares
         WHERE nb_avis >= 2
-        AND (:afficherLus = 1 OR calibre_lu = 0)
+        AND (
+            (:afficherLus = 1 AND calibre_lu = 1)
+            OR (:afficherNonLus = 1 AND calibre_lu = 0)
+        )
         ORDER BY rank ASC
     """)
-    suspend fun getPalmaresFiltres(afficherLus: Boolean): List<PalmaresEntity>
+    suspend fun getPalmaresFiltres(afficherLus: Int, afficherNonLus: Int): List<PalmaresEntity>
 }

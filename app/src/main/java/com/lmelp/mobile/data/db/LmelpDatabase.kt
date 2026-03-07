@@ -31,7 +31,7 @@ import com.lmelp.mobile.data.model.RecommendationEntity
         AvisCritiquesEntity::class,
         DbMetadataEntity::class,
     ],
-    version = 2,
+    version = 1,
     exportSchema = false
 )
 abstract class LmelpDatabase : RoomDatabase() {

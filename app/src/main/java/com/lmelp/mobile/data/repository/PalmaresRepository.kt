@@ -12,8 +12,11 @@ class PalmaresRepository(
         return palmaresDao.getAllPalmares().map { it.toUi() }
     }
 
-    suspend fun getPalmaresFiltres(afficherLus: Boolean): List<PalmaresUi> {
-        return palmaresDao.getPalmaresFiltres(afficherLus).map { it.toUi() }
+    suspend fun getPalmaresFiltres(afficherLus: Boolean, afficherNonLus: Boolean): List<PalmaresUi> {
+        return palmaresDao.getPalmaresFiltres(
+            afficherLus = if (afficherLus) 1 else 0,
+            afficherNonLus = if (afficherNonLus) 1 else 0
+        ).map { it.toUi() }
     }
 
     private fun PalmaresEntity.toUi() = PalmaresUi(

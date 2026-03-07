@@ -1,3 +1,8 @@
+
+```bash
+build.sh && deploy.sh
+```
+
 ## build apk depuis vscode
 
 
@@ -15,6 +20,8 @@ build.sh
 ## deploy apk sur telephone
 
 **via adb**
+
+pre-requis : `adb devices` doit afficher mon telephone (et ca marche depuis devcontainer)
 
 ```bash
 # liste les telephones connectes en USB

@@ -16,7 +16,8 @@ data class PalmaresUiState(
     val isLoading: Boolean = false,
     val palmares: List<PalmaresUi> = emptyList(),
     val error: String? = null,
-    val afficherLus: Boolean = false
+    val afficherLus: Boolean = false,
+    val afficherNonLus: Boolean = true
 )
 
 class PalmaresViewModel(private val repository: PalmaresRepository) : ViewModel() {
@@ -33,11 +34,19 @@ class PalmaresViewModel(private val repository: PalmaresRepository) : ViewModel(
         loadPalmares()
     }
 
+    fun setAfficherNonLus(afficher: Boolean) {
+        _uiState.update { it.copy(afficherNonLus = afficher) }
+        loadPalmares()
+    }
+
     private fun loadPalmares() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val palmares = repository.getPalmaresFiltres(_uiState.value.afficherLus)
+                val palmares = repository.getPalmaresFiltres(
+                    afficherLus = _uiState.value.afficherLus,
+                    afficherNonLus = _uiState.value.afficherNonLus
+                )
                 _uiState.update { it.copy(isLoading = false, palmares = palmares) }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e

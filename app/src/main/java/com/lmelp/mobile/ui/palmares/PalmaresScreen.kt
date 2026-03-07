@@ -49,6 +49,7 @@ fun PalmaresScreen(
             uiState = uiState,
             onLivreClick = onLivreClick,
             onToggleLus = { viewModel.setAfficherLus(!uiState.afficherLus) },
+            onToggleNonLus = { viewModel.setAfficherNonLus(!uiState.afficherNonLus) },
             modifier = Modifier.padding(padding)
         )
     }
@@ -59,6 +60,7 @@ fun PalmaresContent(
     uiState: PalmaresUiState,
     onLivreClick: (String) -> Unit,
     onToggleLus: () -> Unit,
+    onToggleNonLus: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -69,9 +71,14 @@ fun PalmaresContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             FilterChip(
+                selected = uiState.afficherNonLus,
+                onClick = onToggleNonLus,
+                label = { Text("Non lus") }
+            )
+            FilterChip(
                 selected = uiState.afficherLus,
                 onClick = onToggleLus,
-                label = { Text("Afficher lus") }
+                label = { Text("Lus") }
             )
         }
         when {
@@ -120,11 +127,20 @@ fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
                 )
             }
             if (item.calibreInLibrary) {
-                Text(
-                    text = if (item.calibreLu) "✓" else "◯",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (item.calibreLu) Color(0xFF2E7D32) else Color.Gray
-                )
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = if (item.calibreLu) "✓" else "◯",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (item.calibreLu) Color(0xFF2E7D32) else Color.Gray
+                    )
+                    item.calibreRating?.let {
+                        Text(
+                            text = "${it.toInt()}/10",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+                }
             }
         }
     }
