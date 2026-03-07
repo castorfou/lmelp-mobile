@@ -2,3 +2,4 @@ nav:
   - A propos doc developeur: README.md
   - Outils Documentation: documentation_tools.md
   - Configuration environnement Android: setup-mobile.md
+  - Build / Deploy apk: build_deploy_apk.md
