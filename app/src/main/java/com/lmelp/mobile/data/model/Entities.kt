@@ -101,7 +101,10 @@ data class PalmaresEntity(
     @ColumnInfo(name = "auteur_nom") val auteurNom: String?,
     @ColumnInfo(name = "note_moyenne") val noteMoyenne: Double,
     @ColumnInfo(name = "nb_avis") val nbAvis: Int,
-    @ColumnInfo(name = "nb_critiques") val nbCritiques: Int
+    @ColumnInfo(name = "nb_critiques") val nbCritiques: Int,
+    @ColumnInfo(name = "calibre_in_library", defaultValue = "0") val calibreInLibrary: Int = 0,
+    @ColumnInfo(name = "calibre_lu", defaultValue = "0") val calibreLu: Int = 0,
+    @ColumnInfo(name = "calibre_rating") val calibreRating: Double? = null
 )
 
 @Entity(tableName = "recommendations")

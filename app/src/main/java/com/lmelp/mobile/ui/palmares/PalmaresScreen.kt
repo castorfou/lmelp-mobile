@@ -10,13 +10,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -38,11 +41,15 @@ fun PalmaresScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Palmarès") }) }
+        topBar = {
+            TopAppBar(title = { Text("Palmarès") })
+        }
     ) { padding ->
         PalmaresContent(
             uiState = uiState,
             onLivreClick = onLivreClick,
+            onToggleLus = { viewModel.setAfficherLus(!uiState.afficherLus) },
+            onToggleNonLus = { viewModel.setAfficherNonLus(!uiState.afficherNonLus) },
             modifier = Modifier.padding(padding)
         )
     }
@@ -52,15 +59,36 @@ fun PalmaresScreen(
 fun PalmaresContent(
     uiState: PalmaresUiState,
     onLivreClick: (String) -> Unit,
+    onToggleLus: () -> Unit,
+    onToggleNonLus: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    when {
-        uiState.isLoading -> LoadingIndicator(modifier)
-        uiState.error != null -> ErrorMessage(uiState.error, modifier)
-        uiState.palmares.isEmpty() -> EmptyState("Palmarès vide", modifier)
-        else -> LazyColumn(modifier = modifier) {
-            items(uiState.palmares, key = { it.livreId }) { item ->
-                PalmaresCard(item = item, onClick = { onLivreClick(item.livreId) })
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = uiState.afficherNonLus,
+                onClick = onToggleNonLus,
+                label = { Text("Non lus") }
+            )
+            FilterChip(
+                selected = uiState.afficherLus,
+                onClick = onToggleLus,
+                label = { Text("Lus") }
+            )
+        }
+        when {
+            uiState.isLoading -> LoadingIndicator()
+            uiState.error != null -> ErrorMessage(uiState.error)
+            uiState.palmares.isEmpty() -> EmptyState("Palmarès vide")
+            else -> LazyColumn {
+                items(uiState.palmares, key = { it.livreId }) { item ->
+                    PalmaresCard(item = item, onClick = { onLivreClick(item.livreId) })
+                }
             }
         }
     }
@@ -76,7 +104,8 @@ fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "#${item.rank}",
@@ -87,7 +116,7 @@ fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
                 Text(text = item.titre, style = MaterialTheme.typography.titleSmall)
                 item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
-            Column {
+            Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = String.format("%.2f", item.noteMoyenne),
                     style = MaterialTheme.typography.titleMedium
@@ -96,6 +125,22 @@ fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
                     text = "${item.nbAvis} avis",
                     style = MaterialTheme.typography.bodySmall
                 )
+            }
+            if (item.calibreInLibrary) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = if (item.calibreLu) "✓" else "◯",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (item.calibreLu) Color(0xFF2E7D32) else Color.Gray
+                    )
+                    item.calibreRating?.let {
+                        Text(
+                            text = "${it.toInt()}/10",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+                }
             }
         }
     }
