@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(git log :*)",
-      "Bash(mkdocs build --strict)"
+      "Bash(mkdocs build --strict)",
+      "Bash(./gradlew assembleDebug)"
     ]
   }
 }

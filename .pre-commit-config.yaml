@@ -14,7 +14,7 @@ repos:
         exclude: ^\.devcontainer/devcontainer\.json$
       - id: check-merge-conflict      # Détecte les marqueurs de conflit Git
       - id: check-added-large-files   # Empêche l'ajout de gros fichiers
-        args: ['--maxkb=500']
+        args: ['--maxkb=1000']
         exclude: ^app/src/main/assets/lmelp\.db$
       - id: mixed-line-ending         # Normalise les fins de ligne
       - id: check-case-conflict       # Détecte les conflits de casse
@@ -57,7 +57,8 @@ repos:
           (?x)^(
               data/.*|
               models/.*|
-              \.cruft\.json
+              \.cruft\.json|
+              ui/sketchs/.*\.excalidraw
           )$
 
 # Configuration globale

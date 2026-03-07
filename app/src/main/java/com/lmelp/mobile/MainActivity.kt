@@ -6,7 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
@@ -41,27 +43,34 @@ class MainActivity : ComponentActivity() {
                 val currentRoute = navBackStack?.destination?.route
 
                 val bottomNavItems = listOf(
-                    BottomNavItem("Émissions", Routes.EMISSIONS, Icons.Default.List),
+                    BottomNavItem("Accueil", Routes.HOME, Icons.Default.Home),
+                    BottomNavItem("Émissions", Routes.EMISSIONS, Icons.AutoMirrored.Filled.List),
                     BottomNavItem("Palmarès", Routes.PALMARES, Icons.Default.Star),
-                    BottomNavItem("Critiques", Routes.CRITIQUES, Icons.Default.List),
+                    BottomNavItem("Conseils", Routes.RECOMMENDATIONS, Icons.Default.Person),
                     BottomNavItem("Recherche", Routes.SEARCH, Icons.Default.Search),
-                    BottomNavItem("Recommandations", Routes.RECOMMENDATIONS, Icons.Default.Star),
                 )
 
-                val topLevelRoutes = bottomNavItems.map { it.route }
+                // La bottom nav s'affiche partout sauf sur la HomeScreen
+                val routesWithoutBottomNav = setOf(Routes.HOME)
 
                 Scaffold(
                     bottomBar = {
-                        if (currentRoute in topLevelRoutes) {
+                        if (currentRoute != null && currentRoute !in routesWithoutBottomNav) {
                             NavigationBar {
                                 bottomNavItems.forEach { item ->
                                     NavigationBarItem(
                                         selected = currentRoute == item.route,
                                         onClick = {
-                                            navController.navigate(item.route) {
-                                                popUpTo(Routes.EMISSIONS) { saveState = true }
-                                                launchSingleTop = true
-                                                restoreState = true
+                                            if (item.route == Routes.HOME) {
+                                                navController.navigate(Routes.HOME) {
+                                                    popUpTo(Routes.HOME) { inclusive = true }
+                                                }
+                                            } else {
+                                                navController.navigate(item.route) {
+                                                    popUpTo(Routes.HOME) { saveState = true }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
                                             }
                                         },
                                         icon = { Icon(item.icon, contentDescription = item.label) },
