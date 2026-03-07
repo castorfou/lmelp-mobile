@@ -1,0 +1,10 @@
+{
+    "terminal.integrated.shellIntegration.enabled": true,
+    "python.defaultInterpreterPath": "/workspaces/lmelp-mobile/.venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "files.exclude": {
+        "**/*.egg-info": true,
+        ".venv": true,
+        "site": true
+    }
+}

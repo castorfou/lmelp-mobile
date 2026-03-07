@@ -40,10 +40,10 @@
                 "ukoloff.win-ca",
                 "ms-python.vscode-pylance",
                 "GitHub.copilot-chat",
-                "GitHub.copilot",
                 "dbaeumer.vscode-eslint",
                 "ms-python.autopep8",
-                "anthropic.claude-code"
+                "anthropic.claude-code",
+                "vscjava.vscode-gradle"
             ],
             "settings": {
                 // Configuration Python
