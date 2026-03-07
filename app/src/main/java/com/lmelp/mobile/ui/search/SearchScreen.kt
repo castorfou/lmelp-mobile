@@ -16,6 +16,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.Color
+import com.lmelp.mobile.ui.theme.LmelpVert
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -40,7 +43,12 @@ fun SearchScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Recherche") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Recherche", color = Color.White) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = LmelpVert)
+            )
+        }
     ) { padding ->
         SearchContent(
             uiState = uiState,

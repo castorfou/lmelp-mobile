@@ -15,11 +15,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.lmelp.mobile.ui.theme.LmelpVert
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,7 +44,10 @@ fun PalmaresScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Palmarès") })
+            TopAppBar(
+                title = { Text("Palmarès", color = Color.White) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = LmelpVert)
+            )
         }
     ) { padding ->
         PalmaresContent(

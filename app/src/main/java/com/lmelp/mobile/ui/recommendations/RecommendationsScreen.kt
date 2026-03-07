@@ -14,6 +14,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.Color
+import com.lmelp.mobile.ui.theme.LmelpBordeaux
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -40,7 +43,12 @@ fun RecommendationsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Recommandations") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Recommandations", color = Color.White) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = LmelpBordeaux)
+            )
+        }
     ) { padding ->
         RecommendationsContent(
             uiState = uiState,

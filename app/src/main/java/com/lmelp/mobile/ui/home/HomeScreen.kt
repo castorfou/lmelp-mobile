@@ -44,15 +44,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.R
 import com.lmelp.mobile.data.repository.MetadataRepository
+import com.lmelp.mobile.ui.theme.LmelpBleu
+import com.lmelp.mobile.ui.theme.LmelpBordeaux
+import com.lmelp.mobile.ui.theme.LmelpNightBlue
+import com.lmelp.mobile.ui.theme.LmelpNightBlueEnd
+import com.lmelp.mobile.ui.theme.LmelpVert
 import com.lmelp.mobile.viewmodel.HomeUiState
 import com.lmelp.mobile.viewmodel.HomeViewModel
-
-private val HeroBackground = Color(0xFF12192C)
-private val HeroBackgroundEnd = Color(0xFF1E2D4A)
-
-private val TileColorBleu = Color(0xFF1565C0)
-private val TileColorBordeaux = Color(0xFFA10127)
-private val TileColorVert = Color(0xFF00897B)
 
 data class NavTile(
     val label: String,
@@ -111,7 +109,7 @@ fun HeroSection(
         modifier = modifier
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(HeroBackground, HeroBackgroundEnd)
+                    colors = listOf(LmelpNightBlue, LmelpNightBlueEnd)
                 )
             )
             .padding(16.dp)
@@ -173,7 +171,7 @@ fun NavTilesGrid(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             NavTileItem(
-                tile = NavTile("Émissions", Icons.AutoMirrored.Filled.List, TileColorBleu, "emissions"),
+                tile = NavTile("Émissions", Icons.AutoMirrored.Filled.List, LmelpBleu, "emissions"),
                 onClick = { onNavigate("emissions") },
                 modifier = Modifier
                     .weight(2f)
@@ -186,14 +184,14 @@ fun NavTilesGrid(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 NavTileItem(
-                    tile = NavTile("Palmarès", Icons.Default.Star, TileColorVert, "palmares"),
+                    tile = NavTile("Palmarès", Icons.Default.Star, LmelpVert, "palmares"),
                     onClick = { onNavigate("palmares") },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                 )
                 NavTileItem(
-                    tile = NavTile("Conseils", Icons.Default.Person, TileColorBordeaux, "recommendations"),
+                    tile = NavTile("Conseils", Icons.Default.Person, LmelpBordeaux, "recommendations"),
                     onClick = { onNavigate("recommendations") },
                     modifier = Modifier
                         .weight(1f)
@@ -208,14 +206,14 @@ fun NavTilesGrid(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             NavTileItem(
-                tile = NavTile("Critiques", Icons.AutoMirrored.Filled.List, TileColorBordeaux, "critiques"),
+                tile = NavTile("Critiques", Icons.AutoMirrored.Filled.List, LmelpBordeaux, "critiques"),
                 onClick = { onNavigate("critiques") },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
             )
             NavTileItem(
-                tile = NavTile("Recherche", Icons.Default.Search, TileColorVert, "search"),
+                tile = NavTile("Recherche", Icons.Default.Search, LmelpVert, "search"),
                 onClick = { onNavigate("search") },
                 modifier = Modifier
                     .weight(1.5f)

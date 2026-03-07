@@ -8,15 +8,25 @@ import androidx.compose.ui.graphics.Color
 
 private val LmelpRed = Color(0xFFB71C1C)
 private val LmelpRedLight = Color(0xFFEF5350)
-private val LmelpBackground = Color(0xFFFAFAFA)
+
+// Bleu nuit — couleur principale du bandeau hero HomeScreen
+val LmelpNightBlue = Color(0xFF12192C)
+val LmelpNightBlueEnd = Color(0xFF1E2D4A)
+
+// Couleurs des tuiles de navigation (réutilisées dans les TopAppBar)
+val LmelpBleu = Color(0xFF1565C0)       // Émissions
+val LmelpBordeaux = Color(0xFFA10127)   // Critiques, Conseils
+val LmelpVert = Color(0xFF00897B)       // Palmarès, Recherche
 
 private val LightColors = lightColorScheme(
     primary = LmelpRed,
     onPrimary = Color.White,
     primaryContainer = LmelpRedLight,
     onPrimaryContainer = Color.White,
-    background = LmelpBackground,
-    surface = Color.White,
+    background = LmelpNightBlue,
+    surface = LmelpNightBlueEnd,
+    onBackground = Color.White,
+    onSurface = Color.White,
 )
 
 private val DarkColors = darkColorScheme(
@@ -24,6 +34,10 @@ private val DarkColors = darkColorScheme(
     onPrimary = Color.Black,
     primaryContainer = LmelpRed,
     onPrimaryContainer = Color.White,
+    background = LmelpNightBlue,
+    surface = LmelpNightBlueEnd,
+    onBackground = Color.White,
+    onSurface = Color.White,
 )
 
 @Composable

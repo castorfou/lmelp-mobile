@@ -14,9 +14,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import com.lmelp.mobile.ui.theme.LmelpBleu
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -38,7 +41,12 @@ fun EmissionsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Émissions") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Émissions", color = Color.White) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = LmelpBleu)
+            )
+        }
     ) { padding ->
         EmissionsContent(
             uiState = uiState,
