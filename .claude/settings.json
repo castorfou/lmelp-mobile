@@ -3,7 +3,9 @@
     "allow": [
       "Bash(git log :*)",
       "Bash(mkdocs build --strict)",
-      "Bash(./gradlew assembleDebug)"
+      "Bash(./gradlew assembleDebug)",
+      "Bash(./gradlew :app:compileDebugKotlin)",
+      "Bash(./gradlew :app:testDebugUnitTest)"
     ]
   }
 }

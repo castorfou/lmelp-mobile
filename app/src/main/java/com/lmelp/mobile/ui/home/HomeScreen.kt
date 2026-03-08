@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -44,15 +45,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.R
 import com.lmelp.mobile.data.repository.MetadataRepository
+import com.lmelp.mobile.ui.theme.LmelpBleu
+import com.lmelp.mobile.ui.theme.LmelpBordeaux
+import com.lmelp.mobile.ui.theme.LmelpNightBlue
+import com.lmelp.mobile.ui.theme.LmelpNightBlueEnd
+import com.lmelp.mobile.ui.theme.LmelpVert
 import com.lmelp.mobile.viewmodel.HomeUiState
 import com.lmelp.mobile.viewmodel.HomeViewModel
-
-private val HeroBackground = Color(0xFF12192C)
-private val HeroBackgroundEnd = Color(0xFF1E2D4A)
-
-private val TileColorBleu = Color(0xFF1565C0)
-private val TileColorBordeaux = Color(0xFFA10127)
-private val TileColorVert = Color(0xFF00897B)
 
 data class NavTile(
     val label: String,
@@ -111,50 +110,56 @@ fun HeroSection(
         modifier = modifier
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(HeroBackground, HeroBackgroundEnd)
+                    colors = listOf(LmelpNightBlue, LmelpNightBlueEnd)
                 )
             )
-            .padding(16.dp)
     ) {
-        IconButton(
-            onClick = onSettingsClick,
-            modifier = Modifier.align(Alignment.TopEnd)
-        ) {
-            Icon(
-                Icons.Default.Settings,
-                contentDescription = "Paramètres",
-                tint = Color.White.copy(alpha = 0.8f)
-            )
-        }
-
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, end = 40.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .statusBarsPadding()
+                .padding(16.dp)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.masque_et_la_plume),
-                contentDescription = "Le Masque et la Plume",
+            IconButton(
+                onClick = onSettingsClick,
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = "Paramètres",
+                    tint = Color.White.copy(alpha = 0.8f)
+                )
+            }
+
+            Row(
                 modifier = Modifier
-                    .size(110.dp)
-                    .padding(end = 16.dp),
-                contentScale = ContentScale.Fit
-            )
-            Column(verticalArrangement = Arrangement.Center) {
-                Text(
-                    text = "Le Masque et la Plume",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, end = 40.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.masque_et_la_plume),
+                    contentDescription = "Le Masque et la Plume",
+                    modifier = Modifier
+                        .size(110.dp)
+                        .padding(end = 16.dp),
+                    contentScale = ContentScale.Fit
                 )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "Tribune de critiques littéraires depuis 1955",
-                    color = Color.White.copy(alpha = 0.75f),
-                    fontSize = 11.sp,
-                    maxLines = 1
-                )
+                Column(verticalArrangement = Arrangement.Center) {
+                    Text(
+                        text = "Le Masque et la Plume",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "Tribune de critiques littéraires depuis 1955",
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 11.sp,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
@@ -173,7 +178,7 @@ fun NavTilesGrid(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             NavTileItem(
-                tile = NavTile("Émissions", Icons.AutoMirrored.Filled.List, TileColorBleu, "emissions"),
+                tile = NavTile("Émissions", Icons.AutoMirrored.Filled.List, LmelpBleu, "emissions"),
                 onClick = { onNavigate("emissions") },
                 modifier = Modifier
                     .weight(2f)
@@ -186,14 +191,14 @@ fun NavTilesGrid(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 NavTileItem(
-                    tile = NavTile("Palmarès", Icons.Default.Star, TileColorVert, "palmares"),
+                    tile = NavTile("Palmarès", Icons.Default.Star, LmelpVert, "palmares"),
                     onClick = { onNavigate("palmares") },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                 )
                 NavTileItem(
-                    tile = NavTile("Conseils", Icons.Default.Person, TileColorBordeaux, "recommendations"),
+                    tile = NavTile("Conseils", Icons.Default.Person, LmelpBordeaux, "recommendations"),
                     onClick = { onNavigate("recommendations") },
                     modifier = Modifier
                         .weight(1f)
@@ -208,14 +213,14 @@ fun NavTilesGrid(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             NavTileItem(
-                tile = NavTile("Critiques", Icons.AutoMirrored.Filled.List, TileColorBordeaux, "critiques"),
+                tile = NavTile("Critiques", Icons.AutoMirrored.Filled.List, LmelpBordeaux, "critiques"),
                 onClick = { onNavigate("critiques") },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
             )
             NavTileItem(
-                tile = NavTile("Recherche", Icons.Default.Search, TileColorVert, "search"),
+                tile = NavTile("Recherche", Icons.Default.Search, LmelpVert, "search"),
                 onClick = { onNavigate("search") },
                 modifier = Modifier
                     .weight(1.5f)

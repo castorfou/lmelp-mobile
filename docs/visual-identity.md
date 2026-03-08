@@ -48,6 +48,50 @@ Disposition actuelle validée :
 └──────────┴─────────────────────┘
 ```
 
+### Fond des screens
+
+| Zone | Couleur |
+|------|---------|
+| HomeScreen — hero (status bar incluse) | Dégradé `#12192C` → `#1E2D4A` |
+| HomeScreen — grille de navigation | Blanc (`Color.White`) |
+| Autres screens — TopAppBar + status bar | Couleur de la tuile correspondante |
+| Autres screens — contenu sous le bandeau | Blanc (`Color.White`) |
+
+## Implémentation Compose — status bar colorée par écran
+
+### Règle principale
+
+Le `Scaffold` racine dans `MainActivity` doit avoir `contentWindowInsets = WindowInsets(0)` pour ne pas consommer les insets avant les screens imbriqués.
+
+Chaque screen secondaire utilise :
+```kotlin
+Scaffold(
+    contentWindowInsets = WindowInsets(0),
+    topBar = {
+        TopAppBar(
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = LmelpXxx),
+            windowInsets = WindowInsets.statusBars  // colore la status bar
+        )
+    }
+)
+```
+
+### HomeScreen — hero continu derrière la status bar
+
+Box extérieure avec background (couvre status bar), Box intérieure avec `statusBarsPadding()` (décale le contenu) :
+```kotlin
+Box(modifier = modifier.background(Brush.verticalGradient(...))) {
+    Box(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp)) {
+        // contenu
+    }
+}
+```
+
+### Prérequis
+
+- `enableEdgeToEdge()` dans `MainActivity.onCreate()`
+- PAS de `android:statusBarColor` fixe dans `themes.xml`
+
 ## Typographie
 
 - Titre principal : `FontWeight.Bold`, `20.sp`, blanc
