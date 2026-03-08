@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -112,47 +113,53 @@ fun HeroSection(
                     colors = listOf(LmelpNightBlue, LmelpNightBlueEnd)
                 )
             )
-            .padding(16.dp)
     ) {
-        IconButton(
-            onClick = onSettingsClick,
-            modifier = Modifier.align(Alignment.TopEnd)
-        ) {
-            Icon(
-                Icons.Default.Settings,
-                contentDescription = "Paramètres",
-                tint = Color.White.copy(alpha = 0.8f)
-            )
-        }
-
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, end = 40.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .statusBarsPadding()
+                .padding(16.dp)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.masque_et_la_plume),
-                contentDescription = "Le Masque et la Plume",
+            IconButton(
+                onClick = onSettingsClick,
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = "Paramètres",
+                    tint = Color.White.copy(alpha = 0.8f)
+                )
+            }
+
+            Row(
                 modifier = Modifier
-                    .size(110.dp)
-                    .padding(end = 16.dp),
-                contentScale = ContentScale.Fit
-            )
-            Column(verticalArrangement = Arrangement.Center) {
-                Text(
-                    text = "Le Masque et la Plume",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, end = 40.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.masque_et_la_plume),
+                    contentDescription = "Le Masque et la Plume",
+                    modifier = Modifier
+                        .size(110.dp)
+                        .padding(end = 16.dp),
+                    contentScale = ContentScale.Fit
                 )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "Tribune de critiques littéraires depuis 1955",
-                    color = Color.White.copy(alpha = 0.75f),
-                    fontSize = 11.sp,
-                    maxLines = 1
-                )
+                Column(verticalArrangement = Arrangement.Center) {
+                    Text(
+                        text = "Le Masque et la Plume",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "Tribune de critiques littéraires depuis 1955",
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 11.sp,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }

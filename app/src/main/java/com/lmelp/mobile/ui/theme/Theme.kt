@@ -23,10 +23,10 @@ private val LightColors = lightColorScheme(
     onPrimary = Color.White,
     primaryContainer = LmelpRedLight,
     onPrimaryContainer = Color.White,
-    background = LmelpNightBlue,
-    surface = LmelpNightBlueEnd,
-    onBackground = Color.White,
-    onSurface = Color.White,
+    background = Color.White,
+    surface = Color.White,
+    onBackground = Color(0xFF1A1A1A),
+    onSurface = Color(0xFF1A1A1A),
 )
 
 private val DarkColors = darkColorScheme(
