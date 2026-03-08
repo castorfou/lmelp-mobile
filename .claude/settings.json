@@ -5,7 +5,9 @@
       "Bash(mkdocs build --strict)",
       "Bash(./gradlew assembleDebug)",
       "Bash(./gradlew :app:compileDebugKotlin)",
-      "Bash(./gradlew :app:testDebugUnitTest)"
+      "Bash(./gradlew :app:testDebugUnitTest)",
+      "Bash(./gradlew test --tests :*)",
+      "Bash(./gradlew testDebugUnitTest --tests :*)"
     ]
   }
 }
