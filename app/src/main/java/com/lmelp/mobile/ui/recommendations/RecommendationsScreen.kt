@@ -48,7 +48,7 @@ fun RecommendationsScreen(
         contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
-                title = { Text("Recommandations", color = Color.White) },
+                title = { Text("Conseils", color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = LmelpBordeaux),
                 windowInsets = WindowInsets.statusBars
             )
@@ -71,7 +71,7 @@ fun RecommendationsContent(
     when {
         uiState.isLoading -> LoadingIndicator(modifier)
         uiState.error != null -> ErrorMessage(uiState.error, modifier)
-        uiState.recommendations.isEmpty() -> EmptyState("Aucune recommandation", modifier)
+        uiState.recommendations.isEmpty() -> EmptyState("Aucun conseil disponible", modifier)
         else -> LazyColumn(modifier = modifier) {
             items(uiState.recommendations, key = { it.livreId }) { item ->
                 RecommendationCard(item = item, onClick = { onLivreClick(item.livreId) })

@@ -119,6 +119,20 @@ data class RecommendationEntity(
     @ColumnInfo(name = "masque_count") val masqueCount: Int?
 )
 
+/** Résultat du LEFT JOIN recommendations ⟕ palmares — pour le filtrage "non lus". */
+data class RecommendationAvecCalibreEntity(
+    val rank: Int,
+    @ColumnInfo(name = "livre_id") val livreId: String,
+    val titre: String,
+    @ColumnInfo(name = "auteur_nom") val auteurNom: String?,
+    @ColumnInfo(name = "score_hybride") val scoreHybride: Double,
+    @ColumnInfo(name = "svd_predict") val svdPredict: Double?,
+    @ColumnInfo(name = "masque_mean") val masqueMean: Double?,
+    @ColumnInfo(name = "masque_count") val masqueCount: Int?,
+    @ColumnInfo(name = "calibre_in_library") val calibreInLibrary: Int = 0,
+    @ColumnInfo(name = "calibre_lu") val calibreLu: Int = 0
+)
+
 @Entity(tableName = "avis_critiques")
 data class AvisCritiquesEntity(
     @PrimaryKey val id: String,

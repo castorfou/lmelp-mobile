@@ -145,6 +145,8 @@ CREATE TABLE palmares (
 
 **Table précalculée** à l'export. Recommandations SVD collaborative filtering.
 
+> **Filtrage dans l'app** : l'écran Conseils effectue un LEFT JOIN avec `palmares` pour exclure les livres déjà lus (`calibre_in_library = 1 AND calibre_lu = 1`). Voir `RecommendationsDao.getRecommandationsNonLues()`.
+
 ```sql
 CREATE TABLE recommendations (
     rank            INTEGER NOT NULL,   -- Rang de recommandation
