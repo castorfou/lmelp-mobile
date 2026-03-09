@@ -30,6 +30,7 @@ import com.lmelp.mobile.data.repository.RecommendationsRepository
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
+import com.lmelp.mobile.ui.components.NoteBadge
 import com.lmelp.mobile.viewmodel.RecommendationsUiState
 import com.lmelp.mobile.viewmodel.RecommendationsViewModel
 
@@ -101,12 +102,7 @@ fun RecommendationCard(item: RecommendationUi, onClick: () -> Unit) {
                 Text(text = item.titre, style = MaterialTheme.typography.titleSmall)
                 item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
-            item.masqueMean?.let {
-                Text(
-                    text = String.format("%.1f", it),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            item.masqueMean?.let { NoteBadge(note = it) }
         }
     }
 }

@@ -29,6 +29,7 @@ import com.lmelp.mobile.data.repository.LivresRepository
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
+import com.lmelp.mobile.ui.components.NoteBadge
 import com.lmelp.mobile.viewmodel.LivreDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,12 +105,7 @@ fun AvisCard(avis: AvisUi) {
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f)
                 )
-                avis.note?.let {
-                    Text(
-                        text = String.format("%.1f/10", it),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                avis.note?.let { NoteBadge(note = it) }
             }
             avis.commentaire?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))

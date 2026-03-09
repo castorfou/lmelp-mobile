@@ -32,6 +32,7 @@ import com.lmelp.mobile.data.repository.PalmaresRepository
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
+import com.lmelp.mobile.ui.components.NoteBadge
 import com.lmelp.mobile.viewmodel.PalmaresUiState
 import com.lmelp.mobile.viewmodel.PalmaresViewModel
 
@@ -126,10 +127,7 @@ fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
                 item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = String.format("%.2f", item.noteMoyenne),
-                    style = MaterialTheme.typography.titleMedium
-                )
+                NoteBadge(note = item.noteMoyenne)
                 Text(
                     text = "${item.nbAvis} avis",
                     style = MaterialTheme.typography.bodySmall
