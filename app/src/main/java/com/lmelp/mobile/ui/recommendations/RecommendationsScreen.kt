@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -74,15 +74,15 @@ fun RecommendationsContent(
         uiState.error != null -> ErrorMessage(uiState.error, modifier)
         uiState.recommendations.isEmpty() -> EmptyState("Aucun conseil disponible", modifier)
         else -> LazyColumn(modifier = modifier) {
-            items(uiState.recommendations, key = { it.livreId }) { item ->
-                RecommendationCard(item = item, onClick = { onLivreClick(item.livreId) })
+            itemsIndexed(uiState.recommendations, key = { _, item -> item.livreId }) { index, item ->
+                RecommendationCard(item = item, displayRank = index + 1, onClick = { onLivreClick(item.livreId) })
             }
         }
     }
 }
 
 @Composable
-fun RecommendationCard(item: RecommendationUi, onClick: () -> Unit) {
+fun RecommendationCard(item: RecommendationUi, displayRank: Int, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -94,7 +94,7 @@ fun RecommendationCard(item: RecommendationUi, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "#${item.rank}",
+                text = "#$displayRank",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
