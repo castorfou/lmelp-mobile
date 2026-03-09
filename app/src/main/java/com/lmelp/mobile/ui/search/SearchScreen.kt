@@ -78,7 +78,7 @@ fun SearchContent(
             onSearch = {},
             active = false,
             onActiveChange = {},
-            placeholder = { Text("Rechercher un livre, auteur, émission...") },
+            placeholder = { Text("Rechercher un livre, auteur, critique...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
         ) {}
