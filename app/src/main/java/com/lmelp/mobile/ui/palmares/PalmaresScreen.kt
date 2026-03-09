@@ -126,13 +126,6 @@ fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
                 Text(text = item.titre, style = MaterialTheme.typography.titleSmall)
                 item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
-            Column(horizontalAlignment = Alignment.End) {
-                NoteBadge(note = item.noteMoyenne)
-                Text(
-                    text = "${item.nbAvis} avis",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
             if (item.calibreInLibrary) {
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
@@ -140,14 +133,23 @@ fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (item.calibreLu) Color(0xFF2E7D32) else Color.Gray
                     )
-                    item.calibreRating?.let {
-                        Text(
-                            text = "${it.toInt()}/10",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF2E7D32)
-                        )
+                    if (item.calibreLu) {
+                        item.calibreRating?.let {
+                            Text(
+                                text = "${it.toInt()}/10",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
                     }
                 }
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                NoteBadge(note = item.noteMoyenne)
+                Text(
+                    text = "${item.nbAvis} avis",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }
