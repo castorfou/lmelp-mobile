@@ -8,7 +8,7 @@ class RecommendationsRepository(
 ) {
 
     suspend fun getAllRecommendations(): List<RecommendationUi> {
-        return recommendationsDao.getAllRecommendations().map {
+        return recommendationsDao.getRecommandationsNonLues().map {
             RecommendationUi(
                 rank = it.rank,
                 livreId = it.livreId,
