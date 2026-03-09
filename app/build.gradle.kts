@@ -26,6 +26,25 @@ val buildDate: String by lazy {
     SimpleDateFormat("dd/MM/yy").format(Date())
 }
 
+// Changelog des N derniers commits (hors merges), format "hash|message|date" séparé par \n
+val gitChangelog: String by lazy {
+    try {
+        val process = ProcessBuilder(
+            "git", "log",
+            "--pretty=format:%h|%s|%ad",
+            "--date=format:%d/%m/%y",
+            "--no-merges", "-30"
+        ).directory(rootDir).redirectErrorStream(true).start()
+        process.inputStream.bufferedReader().readText().trim()
+            .replace("\\", "\\\\")   // échapper les backslashes
+            .replace("\"", "\\\"")   // échapper les guillemets
+            .replace("\n", "\\n")    // transformer les sauts de ligne réels en \n littéral
+            .replace("\r", "")       // supprimer les CR éventuels
+    } catch (e: Exception) {
+        ""
+    }
+}
+
 android {
     namespace = "com.lmelp.mobile"
     compileSdk = 35
@@ -41,6 +60,7 @@ android {
 
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
         buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
+        buildConfigField("String", "CHANGELOG", "\"$gitChangelog\"")
     }
 
     buildTypes {
