@@ -14,7 +14,7 @@ class SearchRepository(
             .filter { it.isNotBlank() }
             .joinToString(" ") { "$it*" }
         val sql = SimpleSQLiteQuery(
-            "SELECT type, ref_id AS refId, content FROM search_index WHERE search_index MATCH ? LIMIT 50",
+            "SELECT type, ref_id AS refId, content FROM search_index WHERE search_index MATCH ? AND type IN ('livre', 'auteur', 'critique') LIMIT 50",
             arrayOf(ftsQuery)
         )
         return searchDao.searchRaw(sql).map {
