@@ -1,5 +1,6 @@
 nav:
   - Accueil: index.md
   - Identité Visuelle: visual-identity.md
+  - Schéma des données: data-schema.md
   - Guide Utilisateur: user
   - Guide Développeur: dev
