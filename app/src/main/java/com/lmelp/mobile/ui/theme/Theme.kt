@@ -18,6 +18,31 @@ val LmelpBleu = Color(0xFF1565C0)       // Émissions
 val LmelpBordeaux = Color(0xFFA10127)   // Critiques, Conseils
 val LmelpVert = Color(0xFF00897B)       // Palmarès, Recherche
 
+// Codes couleur pour les notes (identiques au back-office)
+val NoteExcellent = Color(0xFF00C851)   // >= 9  : vert vif
+val NoteBien      = Color(0xFF8BC34A)   // >= 7  : vert clair
+val NoteMoyen     = Color(0xFFCDDC39)   // >= 5  : jaune-vert
+val NoteFaible    = Color(0xFFF44336)   // < 5   : rouge
+
+/** Retourne la couleur de fond du badge selon les seuils du back-office. */
+fun couleurNote(note: Double): Color = when {
+    note >= 9.0 -> NoteExcellent
+    note >= 7.0 -> NoteBien
+    note >= 5.0 -> NoteMoyen
+    else        -> NoteFaible
+}
+
+/** Retourne la couleur du texte sur le badge : noir pour le jaune-vert (faible contraste), blanc sinon. */
+fun couleurTexteNote(note: Double): Color =
+    if (note >= 5.0 && note < 7.0) Color(0xFF333333) else Color.White
+
+/**
+ * Formate une note en supprimant le ".0" pour les entiers.
+ * Ex: 8.0 → "8", 8.5 → "8.5"
+ */
+fun formatNote(note: Double): String =
+    if (note == note.toLong().toDouble()) "${note.toLong()}" else "%.1f".format(note)
+
 private val LightColors = lightColorScheme(
     primary = LmelpRed,
     onPrimary = Color.White,
