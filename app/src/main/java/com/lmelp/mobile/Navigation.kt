@@ -1,5 +1,7 @@
 package com.lmelp.mobile
 
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -36,11 +38,19 @@ object Routes {
 fun LmelpNavHost(
     navController: NavHostController,
     app: LmelpApp,
+    swipeDirection: Int = 0,
     modifier: Modifier = Modifier
 ) {
+    val slideEnter = { slideInHorizontally { if (swipeDirection <= 0) it else -it } }
+    val slideExit = { slideOutHorizontally { if (swipeDirection <= 0) -it else it } }
+
     NavHost(navController = navController, startDestination = Routes.HOME, modifier = modifier) {
 
-        composable(Routes.HOME) {
+        composable(
+            Routes.HOME,
+            enterTransition = { slideEnter() },
+            exitTransition = { slideExit() }
+        ) {
             HomeScreen(
                 repository = app.metadataRepository,
                 onNavigate = { route -> navController.navigate(route) },
@@ -52,7 +62,11 @@ fun LmelpNavHost(
             AboutScreen()
         }
 
-        composable(Routes.EMISSIONS) {
+        composable(
+            Routes.EMISSIONS,
+            enterTransition = { slideEnter() },
+            exitTransition = { slideExit() }
+        ) {
             EmissionsScreen(
                 repository = app.emissionsRepository,
                 onEmissionClick = { navController.navigate(Routes.emissionDetail(it)) }
@@ -84,7 +98,11 @@ fun LmelpNavHost(
             )
         }
 
-        composable(Routes.PALMARES) {
+        composable(
+            Routes.PALMARES,
+            enterTransition = { slideEnter() },
+            exitTransition = { slideExit() }
+        ) {
             PalmaresScreen(
                 repository = app.palmaresRepository,
                 onLivreClick = { navController.navigate(Routes.livreDetail(it)) }
@@ -95,7 +113,11 @@ fun LmelpNavHost(
             CritiquesScreen(repository = app.critiquesRepository)
         }
 
-        composable(Routes.SEARCH) {
+        composable(
+            Routes.SEARCH,
+            enterTransition = { slideEnter() },
+            exitTransition = { slideExit() }
+        ) {
             SearchScreen(
                 repository = app.searchRepository,
                 onResultClick = { type, id ->
@@ -108,7 +130,11 @@ fun LmelpNavHost(
             )
         }
 
-        composable(Routes.RECOMMENDATIONS) {
+        composable(
+            Routes.RECOMMENDATIONS,
+            enterTransition = { slideEnter() },
+            exitTransition = { slideExit() }
+        ) {
             RecommendationsScreen(
                 repository = app.recommendationsRepository,
                 onLivreClick = { navController.navigate(Routes.livreDetail(it)) }
