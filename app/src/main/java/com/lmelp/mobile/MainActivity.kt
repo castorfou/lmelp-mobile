@@ -19,6 +19,9 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -46,6 +49,7 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val navBackStack by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStack?.destination?.route
+                var swipeDirection by remember { mutableStateOf(0) }
 
                 val bottomNavItems = listOf(
                     BottomNavItem("Accueil", Routes.HOME, Icons.Default.Home),
@@ -72,6 +76,7 @@ class MainActivity : ComponentActivity() {
                 fun navigateBySwipe(direction: Int) {
                     val currentIndex = swipeRoutes.indexOf(currentRoute)
                     if (currentIndex == -1) return
+                    swipeDirection = direction
                     val targetIndex = (currentIndex - direction + swipeRoutes.size) % swipeRoutes.size
                     val targetRoute = swipeRoutes[targetIndex]
                     if (targetRoute == Routes.HOME) {
@@ -119,6 +124,7 @@ class MainActivity : ComponentActivity() {
                     LmelpNavHost(
                         navController = navController,
                         app = app,
+                        swipeDirection = swipeDirection,
                         modifier = Modifier
                             .padding(innerPadding)
                             .pointerInput(currentRoute) {
