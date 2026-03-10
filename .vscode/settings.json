@@ -1,7 +1,6 @@
 {
     "terminal.integrated.shellIntegration.enabled": true,
     "python.defaultInterpreterPath": "/workspaces/lmelp-mobile/.venv/bin/python",
-    "python.terminal.activateEnvironment": true,
     "terminal.integrated.env.linux": {
         "PATH": "/workspaces/lmelp-mobile/scripts:${env:PATH}"
     },
