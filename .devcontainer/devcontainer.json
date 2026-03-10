@@ -49,7 +49,6 @@
             "settings": {
                 // Configuration Python
                 "python.defaultInterpreterPath": "./.venv/bin/python",
-                "python.terminal.activateEnvironment": true,
                 "python.analysis.autoImportCompletions": true,
                 "python.analysis.typeCheckingMode": "basic",
 
