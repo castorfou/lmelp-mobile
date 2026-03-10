@@ -62,13 +62,17 @@ create_python_environment() {
     echo "Génération du fichier de verrouillage..."
     uv pip freeze > requirements.lock
 
-    echo "Configuration de l'activation automatique..."
-    PROJECT_PATH=$(pwd)
-    for shell_config in "$HOME/.bashrc" "$HOME/.zshrc"; do
-        if [[ -f "$shell_config" ]] && ! grep -q "source $PROJECT_PATH/.venv/bin/activate" "$shell_config"; then
-            echo "source $PROJECT_PATH/.venv/bin/activate" >> "$shell_config"
-        fi
-    done
+    # Ajout du guard d'activation dans .bashrc (une seule fois)
+    local venv_guard='if [ -f "/workspaces/lmelp-mobile/.venv/bin/activate" ] && [ -z "$VIRTUAL_ENV" ]; then'
+    if ! grep -qF "$venv_guard" "$HOME/.bashrc"; then
+        cat >> "$HOME/.bashrc" <<'BASHEOF'
+
+# Activation automatique du venv Python (une seule fois)
+if [ -f "/workspaces/lmelp-mobile/.venv/bin/activate" ] && [ -z "$VIRTUAL_ENV" ]; then
+    source /workspaces/lmelp-mobile/.venv/bin/activate
+fi
+BASHEOF
+    fi
 
     echo "Environnement Python configuré"
 }

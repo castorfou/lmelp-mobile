@@ -49,14 +49,8 @@
             "settings": {
                 // Configuration Python
                 "python.defaultInterpreterPath": "./.venv/bin/python",
-                "python.terminal.activateEnvironment": true,
-				"python.terminal.activateEnvInCurrentTerminal": true,
                 "python.analysis.autoImportCompletions": true,
                 "python.analysis.typeCheckingMode": "basic",
-				"terminal.integrated.env.linux": {
-					"VIRTUAL_ENV": "/workspaces/lmelp-mobile/.venv",
-					"PATH": "/workspaces/lmelp-mobile/.venv/bin:${env:PATH}"
-				},
 
                 // Configuration générale
                 "editor.minimap.enabled": true,
@@ -77,7 +71,12 @@
                     "**/node_modules": true
                 },
                 // Désactive l'auto-forward automatique (empêche VS Code de créer des listeners qui peuvent bloquer des ports)
-                "remote.autoForwardPorts": false
+                "remote.autoForwardPorts": false,
+
+                // Désactive l'activation automatique du venv par les extensions Python
+                // (on utilise un guard dans .bashrc à la place, pour éviter les activations multiples)
+                "python.terminal.activateEnvironment": false,
+                "python-envs.terminal.autoActivationType": "off"
             }
         }
     },
