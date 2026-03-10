@@ -50,13 +50,8 @@
                 // Configuration Python
                 "python.defaultInterpreterPath": "./.venv/bin/python",
                 "python.terminal.activateEnvironment": true,
-				"python.terminal.activateEnvInCurrentTerminal": true,
                 "python.analysis.autoImportCompletions": true,
                 "python.analysis.typeCheckingMode": "basic",
-				"terminal.integrated.env.linux": {
-					"VIRTUAL_ENV": "/workspaces/lmelp-mobile/.venv",
-					"PATH": "/workspaces/lmelp-mobile/.venv/bin:${env:PATH}"
-				},
 
                 // Configuration générale
                 "editor.minimap.enabled": true,
