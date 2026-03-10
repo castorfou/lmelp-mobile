@@ -1,5 +1,6 @@
 package com.lmelp.mobile
 
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -50,6 +52,7 @@ class MainActivity : ComponentActivity() {
                 val navBackStack by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStack?.destination?.route
                 var swipeDirection by remember { mutableStateOf(0) }
+                val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
                 val bottomNavItems = listOf(
                     BottomNavItem("Accueil", Routes.HOME, Icons.Default.Home),
@@ -114,7 +117,9 @@ class MainActivity : ComponentActivity() {
                                             }
                                         },
                                         icon = { Icon(item.icon, contentDescription = item.label) },
-                                        label = { Text(item.label) }
+                                        label = if (shouldShowLabel(isLandscape)) {
+                                            { Text(item.label) }
+                                        } else null
                                     )
                                 }
                             }
