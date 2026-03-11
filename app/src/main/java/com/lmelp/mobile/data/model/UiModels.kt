@@ -24,7 +24,9 @@ data class LivreUi(
     val id: String,
     val titre: String,
     val auteurNom: String?,
-    val editeur: String?
+    val editeur: String?,
+    val noteMoyenne: Double? = null,
+    val section: String? = null
 )
 
 data class LivreDetailUi(

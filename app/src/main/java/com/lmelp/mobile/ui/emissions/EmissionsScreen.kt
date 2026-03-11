@@ -47,6 +47,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -350,13 +355,20 @@ fun EmissionCard(emission: EmissionUi, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(text = emission.titre, style = MaterialTheme.typography.titleMedium)
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(text = emission.date.take(10), style = MaterialTheme.typography.bodySmall)
-                Text(text = "${emission.nbAvis} avis", style = MaterialTheme.typography.bodySmall)
+            val dateText = buildAnnotatedString {
+                val formatted = formatDateLong(emission.date)
+                val yearStart = formatted.lastIndexOf(' ') + 1
+                append(formatted.substring(0, yearStart))
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append(formatted.substring(yearStart))
+                }
             }
+            Text(
+                text = dateText,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                textAlign = TextAlign.End,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
