@@ -69,15 +69,11 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 # Installer dépendances
 uv pip install -e .
 
-# Export complet MongoDB → SQLite
+# ✅ Export complet MongoDB → SQLite (commande COMPLÈTE à utiliser systématiquement)
 python scripts/export_mongo_to_sqlite.py \
-  --mongo-uri mongodb://localhost:27017 \
-  --output app/src/main/assets/lmelp.db
-
-# Export avec base existante (mise à jour)
-python scripts/export_mongo_to_sqlite.py \
-  --mongo-uri mongodb://localhost:27017 \
+  --mongo-uri mongodb://localhost:27018 \
   --output app/src/main/assets/lmelp.db \
+  --calibre-db "/home/vscode/Calibre Library/metadata.db" \
   --force
 
 # Vérifier l'intégrité de la base générée
@@ -87,6 +83,29 @@ python scripts/export_mongo_to_sqlite.py \
 # Linting Python
 ruff check scripts/
 ruff format scripts/
+```
+
+### ⚠️ Règle critique : toujours inclure `--calibre-db`
+
+**Ne jamais regénérer `lmelp.db` sans `--calibre-db`.**
+
+Sans cette option, `calibre_in_library = 0` et `calibre_lu = 0` pour tous les
+livres → filtre "Lus" vide dans l'app, aucun ✓ affiché (voir issue #42).
+
+- MongoDB local : port **27018**
+- Calibre local : `/home/vscode/Calibre Library/metadata.db`
+
+Un test de non-régression dans `tests/test_lmelp_db_integrity.py` bloque la CI
+si `lmelp.db` est commité sans données Calibre.
+
+### Après regénération de lmelp.db
+
+Room met en cache la base locale au premier lancement. Si la version Room n'a
+pas changé, **désinstaller et réinstaller** l'app pour forcer la recopie :
+
+```bash
+adb uninstall com.lmelp.mobile
+./gradlew installDebug
 ```
 
 ## Architecture MVVM
