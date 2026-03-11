@@ -24,6 +24,7 @@ import com.lmelp.mobile.ui.theme.LmelpVert
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -71,11 +72,12 @@ fun SearchContent(
     onResultClick: (type: String, id: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
     Column(modifier = modifier) {
         SearchBar(
             query = uiState.query,
             onQueryChange = onQueryChange,
-            onSearch = {},
+            onSearch = { keyboardController?.hide() },
             active = false,
             onActiveChange = {},
             placeholder = { Text("Rechercher un livre, auteur, critique...") },
