@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS avis (
     auteur_nom   TEXT,
     critique_nom TEXT,
     match_phase  INTEGER,
+    section      TEXT,
     created_at   TEXT,
     FOREIGN KEY (emission_id) REFERENCES emissions(id),
     FOREIGN KEY (livre_id)    REFERENCES livres(id),
@@ -336,11 +337,14 @@ def export_avis(
                 a.get("auteur_nom_extrait"),
                 critique_nom,
                 a.get("match_phase"),
+                a.get("section"),
                 iso_date(a.get("created_at")),
             )
         )
 
-    cur.executemany("INSERT OR REPLACE INTO avis VALUES (?,?,?,?,?,?,?,?,?,?,?)", rows)
+    cur.executemany(
+        "INSERT OR REPLACE INTO avis VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", rows
+    )
 
     # Populate emission_livres junction table
     cur.executemany(
@@ -723,9 +727,9 @@ def write_metadata(cur: sqlite3.Cursor) -> None:
     ]
     cur.executemany("INSERT OR REPLACE INTO db_metadata VALUES (?,?)", metadata)
 
-    # user_version = 1 (version du schéma Room — fixe, indépendant de la date d'export)
-    # La date d'export est dans db_metadata("export_date")
-    cur.execute("PRAGMA user_version = 1")
+    # user_version = version du schéma Room — doit correspondre à @Database(version=N) dans LmelpDatabase.kt
+    # Incrémenter ici ET dans LmelpDatabase.kt à chaque modification d'un @Entity
+    cur.execute("PRAGMA user_version = 2")
 
     logger.info(
         f"  Metadata: version={version}, date={now.strftime('%Y-%m-%d')}, "

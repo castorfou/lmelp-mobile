@@ -106,6 +106,8 @@ CREATE TABLE avis (
     critique_nom    TEXT,
     -- Qualité de l'extraction
     match_phase     INTEGER,            -- 1=exact, 2=partial, 3=similarité, null=non-matché
+    -- Section dans l'émission
+    section         TEXT,               -- "programme" | "coup_de_coeur" | null
     created_at      TEXT
 );
 ```

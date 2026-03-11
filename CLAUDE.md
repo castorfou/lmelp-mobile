@@ -205,6 +205,26 @@ val db = Room.databaseBuilder(context, LmelpDatabase::class.java, "lmelp.db")
 - L'appli affiche la date du dernier export dans les paramètres
 - En cas de mismatch de version : `fallbackToDestructiveMigration()` acceptable (données readonly)
 
+### ⚠️ Erreur fréquente : "Room cannot verify the data integrity"
+
+**Symptôme :** Au lancement, l'app affiche `Erreur : Room cannot verify the data integrity. Looks like you've changed schema but forgot to update the version number.`
+
+**Cause :** Ajout/suppression/modification d'un champ dans une `@Entity` sans incrémenter la version Room.
+
+**Résolution :** Deux fichiers à synchroniser :
+
+1. `app/src/main/java/com/lmelp/mobile/data/db/LmelpDatabase.kt` — incrémenter `version` :
+```kotlin
+@Database(..., version = 2, ...)  // incrémenter
+```
+
+2. `scripts/export_mongo_to_sqlite.py` — même numéro dans `PRAGMA user_version` :
+```python
+cur.execute("PRAGMA user_version = 2")  # même valeur
+```
+
+Puis regénérer `lmelp.db` via le script d'export. `fallbackToDestructiveMigration()` gère la migration automatiquement (données readonly = OK).
+
 ## Schéma SQLite
 
 Voir [docs/data-schema.md](docs/data-schema.md) pour le schéma complet.

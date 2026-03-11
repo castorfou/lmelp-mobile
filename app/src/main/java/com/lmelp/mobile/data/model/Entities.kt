@@ -90,6 +90,7 @@ data class AvisEntity(
     @ColumnInfo(name = "auteur_nom") val auteurNom: String?,
     @ColumnInfo(name = "critique_nom") val critiqueNom: String?,
     @ColumnInfo(name = "match_phase") val matchPhase: Int?,
+    val section: String?,
     @ColumnInfo(name = "created_at") val createdAt: String?
 )
 

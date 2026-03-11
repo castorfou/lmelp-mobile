@@ -34,8 +34,12 @@ class EmissionsRepository(
     suspend fun getEmissionDetail(emissionId: String): EmissionDetailUi? {
         val emission = emissionsDao.getEmissionById(emissionId) ?: return null
         val episode = episodesDao.getEpisodeById(emission.episodeId)
+        val notesMap = livresDao.getNotesParLivreForEmission(emissionId)
+            .associate { it.livreId to Pair(it.avgNote, it.section) }
         val livres = livresDao.getLivresByEmission(emissionId).map {
-            LivreUi(id = it.id, titre = it.titre, auteurNom = it.auteurNom, editeur = it.editeur)
+            val (note, section) = notesMap[it.id] ?: Pair(null, null)
+            LivreUi(id = it.id, titre = it.titre, auteurNom = it.auteurNom,
+                editeur = it.editeur, noteMoyenne = note, section = section)
         }
         val avisCritiques = avisCritiquesDao.getByEmissionId(emissionId)
         return EmissionDetailUi(
