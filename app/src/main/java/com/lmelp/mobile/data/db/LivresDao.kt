@@ -2,6 +2,7 @@ package com.lmelp.mobile.data.db
 
 import androidx.room.ColumnInfo
 import androidx.room.Dao
+import androidx.room.Embedded
 import androidx.room.Query
 import com.lmelp.mobile.data.model.AvisEntity
 import com.lmelp.mobile.data.model.LivreEntity
@@ -11,6 +12,13 @@ data class LivreNoteSection(
     @ColumnInfo(name = "livre_id") val livreId: String,
     @ColumnInfo(name = "avg_note") val avgNote: Double?,
     val section: String?
+)
+
+/** Avis enrichi avec le titre et la date de l'émission associée. */
+data class AvisAvecEmissionRow(
+    @Embedded val avis: AvisEntity,
+    @ColumnInfo(name = "emission_titre") val emissionTitre: String?,
+    @ColumnInfo(name = "emission_date") val emissionDate: String?
 )
 
 @Dao
@@ -31,4 +39,13 @@ interface LivresDao {
 
     @Query("SELECT livre_id, AVG(note) as avg_note, section FROM avis WHERE emission_id = :emissionId GROUP BY livre_id")
     suspend fun getNotesParLivreForEmission(emissionId: String): List<LivreNoteSection>
+
+    @Query("""
+        SELECT a.*, ep.titre as emission_titre, em.date as emission_date
+        FROM avis a
+        JOIN emissions em ON em.id = a.emission_id
+        JOIN episodes ep ON ep.id = em.episode_id
+        WHERE a.livre_id = :livreId
+    """)
+    suspend fun getAvisAvecEmissionByLivre(livreId: String): List<AvisAvecEmissionRow>
 }

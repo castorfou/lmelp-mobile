@@ -29,21 +29,29 @@ data class LivreUi(
     val section: String? = null
 )
 
-data class LivreDetailUi(
-    val id: String,
-    val titre: String,
-    val auteurNom: String?,
-    val editeur: String?,
-    val urlBabelio: String?,
-    val avis: List<AvisUi>
-)
-
 data class AvisUi(
     val id: String,
     val critiqueNom: String?,
     val note: Double?,
     val commentaire: String?,
     val emissionId: String
+)
+
+data class AvisParEmissionUi(
+    val emissionId: String,
+    val emissionTitre: String?,
+    val emissionDate: String?,
+    val avis: List<AvisUi>
+)
+
+data class LivreDetailUi(
+    val id: String,
+    val titre: String,
+    val auteurNom: String?,
+    val editeur: String?,
+    val urlBabelio: String?,
+    val noteMoyenne: Double?,
+    val avisParEmission: List<AvisParEmissionUi>
 )
 
 data class PalmaresUi(
