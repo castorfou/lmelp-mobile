@@ -1,5 +1,6 @@
 package com.lmelp.mobile
 
+import com.lmelp.mobile.ui.emissions.dragFractionToMonthIndex
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -155,5 +156,41 @@ class FastScrollTest {
     @Test
     fun `drag avec un seul mois retourne 0`() {
         assertEquals(0, dragPositionToMonthIndex(0.9f, 1))
+    }
+
+    // ---- Calcul aligné fraction → index (issue #35) ----
+    //
+    // dragFractionToMonthIndex utilise (fraction * (size-1)).roundToInt()
+    // pour que position 0 → premier mois, position 1 → dernier mois,
+    // position 0.5 → mois central, aligné avec la position du pouce.
+
+    @Test
+    fun `fraction 0 avec 12 mois donne index 0`() {
+        assertEquals(0, dragFractionToMonthIndex(0f, 12))
+    }
+
+    @Test
+    fun `fraction 1 avec 12 mois donne le dernier index (11)`() {
+        assertEquals(11, dragFractionToMonthIndex(1f, 12))
+    }
+
+    @Test
+    fun `fraction 0_5 avec 11 mois donne index central (5)`() {
+        assertEquals(5, dragFractionToMonthIndex(0.5f, 11))
+    }
+
+    @Test
+    fun `fraction 0_5 avec 3 mois donne index 1 (central)`() {
+        assertEquals(1, dragFractionToMonthIndex(0.5f, 3))
+    }
+
+    @Test
+    fun `fraction quelconque avec un seul mois retourne 0`() {
+        assertEquals(0, dragFractionToMonthIndex(0.7f, 1))
+    }
+
+    @Test
+    fun `fraction 0 avec liste vide retourne 0`() {
+        assertEquals(0, dragFractionToMonthIndex(0f, 0))
     }
 }
