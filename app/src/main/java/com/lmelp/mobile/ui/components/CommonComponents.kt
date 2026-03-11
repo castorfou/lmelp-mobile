@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lmelp.mobile.ui.theme.couleurNote
@@ -56,9 +58,14 @@ fun EmptyState(message: String, modifier: Modifier = Modifier) {
  * @param suffix  Suffixe optionnel affiché après la note (ex: "/10")
  */
 @Composable
-fun NoteBadge(note: Double, suffix: String = "") {
+fun NoteBadge(
+    note: Double,
+    suffix: String = "",
+    fontSize: TextUnit = 14.sp,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(4.dp))
             .background(couleurNote(note))
             .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -67,7 +74,7 @@ fun NoteBadge(note: Double, suffix: String = "") {
             text = "${formatNote(note)}$suffix",
             color = couleurTexteNote(note),
             fontWeight = FontWeight.Bold,
-            fontSize = 14.sp
+            fontSize = fontSize
         )
     }
 }

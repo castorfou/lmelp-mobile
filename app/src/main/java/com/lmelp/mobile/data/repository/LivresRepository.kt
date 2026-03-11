@@ -1,6 +1,7 @@
 package com.lmelp.mobile.data.repository
 
 import com.lmelp.mobile.data.db.LivresDao
+import com.lmelp.mobile.data.model.AvisParEmissionUi
 import com.lmelp.mobile.data.model.AvisUi
 import com.lmelp.mobile.data.model.LivreDetailUi
 
@@ -10,22 +11,45 @@ class LivresRepository(
 
     suspend fun getLivreDetail(livreId: String): LivreDetailUi? {
         val livre = livresDao.getLivreById(livreId) ?: return null
-        val avis = livresDao.getAvisByLivre(livreId).map {
-            AvisUi(
-                id = it.id,
-                critiqueNom = it.critiqueNom,
-                note = it.note,
-                commentaire = it.commentaire,
-                emissionId = it.emissionId
-            )
-        }
+        val rows = livresDao.getAvisAvecEmissionByLivre(livreId)
+
+        val noteMoyenne = rows.mapNotNull { it.avis.note }
+            .takeIf { it.isNotEmpty() }
+            ?.average()
+
+        // Grouper par émission en conservant l'ordre (date DESC)
+        val avisParEmission = rows
+            .groupBy { it.avis.emissionId }
+            .entries
+            .sortedByDescending { (_, groupRows) -> groupRows.first().emissionDate }
+            .map { (emissionId, groupRows) ->
+                val first = groupRows.first()
+                AvisParEmissionUi(
+                    emissionId = emissionId,
+                    emissionTitre = first.emissionTitre,
+                    emissionDate = first.emissionDate,
+                    avis = groupRows
+                        .sortedBy { it.avis.critiqueNom ?: "" }
+                        .map { row ->
+                            AvisUi(
+                                id = row.avis.id,
+                                critiqueNom = row.avis.critiqueNom,
+                                note = row.avis.note,
+                                commentaire = row.avis.commentaire,
+                                emissionId = row.avis.emissionId
+                            )
+                        }
+                )
+            }
+
         return LivreDetailUi(
             id = livre.id,
             titre = livre.titre,
             auteurNom = livre.auteurNom,
             editeur = livre.editeur,
             urlBabelio = livre.urlBabelio,
-            avis = avis
+            noteMoyenne = noteMoyenne,
+            avisParEmission = avisParEmission
         )
     }
 }

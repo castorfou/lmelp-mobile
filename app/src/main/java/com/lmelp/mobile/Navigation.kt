@@ -94,7 +94,8 @@ fun LmelpNavHost(
             LivreDetailScreen(
                 livreId = livreId,
                 repository = app.livresRepository,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onEmissionClick = { navController.navigate(Routes.emissionDetail(it)) }
             )
         }
 

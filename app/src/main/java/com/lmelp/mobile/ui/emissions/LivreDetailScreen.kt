@@ -1,5 +1,7 @@
 package com.lmelp.mobile.ui.emissions
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,10 +21,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lmelp.mobile.data.model.AvisParEmissionUi
 import com.lmelp.mobile.data.model.AvisUi
 import com.lmelp.mobile.data.model.LivreDetailUi
 import com.lmelp.mobile.data.repository.LivresRepository
@@ -37,7 +43,8 @@ import com.lmelp.mobile.viewmodel.LivreDetailViewModel
 fun LivreDetailScreen(
     livreId: String,
     repository: LivresRepository,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onEmissionClick: (String) -> Unit = {}
 ) {
     val viewModel: LivreDetailViewModel = viewModel(
         factory = LivreDetailViewModel.Factory(repository, livreId)
@@ -61,6 +68,7 @@ fun LivreDetailScreen(
             uiState.error != null -> ErrorMessage(uiState.error!!, Modifier.padding(padding))
             uiState.livre != null -> LivreDetailContent(
                 livre = uiState.livre!!,
+                onEmissionClick = onEmissionClick,
                 modifier = Modifier.padding(padding)
             )
             else -> EmptyState("Livre introuvable", Modifier.padding(padding))
@@ -69,24 +77,76 @@ fun LivreDetailScreen(
 }
 
 @Composable
-fun LivreDetailContent(livre: LivreDetailUi, modifier: Modifier = Modifier) {
+fun LivreDetailContent(
+    livre: LivreDetailUi,
+    onEmissionClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     LazyColumn(modifier = modifier) {
         item {
-            Column(modifier = Modifier.padding(16.dp)) {
-                livre.auteurNom?.let {
-                    Text(it, style = MaterialTheme.typography.bodyLarge)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    livre.auteurNom?.let {
+                        Text(it, style = MaterialTheme.typography.bodyLarge)
+                    }
+                    livre.editeur?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
-                livre.editeur?.let {
-                    Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
-                }
-                if (livre.avis.isNotEmpty()) {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    Text("Avis des critiques", style = MaterialTheme.typography.titleMedium)
+                livre.noteMoyenne?.let {
+                    NoteBadge(note = it, fontSize = 32.sp, modifier = Modifier.padding(start = 8.dp))
                 }
             }
         }
-        items(livre.avis, key = { it.id }) { avis ->
-            AvisCard(avis = avis)
+        if (livre.avisParEmission.isNotEmpty()) {
+            item {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            }
+        }
+        livre.avisParEmission.forEach { groupe ->
+            item(key = "header_${groupe.emissionId}") {
+                EmissionGroupHeader(
+                    groupe = groupe,
+                    onClick = { onEmissionClick(groupe.emissionId) }
+                )
+            }
+            items(groupe.avis, key = { it.id }) { avis ->
+                AvisCard(avis = avis)
+            }
+        }
+    }
+}
+
+@Composable
+fun EmissionGroupHeader(groupe: AvisParEmissionUi, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = groupe.emissionTitre ?: groupe.emissionId,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        groupe.emissionDate?.let {
+            Text(
+                text = formatDateLong(it),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
