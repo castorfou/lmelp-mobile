@@ -44,7 +44,8 @@ fun LivreDetailScreen(
     livreId: String,
     repository: LivresRepository,
     onBack: () -> Unit,
-    onEmissionClick: (String) -> Unit = {}
+    onEmissionClick: (String) -> Unit = {},
+    onAuteurClick: (String) -> Unit = {}
 ) {
     val viewModel: LivreDetailViewModel = viewModel(
         factory = LivreDetailViewModel.Factory(repository, livreId)
@@ -69,6 +70,7 @@ fun LivreDetailScreen(
             uiState.livre != null -> LivreDetailContent(
                 livre = uiState.livre!!,
                 onEmissionClick = onEmissionClick,
+                onAuteurClick = onAuteurClick,
                 modifier = Modifier.padding(padding)
             )
             else -> EmptyState("Livre introuvable", Modifier.padding(padding))
@@ -80,6 +82,7 @@ fun LivreDetailScreen(
 fun LivreDetailContent(
     livre: LivreDetailUi,
     onEmissionClick: (String) -> Unit,
+    onAuteurClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(modifier = modifier) {
@@ -92,8 +95,18 @@ fun LivreDetailContent(
                 verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    livre.auteurNom?.let {
-                        Text(it, style = MaterialTheme.typography.bodyLarge)
+                    livre.auteurNom?.let { nom ->
+                        val auteurId = livre.auteurId
+                        Text(
+                            text = nom,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (auteurId != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            modifier = if (auteurId != null) {
+                                Modifier.clickable { onAuteurClick(auteurId) }
+                            } else {
+                                Modifier
+                            }
+                        )
                     }
                     livre.editeur?.let {
                         Text(

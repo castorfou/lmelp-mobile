@@ -45,6 +45,7 @@ class LivresRepository(
         return LivreDetailUi(
             id = livre.id,
             titre = livre.titre,
+            auteurId = livre.auteurId,
             auteurNom = livre.auteurNom,
             editeur = livre.editeur,
             urlBabelio = livre.urlBabelio,

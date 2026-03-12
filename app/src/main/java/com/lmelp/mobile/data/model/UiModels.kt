@@ -47,6 +47,7 @@ data class AvisParEmissionUi(
 data class LivreDetailUi(
     val id: String,
     val titre: String,
+    val auteurId: String?,
     val auteurNom: String?,
     val editeur: String?,
     val urlBabelio: String?,
@@ -87,6 +88,19 @@ data class SearchResultUi(
     val type: String,
     val refId: String,
     val content: String
+)
+
+data class LivreParAuteurUi(
+    val livreId: String,
+    val titre: String,
+    val noteMoyenne: Double?,
+    val derniereEmissionDate: String?
+)
+
+data class AuteurDetailUi(
+    val id: String,
+    val nom: String,
+    val livres: List<LivreParAuteurUi>
 )
 
 data class DbInfoUi(

@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.lmelp.mobile.ui.about.AboutScreen
+import com.lmelp.mobile.ui.auteurs.AuteurDetailScreen
 import com.lmelp.mobile.ui.critiques.CritiquesScreen
 import com.lmelp.mobile.ui.emissions.EmissionDetailScreen
 import com.lmelp.mobile.ui.emissions.EmissionsScreen
@@ -25,6 +26,7 @@ object Routes {
     const val EMISSIONS = "emissions"
     const val EMISSION_DETAIL = "emission/{emissionId}"
     const val LIVRE_DETAIL = "livre/{livreId}"
+    const val AUTEUR_DETAIL = "auteur/{auteurId}"
     const val PALMARES = "palmares"
     const val CRITIQUES = "critiques"
     const val SEARCH = "search"
@@ -32,6 +34,7 @@ object Routes {
 
     fun emissionDetail(emissionId: String) = "emission/$emissionId"
     fun livreDetail(livreId: String) = "livre/$livreId"
+    fun auteurDetail(auteurId: String) = "auteur/$auteurId"
 }
 
 @Composable
@@ -95,7 +98,21 @@ fun LmelpNavHost(
                 livreId = livreId,
                 repository = app.livresRepository,
                 onBack = { navController.popBackStack() },
-                onEmissionClick = { navController.navigate(Routes.emissionDetail(it)) }
+                onEmissionClick = { navController.navigate(Routes.emissionDetail(it)) },
+                onAuteurClick = { navController.navigate(Routes.auteurDetail(it)) }
+            )
+        }
+
+        composable(
+            route = Routes.AUTEUR_DETAIL,
+            arguments = listOf(navArgument("auteurId") { type = NavType.StringType })
+        ) { backStack ->
+            val auteurId = backStack.arguments?.getString("auteurId") ?: return@composable
+            AuteurDetailScreen(
+                auteurId = auteurId,
+                repository = app.auteursRepository,
+                onBack = { navController.popBackStack() },
+                onLivreClick = { navController.navigate(Routes.livreDetail(it)) }
             )
         }
 
@@ -125,6 +142,7 @@ fun LmelpNavHost(
                     when (type) {
                         "livre" -> navController.navigate(Routes.livreDetail(id))
                         "emission" -> navController.navigate(Routes.emissionDetail(id))
+                        "auteur" -> navController.navigate(Routes.auteurDetail(id))
                         else -> {}
                     }
                 }
