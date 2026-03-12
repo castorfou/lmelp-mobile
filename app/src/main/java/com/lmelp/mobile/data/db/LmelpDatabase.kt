@@ -45,6 +45,7 @@ abstract class LmelpDatabase : RoomDatabase() {
     abstract fun searchDao(): SearchDao
     abstract fun metadataDao(): MetadataDao
     abstract fun avisCritiquesDao(): AvisCritiquesDao
+    abstract fun auteursDao(): AuteursDao
 
     companion object {
         @Volatile
