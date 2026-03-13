@@ -101,6 +101,8 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.sqlite)
     ksp(libs.androidx.room.compiler)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -1,9 +1,19 @@
 package com.lmelp.mobile.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Query
 import com.lmelp.mobile.data.model.RecommendationAvecCalibreEntity
 import com.lmelp.mobile.data.model.RecommendationEntity
+
+data class RecommendationAvecUrlRow(
+    val rank: Int,
+    @ColumnInfo(name = "livre_id")      val livreId: String,
+    val titre: String,
+    @ColumnInfo(name = "auteur_nom")    val auteurNom: String?,
+    @ColumnInfo(name = "score_hybride") val scoreHybride: Double,
+    @ColumnInfo(name = "url_babelio")   val urlBabelio: String?
+)
 
 @Dao
 interface RecommendationsDao {
@@ -29,4 +39,25 @@ interface RecommendationsDao {
         ORDER BY r.rank ASC
     """)
     suspend fun getRecommandationsNonLues(): List<RecommendationAvecCalibreEntity>
+
+    @Query("""
+        SELECT r.rank, r.livre_id, r.titre, r.auteur_nom, r.score_hybride, l.url_babelio
+        FROM recommendations r
+        JOIN livres l ON l.id = r.livre_id
+        ORDER BY r.rank ASC
+        LIMIT :limit
+    """)
+    suspend fun getTopRecommendationsAvecUrl(limit: Int): List<RecommendationAvecUrlRow>
+
+    @Query("""
+        SELECT r.rank, r.livre_id, r.titre, r.auteur_nom, r.score_hybride, l.url_babelio
+        FROM recommendations r
+        JOIN livres l ON l.id = r.livre_id
+        LEFT JOIN palmares p ON r.livre_id = p.livre_id
+        WHERE COALESCE(p.calibre_in_library, 0) = 0
+           OR COALESCE(p.calibre_lu, 0) = 0
+        ORDER BY r.rank ASC
+        LIMIT :limit
+    """)
+    suspend fun getTopRecommandationsNonLuesAvecUrl(limit: Int): List<RecommendationAvecUrlRow>
 }
