@@ -5,6 +5,7 @@ import com.lmelp.mobile.data.db.LmelpDatabase
 import com.lmelp.mobile.data.repository.AuteursRepository
 import com.lmelp.mobile.data.repository.CritiquesRepository
 import com.lmelp.mobile.data.repository.EmissionsRepository
+import com.lmelp.mobile.data.repository.HomeRepository
 import com.lmelp.mobile.data.repository.LivresRepository
 import com.lmelp.mobile.data.repository.MetadataRepository
 import com.lmelp.mobile.data.repository.PalmaresRepository
@@ -30,4 +31,14 @@ class LmelpApp : Application() {
     val searchRepository by lazy { SearchRepository(database.searchDao()) }
     val metadataRepository by lazy { MetadataRepository(database.metadataDao()) }
     val auteursRepository by lazy { AuteursRepository(database.auteursDao()) }
+    val homeRepository by lazy {
+        HomeRepository(
+            database.metadataDao(),
+            database.emissionsDao(),
+            database.palmaresDao(),
+            database.livresDao(),
+            database.recommendationsDao(),
+            context = this
+        )
+    }
 }

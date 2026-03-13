@@ -1,8 +1,6 @@
 package com.lmelp.mobile
 
-import com.lmelp.mobile.data.db.MetadataDao
-import com.lmelp.mobile.data.model.DbMetadataEntity
-import com.lmelp.mobile.data.repository.MetadataRepository
+import com.lmelp.mobile.data.repository.HomeRepository
 import com.lmelp.mobile.viewmodel.HomeViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,21 +33,26 @@ class HomeViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private suspend fun HomeRepository.stubEmpty() {
+        whenever(getNbEmissions()).thenReturn("0")
+        whenever(getExportDate()).thenReturn("—")
+        whenever(getDerniereEmission()).thenReturn(null)
+        whenever(getEmissionsSlides()).thenReturn(emptyList())
+        whenever(getPalmaresSlides()).thenReturn(emptyList())
+        whenever(getConseilsSlides()).thenReturn(emptyList())
+    }
+
     @Test
     fun `uiState loads nbEmissions and exportDate from repository`() = runTest {
-        val dao = mock<MetadataDao>()
-        whenever(dao.getAllMetadata()).thenReturn(
-            listOf(
-                DbMetadataEntity("export_date", "2025-01-15"),
-                DbMetadataEntity("version", "42"),
-                DbMetadataEntity("nb_emissions", "350"),
-                DbMetadataEntity("nb_livres", "700"),
-                DbMetadataEntity("nb_avis", "3500"),
-            )
-        )
-        val repo = MetadataRepository(dao)
-        val viewModel = HomeViewModel(repo)
+        val repo = mock<HomeRepository>()
+        whenever(repo.getNbEmissions()).thenReturn("350")
+        whenever(repo.getExportDate()).thenReturn("2025-01-15")
+        whenever(repo.getDerniereEmission()).thenReturn(null)
+        whenever(repo.getEmissionsSlides()).thenReturn(emptyList())
+        whenever(repo.getPalmaresSlides()).thenReturn(emptyList())
+        whenever(repo.getConseilsSlides()).thenReturn(emptyList())
 
+        val viewModel = HomeViewModel(repo)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -61,11 +64,10 @@ class HomeViewModelTest {
 
     @Test
     fun `uiState exposes error when repository throws`() = runTest {
-        val dao = mock<MetadataDao>()
-        whenever(dao.getAllMetadata()).thenThrow(RuntimeException("DB error"))
-        val repo = MetadataRepository(dao)
-        val viewModel = HomeViewModel(repo)
+        val repo = mock<HomeRepository>()
+        whenever(repo.getNbEmissions()).thenThrow(RuntimeException("DB error"))
 
+        val viewModel = HomeViewModel(repo)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value

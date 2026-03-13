@@ -1,8 +1,18 @@
 package com.lmelp.mobile.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Query
 import com.lmelp.mobile.data.model.PalmaresEntity
+
+data class PalmaresAvecUrlRow(
+    val rank: Int,
+    @ColumnInfo(name = "livre_id")     val livreId: String,
+    val titre: String,
+    @ColumnInfo(name = "auteur_nom")   val auteurNom: String?,
+    @ColumnInfo(name = "note_moyenne") val noteMoyenne: Double,
+    @ColumnInfo(name = "url_babelio")  val urlBabelio: String?
+)
 
 @Dao
 interface PalmaresDao {
@@ -23,4 +33,15 @@ interface PalmaresDao {
         ORDER BY rank ASC
     """)
     suspend fun getPalmaresFiltres(afficherLus: Int, afficherNonLus: Int): List<PalmaresEntity>
+
+    @Query("""
+        SELECT p.rank, p.livre_id, p.titre, p.auteur_nom, p.note_moyenne, l.url_babelio
+        FROM palmares p
+        JOIN livres l ON l.id = p.livre_id
+        WHERE p.nb_avis >= 2
+          AND (COALESCE(p.calibre_in_library, 0) = 0 OR COALESCE(p.calibre_lu, 0) = 0)
+        ORDER BY p.rank ASC
+        LIMIT :limit
+    """)
+    suspend fun getTopPalmaresAvecUrl(limit: Int): List<PalmaresAvecUrlRow>
 }

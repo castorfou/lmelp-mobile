@@ -103,6 +103,21 @@ data class AuteurDetailUi(
     val livres: List<LivreParAuteurUi>
 )
 
+data class DerniereEmissionUi(
+    val titre: String,
+    val date: String
+)
+
+data class SlideItem(
+    val livreId: String,
+    val titre: String,
+    val sousTitre: String,
+    val noteMoyenne: Double? = null,
+    val date: String? = null,
+    val urlBabelio: String?,
+    val urlCouverture: String?
+)
+
 data class DbInfoUi(
     val exportDate: String,
     val version: String,

@@ -55,7 +55,7 @@ fun LmelpNavHost(
             exitTransition = { slideExit() }
         ) {
             HomeScreen(
-                repository = app.metadataRepository,
+                repository = app.homeRepository,
                 onNavigate = { route -> navController.navigate(route) },
                 onSettingsClick = { navController.navigate(Routes.ABOUT) }
             )
