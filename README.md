@@ -65,6 +65,7 @@ Voir [docs/architecture.md](docs/architecture.md) pour les détails.
 | **Détail critique** | Tous les avis d'un critique avec notes |
 | **Recherche** | Full-text search sur titres, auteurs, critiques |
 | **Recommandations** | Livres recommandés par collaborative filtering SVD |
+| **Sur ma liseuse** | Livres Calibre tagués `onkindle`, filtrés par virtual library, avec notes Masque |
 
 ### V2 — Mise à jour des données (à définir)
 
@@ -86,10 +87,12 @@ Voir [docs/architecture.md](docs/architecture.md) pour les détails.
 # Installer les dépendances Python
 uv pip install -e .
 
+# Configurer l'environnement local (une seule fois)
+cp scripts/.env.example scripts/.env
+# Éditer scripts/.env avec mongo URI, chemin Calibre, virtual library
+
 # Exporter MongoDB → SQLite
-python scripts/export_mongo_to_sqlite.py \
-  --mongo-uri mongodb://localhost:27017 \
-  --output app/src/main/assets/lmelp.db
+python scripts/export_mongo_to_sqlite.py --force
 
 # Vérifier le résultat
 python scripts/export_mongo_to_sqlite.py --verify app/src/main/assets/lmelp.db

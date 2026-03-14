@@ -8,6 +8,7 @@ import com.lmelp.mobile.data.repository.EmissionsRepository
 import com.lmelp.mobile.data.repository.HomeRepository
 import com.lmelp.mobile.data.repository.LivresRepository
 import com.lmelp.mobile.data.repository.MetadataRepository
+import com.lmelp.mobile.data.repository.OnKindleRepository
 import com.lmelp.mobile.data.repository.PalmaresRepository
 import com.lmelp.mobile.data.repository.RecommendationsRepository
 import com.lmelp.mobile.data.repository.SearchRepository
@@ -31,6 +32,7 @@ class LmelpApp : Application() {
     val searchRepository by lazy { SearchRepository(database.searchDao()) }
     val metadataRepository by lazy { MetadataRepository(database.metadataDao()) }
     val auteursRepository by lazy { AuteursRepository(database.auteursDao()) }
+    val onKindleRepository by lazy { OnKindleRepository(database.onKindleDao()) }
     val homeRepository by lazy {
         HomeRepository(
             database.metadataDao(),
@@ -38,6 +40,7 @@ class LmelpApp : Application() {
             database.palmaresDao(),
             database.livresDao(),
             database.recommendationsDao(),
+            database.onKindleDao(),
             context = this
         )
     }

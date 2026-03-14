@@ -118,6 +118,17 @@ data class SlideItem(
     val urlCouverture: String?
 )
 
+data class OnKindleUi(
+    val livreId: String,
+    val titre: String,
+    val auteurNom: String?,
+    val calibreLu: Boolean,
+    val calibreRating: Double?,
+    val noteMoyenne: Double?,
+    val nbAvis: Int,
+    val discusseAuMasque: Boolean = noteMoyenne != null
+)
+
 data class DbInfoUi(
     val exportDate: String,
     val version: String,

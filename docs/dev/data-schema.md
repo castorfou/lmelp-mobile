@@ -200,6 +200,35 @@ CREATE VIRTUAL TABLE search_index USING fts5(
 - `auteur` : nom
 - `critique` : nom + variantes
 
+### `onkindle`
+
+**Table précalculée** à l'export. Livres présents sur la liseuse Kindle (tag `onkindle` dans Calibre), avec enrichissement depuis MongoDB (avis, palmares).
+
+> **Filtre virtual library** : si `LMELP_CALIBRE_VIRTUAL_LIBRARY` est défini dans `.env` (ex: `guillaume`), seuls les livres portant ce tag Calibre en plus de `onkindle` sont inclus.
+> **Fallback avis** : les livres présents dans Calibre mais non encore au palmarès (coups de cœur, nb_avis < 2) reçoivent leur note depuis la table `avis` directement.
+
+```sql
+CREATE TABLE onkindle (
+    livre_id       TEXT NOT NULL PRIMARY KEY,  -- Correspondance avec livres.id si discuté au Masque
+    titre          TEXT NOT NULL,
+    auteur_nom     TEXT,                        -- Depuis livres.auteur_nom ou Calibre (fallback)
+    url_babelio    TEXT,                        -- NULL si non discuté au Masque
+    calibre_lu     INTEGER NOT NULL DEFAULT 0, -- Lu sur Kindle (0/1), depuis Calibre custom column
+    calibre_rating REAL,                        -- Note personnelle Calibre (1-10, nullable)
+    note_moyenne   REAL,                        -- Note Masque et la Plume (NULL si non discuté)
+    nb_avis        INTEGER NOT NULL DEFAULT 0  -- Nombre d'avis Masque (0 si non discuté)
+);
+```
+
+**Logique de construction (`build_onkindle_table`) :**
+1. Interroge Calibre pour récupérer les livres avec tag `onkindle` (+ tag vlib si configuré)
+2. Croise avec `palmares` (par titre normalisé, insensible aux accents et apostrophes typographiques) pour `note_moyenne` / `nb_avis`
+3. Si le livre n'est pas dans `palmares` : fallback sur `avis` (moyenne + count)
+4. Croise avec `livres` pour `url_babelio` et `auteur_nom`
+5. Si `auteur_nom` est NULL après croisement : utilise l'auteur depuis Calibre
+
+**Tri dans l'app :** le tri alphabétique est effectué en Kotlin via `java.text.Collator(Locale.FRENCH, PRIMARY)` (SQLite ne gère pas les accents correctement pour le français).
+
 ### `db_metadata`
 
 Métadonnées de la base (version, date d'export).
@@ -249,6 +278,7 @@ CREATE INDEX idx_recommendations_rank ON recommendations(rank);
 | Calculé | `recommendations` | SVD sur matrice avis |
 | Calculé | `search_index` | FTS5 sur tous les textes |
 | Calculé | `emission_livres` | Jointure avis → (emission, livre) pairs |
+| Calibre + MongoDB | `onkindle` | Croisement tag Calibre + palmares/avis |
 
 ## Taille estimée
 
@@ -264,4 +294,5 @@ CREATE INDEX idx_recommendations_rank ON recommendations(rank);
 | palmares | ~800 | ~100 KB |
 | recommendations | ~500 | ~50 KB |
 | search_index | ~3500 | ~500 KB |
+| onkindle | ~28 | ~5 KB |
 | **Total** | | **~9-12 MB** |

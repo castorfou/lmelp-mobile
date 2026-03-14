@@ -19,6 +19,7 @@
 │    ├── Exporte les collections                                  │
 │    ├── Précalcule palmarès + recommandations SVD                │
 │    ├── Construit index FTS5 (recherche full-text)               │
+│    ├── Croise avec Calibre (onkindle, lu/non lu, rating)        │
 │    └── Écrit lmelp.db (SQLite)                                  │
 │         │                                                       │
 │         ▼                                                       │
@@ -43,7 +44,8 @@
 │    ├── Palmarès                                                 │
 │    ├── Critiques                                                │
 │    ├── Recherche (FTS5)                                         │
-│    └── Recommandations                                          │
+│    ├── Recommandations                                          │
+│    └── Sur ma liseuse (OnKindle)                                │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -58,6 +60,7 @@
 │  CritiquesScreen ──→ CritiquesContent ──→ CritiqueCard         │
 │  SearchScreen    ──→ SearchContent    ──→ SearchResultItem     │
 │  RecommendScreen ──→ RecommendContent ──→ RecommendCard        │
+│  OnKindleScreen  ──→ OnKindleContent  ──→ OnKindleCard         │
 └───────────────────────────┬─────────────────────────────────────┘
                             │ collectAsStateWithLifecycle()
                             │ StateFlow<UiState>
@@ -65,7 +68,7 @@
 │  ViewModel Layer                                                │
 │                                                                 │
 │  EmissionsViewModel   PalmaresViewModel   SearchViewModel       │
-│  CritiquesViewModel   RecommendViewModel                        │
+│  CritiquesViewModel   RecommendViewModel  OnKindleViewModel     │
 │                                                                 │
 │  Responsabilités :                                              │
 │    - Exposer StateFlow<XxxUiState>                              │
@@ -77,7 +80,7 @@
 │  Data Layer                                                     │
 │                                                                 │
 │  EmissionsRepository  LivresRepository  CritiquesRepository     │
-│  SearchRepository     RecommendRepository                       │
+│  SearchRepository     RecommendRepository  OnKindleRepository   │
 │                                                                 │
 │  Responsabilités :                                              │
 │    - Source unique de vérité                                    │
@@ -93,6 +96,7 @@
 │    ├── LivresDao                                                │
 │    ├── CritiquesDao                                             │
 │    ├── AvisDao                                                  │
+│    ├── OnKindleDao                                              │
 │    └── SearchDao (FTS5)                                         │
 │                                                                 │
 │  SQLite : app/src/main/assets/lmelp.db                          │
@@ -115,8 +119,10 @@ MainActivity
          │    │    └── → CritiqueDetailScreen(critiqueId)
          │    ├── → SearchScreen
          │    │    └── → [EmissionDetail | LivreDetail | CritiqueDetail]
-         │    └── → RecommendationsScreen
-         │         └── → LivreDetailScreen(livreId)
+         │    ├── → RecommendationsScreen
+         │    │    └── → LivreDetailScreen(livreId)
+         │    └── → OnKindleScreen  (accessible depuis Home uniquement, pas la NavBar)
+         │         └── → LivreDetailScreen(livreId)  (si discuté au Masque)
          └── AboutScreen (version db, date export)
 ```
 
@@ -211,5 +217,6 @@ dependencies = [
     "numpy>=1.26",
     "scipy>=1.12",
     "click>=8.1",        # CLI arguments
+    "python-dotenv>=1.0",# Configuration via .env
 ]
 ```

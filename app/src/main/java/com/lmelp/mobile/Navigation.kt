@@ -16,6 +16,7 @@ import com.lmelp.mobile.ui.emissions.EmissionDetailScreen
 import com.lmelp.mobile.ui.emissions.EmissionsScreen
 import com.lmelp.mobile.ui.emissions.LivreDetailScreen
 import com.lmelp.mobile.ui.home.HomeScreen
+import com.lmelp.mobile.ui.onkindle.OnKindleScreen
 import com.lmelp.mobile.ui.palmares.PalmaresScreen
 import com.lmelp.mobile.ui.recommendations.RecommendationsScreen
 import com.lmelp.mobile.ui.search.SearchScreen
@@ -31,6 +32,7 @@ object Routes {
     const val CRITIQUES = "critiques"
     const val SEARCH = "search"
     const val RECOMMENDATIONS = "recommendations"
+    const val ONKINDLE = "onkindle"
 
     fun emissionDetail(emissionId: String) = "emission/$emissionId"
     fun livreDetail(livreId: String) = "livre/$livreId"
@@ -129,6 +131,14 @@ fun LmelpNavHost(
 
         composable(Routes.CRITIQUES) {
             CritiquesScreen(repository = app.critiquesRepository)
+        }
+
+        composable(Routes.ONKINDLE) {
+            OnKindleScreen(
+                repository = app.onKindleRepository,
+                onLivreClick = { navController.navigate(Routes.livreDetail(it)) },
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(
