@@ -172,11 +172,14 @@ CREATE TABLE IF NOT EXISTS recommendations (
     masque_count  INTEGER
 );
 
-CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
-    type UNINDEXED,
-    ref_id UNINDEXED,
+CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts4(
+    type,
+    ref_id,
     content,
-    tokenize = 'unicode61 remove_diacritics 2'
+    display_content,
+    notindexed=type,
+    notindexed=ref_id,
+    notindexed=display_content
 );
 
 CREATE TABLE IF NOT EXISTS db_metadata (
@@ -855,39 +858,52 @@ def compute_recommendations(cur: sqlite3.Cursor, n_factors: int = 20) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _strip_accents(text: str) -> str:
+    """Supprime les accents d'un texte (NFD → ASCII) en conservant la casse et la ponctuation.
+
+    Utilisé pour l'index FTS4 afin de rendre la recherche insensible aux accents :
+    "Aliene" trouvera "Aliène", "Helene" trouvera "Hélène", etc.
+    """
+    nfd = unicodedata.normalize("NFD", text)
+    return "".join(c for c in nfd if unicodedata.category(c) != "Mn")
+
+
 def build_search_index(cur: sqlite3.Cursor) -> None:
-    logger.info("Building FTS5 search index...")
+    logger.info("Building FTS4 search index (accent-normalized)...")
+
+    rows: list[tuple[str, str, str, str]] = []
 
     # Emissions (titre de l'épisode + description)
-    cur.execute("""
-        INSERT INTO search_index(type, ref_id, content)
-        SELECT 'emission', em.id,
-               COALESCE(ep.titre, '') || ' ' || COALESCE(ep.description, '')
+    for row in cur.execute("""
+        SELECT em.id, COALESCE(ep.titre, '') || ' ' || COALESCE(ep.description, '')
         FROM emissions em
         JOIN episodes ep ON ep.id = em.episode_id
-    """)
+    """).fetchall():
+        display = row[1]
+        rows.append(("emission", row[0], _strip_accents(display), display))
 
     # Livres
-    cur.execute("""
-        INSERT INTO search_index(type, ref_id, content)
-        SELECT 'livre', id,
-               COALESCE(titre, '') || ' ' || COALESCE(auteur_nom, '') || ' ' || COALESCE(editeur, '')
+    for row in cur.execute("""
+        SELECT id, COALESCE(titre, '') || ' ' || COALESCE(auteur_nom, '') || ' ' || COALESCE(editeur, '')
         FROM livres
-    """)
+    """).fetchall():
+        display = row[1]
+        rows.append(("livre", row[0], _strip_accents(display), display))
 
     # Auteurs
-    cur.execute("""
-        INSERT INTO search_index(type, ref_id, content)
-        SELECT 'auteur', id, COALESCE(nom, '')
-        FROM auteurs
-    """)
+    for row in cur.execute("SELECT id, COALESCE(nom, '') FROM auteurs").fetchall():
+        display = row[1]
+        rows.append(("auteur", row[0], _strip_accents(display), display))
 
     # Critiques
-    cur.execute("""
-        INSERT INTO search_index(type, ref_id, content)
-        SELECT 'critique', id, COALESCE(nom, '')
-        FROM critiques
-    """)
+    for row in cur.execute("SELECT id, COALESCE(nom, '') FROM critiques").fetchall():
+        display = row[1]
+        rows.append(("critique", row[0], _strip_accents(display), display))
+
+    cur.executemany(
+        "INSERT INTO search_index(type, ref_id, content, display_content) VALUES (?, ?, ?, ?)",
+        rows,
+    )
 
     count = cur.execute("SELECT COUNT(*) FROM search_index").fetchone()[0]
     logger.info(f"  → {count} entries in search index")

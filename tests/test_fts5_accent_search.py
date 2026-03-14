@@ -1,10 +1,13 @@
 """
-Tests TDD pour la recherche FTS5 insensible aux accents (issue #55).
+Tests TDD pour la recherche insensible aux accents (issue #55).
+
+Stratégie : FTS4 avec contenu pré-normalisé (accents supprimés à l'indexation).
+La query Android est aussi normalisée avant d'interroger FTS4.
 
 Ces tests vérifient que :
-1. La table search_index utilise FTS5 (et non FTS4)
-2. La recherche sans accents trouve des résultats avec accents (ex: "Aliene" → "Aliène")
-3. La recherche avec accents fonctionne toujours
+1. La table search_index contient du contenu sans accents
+2. La recherche "Aliene" (sans accent) trouve "Aliène" (avec accent dans le livre original)
+3. La recherche avec accents fonctionne aussi (grâce à la normalisation côté query)
 
 ⚠️  Si ces tests échouent, regénérer lmelp.db avec :
     python scripts/export_mongo_to_sqlite.py --force
@@ -12,6 +15,7 @@ Ces tests vérifient que :
 
 import os
 import sqlite3
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -23,6 +27,12 @@ DB_PATH = Path(
         str(Path(__file__).parent.parent / "app/src/main/assets/lmelp.db"),
     )
 )
+
+
+def strip_accents(text: str) -> str:
+    """Supprime les accents (même logique que _strip_accents dans le script d'export)."""
+    nfd = unicodedata.normalize("NFD", text)
+    return "".join(c for c in nfd if unicodedata.category(c) != "Mn")
 
 
 @pytest.fixture(scope="module")
@@ -37,103 +47,111 @@ def db():
 
 
 @pytest.fixture(scope="module")
-def fts5_db():
-    """Base SQLite in-memory avec FTS5 pour tester le comportement attendu."""
+def fts4_normalized_db():
+    """Base SQLite in-memory avec FTS4 et contenu pré-normalisé."""
     con = sqlite3.connect(":memory:")
     con.execute("""
-        CREATE VIRTUAL TABLE search_index USING fts5(
-            type UNINDEXED,
-            ref_id UNINDEXED,
+        CREATE VIRTUAL TABLE search_index USING fts4(
+            type,
+            ref_id,
             content,
-            tokenize = 'unicode61 remove_diacritics 2'
+            notindexed=type,
+            notindexed=ref_id
         )
     """)
+    # Contenu indexé avec accents supprimés (comme le fait _strip_accents)
     con.execute(
         "INSERT INTO search_index VALUES (?, ?, ?)",
-        ("livre", "1", "Aliène - Marie-Hélène Lafon"),
+        ("livre", "1", strip_accents("Aliène - Marie-Hélène Lafon")),
     )
     con.execute(
         "INSERT INTO search_index VALUES (?, ?, ?)",
-        ("auteur", "2", "Hélène Carrère"),
+        ("auteur", "2", strip_accents("Hélène Carrère")),
     )
     con.execute(
         "INSERT INTO search_index VALUES (?, ?, ?)",
-        ("livre", "3", "Le nom sur le mur - Hervé Le Tellier"),
+        ("livre", "3", strip_accents("Le nom sur le mur - Hervé Le Tellier")),
     )
     con.commit()
     yield con
     con.close()
 
 
-class TestFts5TokenizerBehavior:
-    """Vérifie le comportement attendu de FTS5 avec unicode61 remove_diacritics."""
+class TestFts4NormalizedBehavior:
+    """Vérifie le comportement attendu de FTS4 avec contenu pré-normalisé."""
 
-    def test_search_without_accent_finds_accented_content(self, fts5_db):
-        """'Aliene' (sans accent) doit trouver 'Aliène' (avec accent)."""
-        results = fts5_db.execute(
-            "SELECT COUNT(*) FROM search_index WHERE search_index MATCH 'Aliene*'"
+    def test_search_without_accent_finds_normalized_content(self, fts4_normalized_db):
+        """'Aliene' (sans accent) doit trouver l'entrée pour 'Aliène'."""
+        query = strip_accents("Aliene") + "*"
+        results = fts4_normalized_db.execute(
+            "SELECT COUNT(*) FROM search_index WHERE search_index MATCH ?",
+            (query,),
         ).fetchone()[0]
-        assert results > 0, (
-            "FTS5 avec remove_diacritics doit trouver 'Aliène' avec 'Aliene'"
-        )
+        assert results > 0, "FTS4 normalisé doit trouver 'Aliene*'"
 
-    def test_search_with_accent_still_works(self, fts5_db):
-        """'Aliène' (avec accent) doit toujours trouver 'Aliène'."""
-        results = fts5_db.execute(
-            "SELECT COUNT(*) FROM search_index WHERE search_index MATCH 'Aliène*'"
+    def test_search_with_accent_finds_same_content(self, fts4_normalized_db):
+        """'Aliène' (avec accent) doit aussi trouver l'entrée (query normalisée)."""
+        query = strip_accents("Aliène") + "*"
+        results = fts4_normalized_db.execute(
+            "SELECT COUNT(*) FROM search_index WHERE search_index MATCH ?",
+            (query,),
         ).fetchone()[0]
-        assert results > 0, "La recherche avec accents doit toujours fonctionner"
+        assert results > 0, "FTS4 normalisé + query normalisée doit trouver 'Aliène*'"
 
-    def test_search_uppercase_without_accent_finds_accented(self, fts5_db):
-        """'HELENE' (majuscules, sans accent) doit trouver 'Hélène'."""
-        results = fts5_db.execute(
-            "SELECT COUNT(*) FROM search_index WHERE search_index MATCH 'HELENE*'"
+    def test_search_uppercase_without_accent(self, fts4_normalized_db):
+        """'HELENE' doit trouver 'Hélène' (query normalisée + FTS case-insensitive)."""
+        query = strip_accents("HELENE") + "*"
+        results = fts4_normalized_db.execute(
+            "SELECT COUNT(*) FROM search_index WHERE search_index MATCH ?",
+            (query,),
         ).fetchone()[0]
-        assert results > 0, "FTS5 doit être insensible à la casse et aux accents"
+        assert results > 0, "FTS4 est insensible à la casse"
 
-    def test_search_partial_without_accent(self, fts5_db):
-        """'Herve' (sans accent) doit trouver 'Hervé Le Tellier'."""
-        results = fts5_db.execute(
-            "SELECT COUNT(*) FROM search_index WHERE search_index MATCH 'Herve*'"
+    def test_search_partial_without_accent(self, fts4_normalized_db):
+        """'Herve' doit trouver 'Hervé Le Tellier'."""
+        query = strip_accents("Herve") + "*"
+        results = fts4_normalized_db.execute(
+            "SELECT COUNT(*) FROM search_index WHERE search_index MATCH ?",
+            (query,),
         ).fetchone()[0]
-        assert results > 0, "FTS5 doit trouver 'Hervé' avec 'Herve'"
+        assert results > 0, "FTS4 normalisé doit trouver 'Herve*' → 'Hervé'"
 
 
-class TestProductionDbFts5:
-    """Vérifie que la base lmelp.db de production utilise FTS5."""
+class TestProductionDbAccentSearch:
+    """Vérifie que la base lmelp.db de production supporte la recherche sans accents."""
 
-    def test_search_index_uses_fts5(self, db):
-        """La table search_index doit utiliser FTS5 (pas FTS4)."""
-        row = db.execute(
-            "SELECT sql FROM sqlite_master WHERE name='search_index'"
-        ).fetchone()
-        assert row is not None, "La table search_index est absente"
-        sql = row["sql"].lower()
-        assert "fts5" in sql, (
-            f"search_index utilise encore FTS4 — migration vers FTS5 requise.\n"
-            f"DDL actuel : {row['sql']}"
-        )
-        assert "remove_diacritics" in sql, (
-            "Le tokenizer 'remove_diacritics 2' est absent — "
-            "la recherche sans accents ne fonctionnera pas."
-        )
+    def test_search_index_content_is_accent_free(self, db):
+        """Le contenu de search_index ne doit pas contenir de caractères accentués."""
+        # Vérifie sur un échantillon de 100 entrées
+        rows = db.execute("SELECT content FROM search_index LIMIT 100").fetchall()
+        assert len(rows) > 0, "search_index est vide"
+        for row in rows:
+            content = row["content"]
+            normalized = strip_accents(content)
+            assert content == normalized, (
+                f"Le contenu FTS4 contient des accents : '{content}'\n"
+                "Regénérer lmelp.db avec : python scripts/export_mongo_to_sqlite.py --force"
+            )
 
     def test_accent_insensitive_search_in_production_db(self, db):
-        """Rechercher 'Aliene' (sans accent) doit retourner des résultats dans lmelp.db."""
+        """Rechercher 'Aliene' (sans accent, comme Android le ferait) doit retourner des résultats."""
+        query = strip_accents("Aliene") + "*"
         results = db.execute(
-            "SELECT COUNT(*) FROM search_index WHERE search_index MATCH 'Aliene*'"
+            "SELECT COUNT(*) FROM search_index WHERE search_index MATCH ?",
+            (query,),
         ).fetchone()[0]
         assert results > 0, (
-            "La recherche 'Aliene' (sans accent) ne retourne rien dans lmelp.db — "
-            "FTS5 avec remove_diacritics non configuré."
+            "La recherche 'Aliene*' (sans accent) ne retourne rien dans lmelp.db.\n"
+            "Regénérer lmelp.db avec : python scripts/export_mongo_to_sqlite.py --force"
         )
 
-    def test_accent_search_still_works_in_production_db(self, db):
-        """Rechercher 'Aliène' (avec accent) doit aussi retourner des résultats."""
+    def test_accent_search_works_via_normalization(self, db):
+        """Rechercher 'Aliène' (avec accent, normalisé en query) doit aussi retourner des résultats."""
+        query = strip_accents("Aliène") + "*"
         results = db.execute(
-            "SELECT COUNT(*) FROM search_index WHERE search_index MATCH 'Aliène*'"
+            "SELECT COUNT(*) FROM search_index WHERE search_index MATCH ?",
+            (query,),
         ).fetchone()[0]
         assert results > 0, (
-            "La recherche 'Aliène' (avec accent) ne retourne rien — "
-            "problème d'indexation FTS."
+            "La recherche 'Aliene*' (normalisée depuis 'Aliène') ne retourne rien."
         )
