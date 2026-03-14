@@ -119,6 +119,14 @@ un script pour verifier la coherence des images
 python scripts/check_covers.py
 ```
 
+un script pour creer le `couvertures_cache.json`
+
+```bash
+python scripts/check_covers.py --fetch --no-open
+```
+
+et un rapport html dans `file:///home/guillaume/git/lmelp-mobile/data/processed/cover_report.html`
+
 ### nombre d'images dans le cache
 
 ```bash
@@ -130,3 +138,16 @@ adb shell cat /sdcard/Android/data/com.lmelp.mobile/files/couvertures_cache.json
 ```bash
 adb shell rm /sdcard/Android/data/com.lmelp.mobile/files/couvertures_cache.json
 ```
+
+### forces et limites de notre archi de fecth des covers
+
+**Ce qui est déjà robuste**
+
+- Nouvelles émissions/palmarès/conseils → `check_covers.py --fetch` fetche uniquement les nouvelles URLs (celles absentes du cache) — les anciennes sont ignorées
+- Nouveaux livres OnKindle → idem
+- Cache JSON dans assets/ → embarqué dans l'APK → fonctionne sans device connecté au moment du build
+
+**Ce qui reste fragile**
+
+- Cookie Babelio (BABELIO_COOKIE dans .env) — expire. Si --fetch commence à retourner des 403, il faudra recopier le cookie depuis Firefox
+- URLs Amazon — plus stables que l'ancien CDN mais pas garanties éternelles
