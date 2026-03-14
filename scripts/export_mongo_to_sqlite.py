@@ -21,7 +21,12 @@ from typing import Any
 
 import click
 from bson import ObjectId
+from dotenv import load_dotenv
 from pymongo import MongoClient
+
+
+# Charge les variables depuis scripts/.env si présent (sans écraser les vars d'env existantes)
+load_dotenv(Path(__file__).parent / ".env")
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -560,13 +565,20 @@ def import_calibre_data(
         logger.error(f"Erreur import Calibre : {e}")
 
 
-def build_onkindle_table(cur: sqlite3.Cursor, calibre_db_path: str) -> None:
+def build_onkindle_table(
+    cur: sqlite3.Cursor,
+    calibre_db_path: str,
+    virtual_library_tag: str | None = None,
+) -> None:
     """Construit la table onkindle à partir des livres tagués 'onkindle' dans Calibre.
 
     Pour chaque livre Calibre avec ce tag :
     - Récupère calibre_lu, calibre_rating
     - Croise avec palmares pour note_moyenne / nb_avis
     - Croise avec livres pour url_babelio et auteur_nom
+
+    Si virtual_library_tag est fourni (ex: 'guillaume'), seuls les livres ayant
+    à la fois le tag 'onkindle' ET le tag de la virtual library sont inclus.
     """
     logger.info(f"Building onkindle table from Calibre: {calibre_db_path}")
 
@@ -584,18 +596,35 @@ def build_onkindle_table(cur: sqlite3.Cursor, calibre_db_path: str) -> None:
             read_col_id = row["id"]
 
         # Charge les livres avec le tag 'onkindle' + auteur Calibre (premier auteur)
-        cal_cur.execute(
-            """
-            SELECT b.id, b.title, a.name as auteur_calibre
-            FROM books b
-            JOIN books_tags_link btl ON b.id = btl.book
-            JOIN tags t ON btl.tag = t.id
-            LEFT JOIN books_authors_link bal ON b.id = bal.book
-            LEFT JOIN authors a ON bal.author = a.id
-            WHERE t.name = 'onkindle'
-            GROUP BY b.id
-            """
-        )
+        # Si virtual_library_tag fourni : filtre onkindle AND virtual_library_tag
+        if virtual_library_tag:
+            cal_cur.execute(
+                """
+                SELECT b.id, b.title, a.name as auteur_calibre
+                FROM books b
+                JOIN books_tags_link btl_ok ON b.id = btl_ok.book
+                JOIN tags t_ok ON btl_ok.tag = t_ok.id AND t_ok.name = 'onkindle'
+                JOIN books_tags_link btl_vl ON b.id = btl_vl.book
+                JOIN tags t_vl ON btl_vl.tag = t_vl.id AND t_vl.name = ?
+                LEFT JOIN books_authors_link bal ON b.id = bal.book
+                LEFT JOIN authors a ON bal.author = a.id
+                GROUP BY b.id
+                """,
+                (virtual_library_tag,),
+            )
+        else:
+            cal_cur.execute(
+                """
+                SELECT b.id, b.title, a.name as auteur_calibre
+                FROM books b
+                JOIN books_tags_link btl ON b.id = btl.book
+                JOIN tags t ON btl.tag = t.id
+                LEFT JOIN books_authors_link bal ON b.id = bal.book
+                LEFT JOIN authors a ON bal.author = a.id
+                WHERE t.name = 'onkindle'
+                GROUP BY b.id
+                """
+            )
         kindle_books = cal_cur.fetchall()
         logger.info(
             f"  {len(kindle_books)} livres avec tag 'onkindle' trouvés dans Calibre"
@@ -959,6 +988,7 @@ def verify_database(db_path: Path) -> None:
     "--mongo-uri",
     default="mongodb://localhost:27017",
     show_default=True,
+    envvar="LMELP_MONGO_URI",
     help="MongoDB connection URI",
 )
 @click.option(
@@ -966,6 +996,7 @@ def verify_database(db_path: Path) -> None:
     default="lmelp.db",
     show_default=True,
     type=click.Path(),
+    envvar="LMELP_OUTPUT",
     help="Output SQLite file path",
 )
 @click.option(
@@ -990,11 +1021,13 @@ def verify_database(db_path: Path) -> None:
     "--calibre-db",
     type=click.Path(exists=True),
     default=None,
+    envvar="LMELP_CALIBRE_DB",
     help="Path to Calibre metadata.db (optional, enriches palmares with lu/rating)",
 )
 @click.option(
     "--calibre-virtual-library",
     default=None,
+    envvar="LMELP_CALIBRE_VIRTUAL_LIBRARY",
     help="Calibre virtual library tag to filter books (e.g. 'guillaume')",
 )
 def main(
@@ -1048,7 +1081,7 @@ def main(
     compute_palmares(cur)
     if calibre_db:
         import_calibre_data(cur, calibre_db, calibre_virtual_library)
-        build_onkindle_table(cur, calibre_db)
+        build_onkindle_table(cur, calibre_db, calibre_virtual_library)
     compute_recommendations(cur, n_factors=svd_factors)
     build_search_index(cur)
     update_critique_stats(cur)

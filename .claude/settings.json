@@ -7,7 +7,8 @@
       "Bash(./gradlew :app:compileDebugKotlin)",
       "Bash(./gradlew :app:testDebugUnitTest)",
       "Bash(./gradlew test --tests :*)",
-      "Bash(./gradlew testDebugUnitTest --tests :*)"
+      "Bash(./gradlew testDebugUnitTest --tests :*)",
+      "Bash(python -m pytest :*)"
     ]
   }
 }

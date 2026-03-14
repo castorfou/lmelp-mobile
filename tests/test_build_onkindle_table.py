@@ -53,7 +53,7 @@ def _make_main_db() -> sqlite3.Connection:
 def _make_calibre_db(books: list[tuple]) -> sqlite3.Connection:
     """Crée une base Calibre en mémoire avec les livres donnés.
 
-    books: list of (calibre_id, title)
+    books: list of (calibre_id, title, extra_tags) où extra_tags est une liste de str optionnelle
     """
     con = sqlite3.connect(":memory:")
     con.row_factory = sqlite3.Row
@@ -68,13 +68,44 @@ def _make_calibre_db(books: list[tuple]) -> sqlite3.Connection:
         CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT);
         CREATE TABLE books_authors_link (book INTEGER, author INTEGER);
     """)
-    # Insert onkindle tag
     cur.execute("INSERT INTO tags VALUES (1, 'onkindle')")
-    for calibre_id, title in books:
+    tag_id_map = {"onkindle": 1}
+    next_tag_id = 2
+
+    for book_tuple in books:
+        calibre_id, title = book_tuple[0], book_tuple[1]
+        extra_tags: list[str] = book_tuple[2] if len(book_tuple) > 2 else []
         cur.execute("INSERT INTO books VALUES (?, ?)", (calibre_id, title))
         cur.execute("INSERT INTO books_tags_link VALUES (?, 1)", (calibre_id,))
+        for tag in extra_tags:
+            if tag not in tag_id_map:
+                cur.execute("INSERT INTO tags VALUES (?, ?)", (next_tag_id, tag))
+                tag_id_map[tag] = next_tag_id
+                next_tag_id += 1
+            cur.execute(
+                "INSERT INTO books_tags_link VALUES (?, ?)",
+                (calibre_id, tag_id_map[tag]),
+            )
     con.commit()
     return con
+
+
+def _run_build_with_vlib(
+    main_con: sqlite3.Connection,
+    calibre_con: sqlite3.Connection,
+    virtual_library_tag: str | None = None,
+) -> None:
+    """Appelle build_onkindle_table avec un virtual_library_tag optionnel."""
+
+    def mock_connect(path):
+        return calibre_con
+
+    with patch("export_mongo_to_sqlite.sqlite3") as mock_sqlite3:
+        mock_sqlite3.connect = mock_connect
+        mock_sqlite3.Row = sqlite3.Row
+        cur = main_con.cursor()
+        script.build_onkindle_table(cur, "/fake/path/metadata.db", virtual_library_tag)
+        main_con.commit()
 
 
 def _run_build(main_con: sqlite3.Connection, calibre_con: sqlite3.Connection) -> None:
@@ -179,3 +210,56 @@ class TestBuildOnkindleAvisFallback:
         assert row is not None
         assert row["nb_avis"] == 2
         assert abs(row["note_moyenne"] - 7.0) < 0.01
+
+
+class TestBuildOnkindleVirtualLibrary:
+    """Vérifie que build_onkindle_table filtre par virtual_library_tag quand fourni.
+
+    Seuls les livres avec onkindle ET le tag de la virtual library sont inclus.
+    """
+
+    def test_sans_virtual_library_inclut_tous_les_onkindle(self):
+        """Sans virtual_library_tag → tous les livres tagués onkindle sont inclus."""
+        main_con = _make_main_db()
+        # Livre onkindle sans tag guillaume
+        calibre_con = _make_calibre_db([(101, "Livre A"), (102, "Livre B")])
+        _run_build_with_vlib(main_con, calibre_con, virtual_library_tag=None)
+
+        rows = main_con.execute("SELECT titre FROM onkindle ORDER BY titre").fetchall()
+        titres = [r["titre"] for r in rows]
+        assert "Livre A" in titres
+        assert "Livre B" in titres
+
+    def test_avec_virtual_library_exclut_livres_hors_lib(self):
+        """Avec virtual_library_tag='guillaume' → seuls les livres avec les deux tags."""
+        main_con = _make_main_db()
+        # Livre A : onkindle + guillaume → inclus
+        # Livre B : onkindle seulement → exclu
+        calibre_con = _make_calibre_db(
+            [
+                (101, "Livre A", ["guillaume"]),
+                (102, "Livre B"),
+            ]
+        )
+        _run_build_with_vlib(main_con, calibre_con, virtual_library_tag="guillaume")
+
+        rows = main_con.execute("SELECT titre FROM onkindle").fetchall()
+        titres = [r["titre"] for r in rows]
+        assert "Livre A" in titres
+        assert "Livre B" not in titres
+
+    def test_avec_virtual_library_livre_sans_aucun_tag_exclu(self):
+        """Livre sans tag onkindle ni guillaume → exclu même sans filtre vlib."""
+        main_con = _make_main_db()
+        calibre_con = _make_calibre_db([(101, "Livre A", ["guillaume"])])
+        # On insère manuellement un livre sans tag onkindle dans Calibre
+        cal_cur = calibre_con.cursor()
+        cal_cur.execute("INSERT INTO books VALUES (999, 'Livre sans tags')")
+        calibre_con.commit()
+
+        _run_build_with_vlib(main_con, calibre_con, virtual_library_tag="guillaume")
+
+        rows = main_con.execute("SELECT titre FROM onkindle").fetchall()
+        titres = [r["titre"] for r in rows]
+        assert "Livre A" in titres
+        assert "Livre sans tags" not in titres

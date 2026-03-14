@@ -69,31 +69,39 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 # Installer dépendances
 uv pip install -e .
 
-# ✅ Export complet MongoDB → SQLite (commande COMPLÈTE à utiliser systématiquement)
-python scripts/export_mongo_to_sqlite.py \
-  --mongo-uri mongodb://localhost:27018 \
-  --output app/src/main/assets/lmelp.db \
-  --calibre-db "/home/vscode/Calibre Library/metadata.db" \
-  --force
+# ✅ Export complet MongoDB → SQLite — les paramètres sont lus depuis scripts/.env
+python scripts/export_mongo_to_sqlite.py --force
 
 # Vérifier l'intégrité de la base générée
-python scripts/export_mongo_to_sqlite.py \
-  --verify app/src/main/assets/lmelp.db
+python scripts/export_mongo_to_sqlite.py --verify app/src/main/assets/lmelp.db
 
 # Linting Python
 ruff check scripts/
 ruff format scripts/
 ```
 
-### ⚠️ Règle critique : toujours inclure `--calibre-db`
+### Configuration via scripts/.env
 
-**Ne jamais regénérer `lmelp.db` sans `--calibre-db`.**
+Les paramètres d'environnement local sont stockés dans `scripts/.env` (ignoré par git).
+Copier `scripts/.env.example` et adapter :
 
-Sans cette option, `calibre_in_library = 0` et `calibre_lu = 0` pour tous les
+```bash
+cp scripts/.env.example scripts/.env
+# Éditer scripts/.env avec les valeurs locales
+```
+
+Variables disponibles :
+- `LMELP_MONGO_URI` — URI MongoDB (défaut: `mongodb://localhost:27017`)
+- `LMELP_OUTPUT` — chemin de sortie SQLite (défaut: `lmelp.db`)
+- `LMELP_CALIBRE_DB` — chemin vers `metadata.db` de Calibre
+- `LMELP_CALIBRE_VIRTUAL_LIBRARY` — tag de la virtual library Calibre (ex: `guillaume`)
+
+### ⚠️ Règle critique : toujours avoir `LMELP_CALIBRE_DB` configuré
+
+**Ne jamais regénérer `lmelp.db` sans Calibre configuré.**
+
+Sans Calibre, `calibre_in_library = 0` et `calibre_lu = 0` pour tous les
 livres → filtre "Lus" vide dans l'app, aucun ✓ affiché (voir issue #42).
-
-- MongoDB local : port **27018**
-- Calibre local : `/home/vscode/Calibre Library/metadata.db`
 
 Un test de non-régression dans `tests/test_lmelp_db_integrity.py` bloque la CI
 si `lmelp.db` est commité sans données Calibre.
