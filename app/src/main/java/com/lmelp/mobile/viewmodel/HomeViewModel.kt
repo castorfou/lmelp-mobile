@@ -110,8 +110,10 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         if (slide.urlBabelio == null || slide.urlCouverture != null) return
         viewModelScope.launch {
             val url = try {
-                repository.fetchCouvertureBabelio(slide.urlBabelio)
-            } catch (_: Exception) { return@launch }
+                repository.fetchCouvertureBabelio(slide.urlBabelio, slide.titre)
+            } catch (_: Exception) {
+                return@launch
+            }
             if (url != null) {
                 _uiState.update { state ->
                     val updated = selectList(state).toMutableList()
@@ -127,17 +129,46 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
     private suspend fun startTicker() {
         while (true) {
             delay(TICKER_INTERVAL_MS)
+            // Calculer les nouveaux indices avant la mise à jour
+            val current = _uiState.value
+            val newEmissionsIdx = if (current.emissionsSlides.size <= 1) 0
+                                  else (0 until current.emissionsSlides.size).random()
+            val newPalmaresIdx  = if (current.palmaresSlides.size <= 1) 0
+                                  else (0 until current.palmaresSlides.size).random()
+            val newConseilsIdx  = if (current.conseilsSlides.size <= 1) 0
+                                  else (0 until current.conseilsSlides.size).random()
+            val newOnkindleIdx  = if (current.onkindleSlides.size <= 1) 0
+                                  else (0 until current.onkindleSlides.size).random()
+
             _uiState.update { state ->
                 state.copy(
-                    emissionsIndex = if (state.emissionsSlides.size <= 1) 0
-                                     else (0 until state.emissionsSlides.size).random(),
-                    palmaresIndex  = if (state.palmaresSlides.size <= 1) 0
-                                     else (0 until state.palmaresSlides.size).random(),
-                    conseilsIndex  = if (state.conseilsSlides.size <= 1) 0
-                                     else (0 until state.conseilsSlides.size).random(),
-                    onkindleIndex  = if (state.onkindleSlides.size <= 1) 0
-                                     else (0 until state.onkindleSlides.size).random()
+                    emissionsIndex = newEmissionsIdx,
+                    palmaresIndex  = newPalmaresIdx,
+                    conseilsIndex  = newConseilsIdx,
+                    onkindleIndex  = newOnkindleIdx
                 )
+            }
+
+            // Forcer le fetch du slide nouvellement affiché s'il n'a pas encore d'image
+            current.emissionsSlides.getOrNull(newEmissionsIdx)?.let { s ->
+                launchCouvertureLoad(s, newEmissionsIdx,
+                    selectList = { it.emissionsSlides },
+                    updateList = { state, list -> state.copy(emissionsSlides = list) })
+            }
+            current.palmaresSlides.getOrNull(newPalmaresIdx)?.let { s ->
+                launchCouvertureLoad(s, newPalmaresIdx,
+                    selectList = { it.palmaresSlides },
+                    updateList = { state, list -> state.copy(palmaresSlides = list) })
+            }
+            current.conseilsSlides.getOrNull(newConseilsIdx)?.let { s ->
+                launchCouvertureLoad(s, newConseilsIdx,
+                    selectList = { it.conseilsSlides },
+                    updateList = { state, list -> state.copy(conseilsSlides = list) })
+            }
+            current.onkindleSlides.getOrNull(newOnkindleIdx)?.let { s ->
+                launchCouvertureLoad(s, newOnkindleIdx,
+                    selectList = { it.onkindleSlides },
+                    updateList = { state, list -> state.copy(onkindleSlides = list) })
             }
         }
     }

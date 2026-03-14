@@ -1,11 +1,32 @@
+## processus d'install
+
+**Le processus complet**
+
+Le parti pris est de dire : nouvelle db = nouvel apk = nouveau deploiement
+
+Nouvelle DB peut etre cause par :
+
+- nouvelle emission -> nouveaux livres
+- potentiellement nouveau palmares (un chef d'oeuvre est apparu)
+- nouvelle lecture -> nouveaux conseils possibles
+- des livres sont lus et disparaissent de la liseuse, d'autres apparaissent
+
+On fait manuellement
+
+
 
 ```bash
+# 1. Export DB (rare, uniquement si nouvelle DB)
+python scripts/export_mongo_to_sqlite.py --force
+
+# 2. Fetch couvertures manquantes (rare, uniquement si nouvelle DB)
+python scripts/check_covers.py --fetch --no-open
+
+# 3. Build + deploy
 build.sh && deploy.sh
 ```
 
 ## build apk depuis vscode
-
-
 
 ```bash
 JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ANDROID_HOME=/home/vscode/android-sdk ./gradlew assembleDebug
@@ -82,4 +103,30 @@ pas changé, désinstaller et réinstaller pour forcer la recopie :
 ```bash
 adb uninstall com.lmelp.mobile
 ./gradlew installDebug
+```
+
+## cache couvertures babelio
+
+un script pour avoir des infos sur le cache
+
+```bash
+./scripts/inspect_cover_cache.sh
+```
+
+un script pour verifier la coherence des images
+
+```bash
+python scripts/check_covers.py
+```
+
+### nombre d'images dans le cache
+
+```bash
+adb shell cat /sdcard/Android/data/com.lmelp.mobile/files/couvertures_cache.json | python3 -c "import sys,json; d=json.load(sys.stdin); total=len(d); ok=sum(1 for v in d.values() if v); print(f'Total: {total} | Avec image: {ok} | Vides (pas de couverture Babelio): {total-ok}')"
+```
+
+### vider le cache des couvertures babelio
+
+```bash
+adb shell rm /sdcard/Android/data/com.lmelp.mobile/files/couvertures_cache.json
 ```
