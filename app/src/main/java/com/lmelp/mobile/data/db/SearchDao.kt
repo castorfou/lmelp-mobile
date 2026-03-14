@@ -7,7 +7,8 @@ import androidx.sqlite.db.SupportSQLiteQuery
 data class SearchRow(
     val type: String,
     val refId: String,
-    val content: String
+    val content: String,
+    val displayContent: String
 )
 
 @Dao
