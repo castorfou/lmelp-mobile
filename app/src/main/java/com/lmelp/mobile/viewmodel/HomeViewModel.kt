@@ -24,9 +24,11 @@ data class HomeUiState(
     val emissionsSlides: List<SlideItem> = emptyList(),
     val palmaresSlides: List<SlideItem> = emptyList(),
     val conseilsSlides: List<SlideItem> = emptyList(),
+    val onkindleSlides: List<SlideItem> = emptyList(),
     val emissionsIndex: Int = 0,
     val palmaresIndex: Int = 0,
     val conseilsIndex: Int = 0,
+    val onkindleIndex: Int = 0,
     val error: String? = null
 )
 
@@ -53,6 +55,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
             val emissionsSlides = repository.getEmissionsSlides()
             val palmaresSlides = repository.getPalmaresSlides()
             val conseilsSlides = repository.getConseilsSlides()
+            val onkindleSlides = repository.getOnKindleSlides()
 
             _uiState.update {
                 it.copy(
@@ -62,7 +65,8 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                     derniereEmission = derniereEmission,
                     emissionsSlides = emissionsSlides,
                     palmaresSlides = palmaresSlides,
-                    conseilsSlides = conseilsSlides
+                    conseilsSlides = conseilsSlides,
+                    onkindleSlides = onkindleSlides
                 )
             }
 
@@ -83,6 +87,12 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                 launchCouvertureLoad(s, i,
                     selectList = { it.conseilsSlides },
                     updateList = { state, list -> state.copy(conseilsSlides = list) }
+                )
+            }
+            onkindleSlides.forEachIndexed { i, s ->
+                launchCouvertureLoad(s, i,
+                    selectList = { it.onkindleSlides },
+                    updateList = { state, list -> state.copy(onkindleSlides = list) }
                 )
             }
         } catch (e: Exception) {
@@ -124,7 +134,9 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                     palmaresIndex  = if (state.palmaresSlides.size <= 1) 0
                                      else (0 until state.palmaresSlides.size).random(),
                     conseilsIndex  = if (state.conseilsSlides.size <= 1) 0
-                                     else (0 until state.conseilsSlides.size).random()
+                                     else (0 until state.conseilsSlides.size).random(),
+                    onkindleIndex  = if (state.onkindleSlides.size <= 1) 0
+                                     else (0 until state.onkindleSlides.size).random()
                 )
             }
         }

@@ -14,6 +14,7 @@ import com.lmelp.mobile.data.model.EmissionEntity
 import com.lmelp.mobile.data.model.EmissionLivreEntity
 import com.lmelp.mobile.data.model.EpisodeEntity
 import com.lmelp.mobile.data.model.LivreEntity
+import com.lmelp.mobile.data.model.OnKindleEntity
 import com.lmelp.mobile.data.model.PalmaresEntity
 import com.lmelp.mobile.data.model.RecommendationEntity
 
@@ -30,8 +31,9 @@ import com.lmelp.mobile.data.model.RecommendationEntity
         RecommendationEntity::class,
         AvisCritiquesEntity::class,
         DbMetadataEntity::class,
+        OnKindleEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class LmelpDatabase : RoomDatabase() {
@@ -46,6 +48,7 @@ abstract class LmelpDatabase : RoomDatabase() {
     abstract fun metadataDao(): MetadataDao
     abstract fun avisCritiquesDao(): AvisCritiquesDao
     abstract fun auteursDao(): AuteursDao
+    abstract fun onKindleDao(): OnKindleDao
 
     companion object {
         @Volatile

@@ -242,6 +242,7 @@ fun NavTilesGrid(
     val currentEmission = uiState.emissionsSlides.getOrNull(uiState.emissionsIndex)
     val currentPalmares = uiState.palmaresSlides.getOrNull(uiState.palmaresIndex)
     val currentConseils = uiState.conseilsSlides.getOrNull(uiState.conseilsIndex)
+    val currentOnKindle = uiState.onkindleSlides.getOrNull(uiState.onkindleIndex)
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
@@ -418,7 +419,7 @@ fun NavTilesGrid(
             }
         }
 
-        // Rangée basse : Critiques + Recherche
+        // Rangée basse : OnKindle + Recherche
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -426,8 +427,9 @@ fun NavTilesGrid(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             DashboardCard(
-                onClick = { onNavigate("critiques") },
+                onClick = { onNavigate("onkindle") },
                 backgroundColor = LmelpBordeaux,
+                currentSlide = currentOnKindle,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -436,29 +438,31 @@ fun NavTilesGrid(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(12.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.List,
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "Critiques",
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = "Les 25 voix",
-                        color = Color.White.copy(alpha = 0.75f),
-                        style = MaterialTheme.typography.labelSmall,
-                        textAlign = TextAlign.Center
-                    )
+                    Column {
+                        Text(
+                            text = "Liseuse",
+                            color = Color.White,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp
+                        )
+                        currentOnKindle?.let { slide ->
+                            Text(
+                                text = slide.titre,
+                                color = Color.White.copy(alpha = 0.85f),
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                 }
             }
 

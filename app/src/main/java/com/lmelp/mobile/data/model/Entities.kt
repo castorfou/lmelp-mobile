@@ -159,6 +159,18 @@ data class EmissionLivreEntity(
     @ColumnInfo(name = "livre_id") val livreId: String
 )
 
+@Entity(tableName = "onkindle")
+data class OnKindleEntity(
+    @PrimaryKey @ColumnInfo(name = "livre_id") val livreId: String,
+    val titre: String,
+    @ColumnInfo(name = "auteur_nom") val auteurNom: String?,
+    @ColumnInfo(name = "url_babelio") val urlBabelio: String?,
+    @ColumnInfo(name = "calibre_lu", defaultValue = "0") val calibreLu: Int = 0,
+    @ColumnInfo(name = "calibre_rating") val calibreRating: Double? = null,
+    @ColumnInfo(name = "note_moyenne") val noteMoyenne: Double? = null,
+    @ColumnInfo(name = "nb_avis", defaultValue = "0") val nbAvis: Int = 0
+)
+
 @Entity(tableName = "db_metadata")
 data class DbMetadataEntity(
     @PrimaryKey val key: String,

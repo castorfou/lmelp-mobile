@@ -182,6 +182,17 @@ CREATE TABLE IF NOT EXISTS db_metadata (
 
 -- Index required by Room @Index annotation on EmissionLivreEntity
 CREATE INDEX IF NOT EXISTS index_emission_livres_livre_id ON emission_livres(livre_id);
+
+CREATE TABLE IF NOT EXISTS onkindle (
+    livre_id       TEXT NOT NULL PRIMARY KEY,
+    titre          TEXT NOT NULL,
+    auteur_nom     TEXT,
+    url_babelio    TEXT,
+    calibre_lu     INTEGER NOT NULL DEFAULT 0,
+    calibre_rating REAL,
+    note_moyenne   REAL,
+    nb_avis        INTEGER NOT NULL DEFAULT 0
+);
 """
 
 
@@ -439,8 +450,15 @@ def compute_palmares(cur: sqlite3.Cursor) -> None:
 
 
 def _normalize_title(titre: str) -> str:
-    """Normalise un titre pour le matching : minuscules + suppression accents."""
-    nfkd = unicodedata.normalize("NFKD", titre)
+    """Normalise un titre pour le matching : minuscules + suppression accents + apostrophes.
+
+    Remplace les apostrophes typographiques (\u2018, \u2019) par l'apostrophe droite
+    avant la normalisation Unicode, puis supprime toute apostrophe résiduelle
+    pour garantir le matching entre titres Calibre et titres de la base.
+    """
+    normalised = titre.replace("\u2018", "'").replace("\u2019", "'")
+    normalised = normalised.replace("'", "")
+    nfkd = unicodedata.normalize("NFKD", normalised)
     ascii_str = nfkd.encode("ascii", "ignore").decode("ascii")
     return ascii_str.lower().strip()
 
@@ -540,6 +558,162 @@ def import_calibre_data(
 
     except Exception as e:
         logger.error(f"Erreur import Calibre : {e}")
+
+
+def build_onkindle_table(cur: sqlite3.Cursor, calibre_db_path: str) -> None:
+    """Construit la table onkindle à partir des livres tagués 'onkindle' dans Calibre.
+
+    Pour chaque livre Calibre avec ce tag :
+    - Récupère calibre_lu, calibre_rating
+    - Croise avec palmares pour note_moyenne / nb_avis
+    - Croise avec livres pour url_babelio et auteur_nom
+    """
+    logger.info(f"Building onkindle table from Calibre: {calibre_db_path}")
+
+    try:
+        cal_con = sqlite3.connect(calibre_db_path)
+        cal_con.row_factory = sqlite3.Row
+        cal_cur = cal_con.cursor()
+
+        # Trouve l'id de la colonne personnalisée 'read'
+        read_col_id: int | None = None
+        row = cal_cur.execute(
+            "SELECT id FROM custom_columns WHERE label = 'read'"
+        ).fetchone()
+        if row:
+            read_col_id = row["id"]
+
+        # Charge les livres avec le tag 'onkindle' + auteur Calibre (premier auteur)
+        cal_cur.execute(
+            """
+            SELECT b.id, b.title, a.name as auteur_calibre
+            FROM books b
+            JOIN books_tags_link btl ON b.id = btl.book
+            JOIN tags t ON btl.tag = t.id
+            LEFT JOIN books_authors_link bal ON b.id = bal.book
+            LEFT JOIN authors a ON bal.author = a.id
+            WHERE t.name = 'onkindle'
+            GROUP BY b.id
+            """
+        )
+        kindle_books = cal_cur.fetchall()
+        logger.info(
+            f"  {len(kindle_books)} livres avec tag 'onkindle' trouvés dans Calibre"
+        )
+
+        # Index des palmares (titre normalisé → row)
+        palmares_rows = cur.execute(
+            "SELECT livre_id, titre, note_moyenne, nb_avis FROM palmares"
+        ).fetchall()
+        palmares_index: dict[str, tuple[str, float, int]] = {}
+        for livre_id, titre, note_moyenne, nb_avis in palmares_rows:
+            norm = _normalize_title(titre)
+            palmares_index[norm] = (livre_id, note_moyenne, nb_avis)
+
+        # Index des livres (titre normalisé → row)
+        livres_rows = cur.execute(
+            "SELECT id, titre, auteur_nom, url_babelio FROM livres"
+        ).fetchall()
+        livres_index: dict[str, tuple[str, str | None, str | None]] = {}
+        for livre_id, titre, auteur_nom, url_babelio in livres_rows:
+            norm = _normalize_title(titre)
+            livres_index[norm] = (livre_id, auteur_nom, url_babelio)
+
+        # Index des avis (livre_id → (note_moyenne, nb_avis)) — fallback pour les livres
+        # ayant des avis mais absents de palmares (coups de cœur, nb_avis < 2, etc.)
+        avis_rows = cur.execute(
+            "SELECT livre_id, note FROM avis WHERE note IS NOT NULL"
+        ).fetchall()
+        avis_by_livre: dict[str, list[float]] = {}
+        for livre_id, note in avis_rows:
+            avis_by_livre.setdefault(livre_id, []).append(note)
+        avis_index: dict[str, tuple[float, int]] = {
+            lid: (sum(notes) / len(notes), len(notes))
+            for lid, notes in avis_by_livre.items()
+        }
+
+        inserted = 0
+        for book in kindle_books:
+            calibre_id = book["id"]
+            calibre_titre = book["title"]
+            calibre_auteur: str | None = book["auteur_calibre"]
+            norm = _normalize_title(calibre_titre)
+
+            # Statut lu
+            calibre_lu = 0
+            if read_col_id is not None:
+                lu_row = cal_cur.execute(
+                    f"SELECT value FROM custom_column_{read_col_id} WHERE book = ?",
+                    (calibre_id,),
+                ).fetchone()
+                if lu_row and lu_row["value"]:
+                    calibre_lu = 1
+
+            # Rating
+            calibre_rating: float | None = None
+            rating_row = cal_cur.execute(
+                """SELECT r.rating FROM ratings r
+                   JOIN books_ratings_link brl ON r.id = brl.rating
+                   WHERE brl.book = ?""",
+                (calibre_id,),
+            ).fetchone()
+            if rating_row and rating_row["rating"] is not None:
+                calibre_rating = float(rating_row["rating"])
+
+            # Croisement palmares
+            note_moyenne: float | None = None
+            nb_avis: int = 0
+            livre_id_from_palmares: str | None = None
+            if norm in palmares_index:
+                livre_id_from_palmares, note_moyenne, nb_avis = palmares_index[norm]
+
+            # Croisement livres (url_babelio, auteur_nom)
+            auteur_nom: str | None = None
+            url_babelio: str | None = None
+            final_livre_id: str | None = None
+            if norm in livres_index:
+                final_livre_id, auteur_nom, url_babelio = livres_index[norm]
+            elif livre_id_from_palmares:
+                final_livre_id = livre_id_from_palmares
+
+            # Fallback auteur depuis Calibre si non trouvé dans livres
+            if auteur_nom is None and calibre_auteur:
+                auteur_nom = calibre_auteur
+
+            # Fallback avis : si pas dans palmares mais des avis existent pour ce livre_id
+            if (
+                note_moyenne is None
+                and final_livre_id is not None
+                and final_livre_id in avis_index
+            ):
+                note_moyenne, nb_avis = avis_index[final_livre_id]
+
+            # Utilise un id synthétique si le livre n'est pas dans notre base
+            if final_livre_id is None:
+                final_livre_id = f"calibre_{calibre_id}"
+
+            cur.execute(
+                """INSERT OR REPLACE INTO onkindle
+                   (livre_id, titre, auteur_nom, url_babelio, calibre_lu, calibre_rating, note_moyenne, nb_avis)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    final_livre_id,
+                    calibre_titre,
+                    auteur_nom,
+                    url_babelio,
+                    calibre_lu,
+                    calibre_rating,
+                    note_moyenne,
+                    nb_avis,
+                ),
+            )
+            inserted += 1
+
+        cal_con.close()
+        logger.info(f"  → {inserted} livres insérés dans la table onkindle")
+
+    except Exception as e:
+        logger.error(f"Erreur build_onkindle_table : {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -728,8 +902,8 @@ def write_metadata(cur: sqlite3.Cursor) -> None:
     cur.executemany("INSERT OR REPLACE INTO db_metadata VALUES (?,?)", metadata)
 
     # user_version = version du schéma Room — doit correspondre à @Database(version=N) dans LmelpDatabase.kt
-    # Incrémenter ici ET dans LmelpDatabase.kt à chaque modification d'un @Entity
-    cur.execute("PRAGMA user_version = 2")
+    # v3 : ajout table onkindle (issue #52)
+    cur.execute("PRAGMA user_version = 3")
 
     logger.info(
         f"  Metadata: version={version}, date={now.strftime('%Y-%m-%d')}, "
@@ -757,6 +931,7 @@ def verify_database(db_path: Path) -> None:
         "palmares",
         "recommendations",
         "avis_critiques",
+        "onkindle",
     ]
 
     click.echo(f"\n{'=' * 50}")
@@ -873,6 +1048,7 @@ def main(
     compute_palmares(cur)
     if calibre_db:
         import_calibre_data(cur, calibre_db, calibre_virtual_library)
+        build_onkindle_table(cur, calibre_db)
     compute_recommendations(cur, n_factors=svd_factors)
     build_search_index(cur)
     update_critique_stats(cur)
