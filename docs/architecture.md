@@ -24,6 +24,16 @@
 │         │                                                       │
 │         ▼                                                       │
 │  app/src/main/assets/lmelp.db   (~5-10 MB)                     │
+│                                                                 │
+│  scripts/check_covers.py --fetch                                │
+│    ├── Fetche les pages Babelio (cookie Firefox requis)         │
+│    ├── Extrait og:image (CVT_ Babelio ou Amazon)                │
+│    ├── Valide le titre de page (anti-mauvaise couverture)       │
+│    ├── Écrit assets/couvertures_cache.json                      │
+│    └── Pousse le cache sur le device via adb                    │
+│         │                                                       │
+│         ▼                                                       │
+│  app/src/main/assets/couvertures_cache.json                     │
 │         │                                                       │
 │         ▼                                                       │
 │  ./gradlew assembleRelease  (ou GitHub Actions)                 │
@@ -37,15 +47,21 @@
 │         │                                                       │
 │         ▼  (1ère ouverture)                                     │
 │  Room copie assets/lmelp.db → /data/data/.../databases/         │
+│  HomeRepository lit assets/couvertures_cache.json              │
 │         │                                                       │
 │         ▼                                                       │
-│  Application Android (100% offline)                             │
+│  Application Android (100% offline sauf couvertures)           │
 │    ├── Émissions                                                │
 │    ├── Palmarès                                                 │
 │    ├── Critiques                                                │
 │    ├── Recherche (FTS5)                                         │
 │    ├── Recommandations                                          │
 │    └── Sur ma liseuse (OnKindle)                                │
+│                                                                 │
+│  Couvertures (Coil)                                             │
+│    ├── URLs lues depuis couvertures_cache.json                  │
+│    ├── Images téléchargées 1 seule fois (Babelio/Amazon)        │
+│    └── Disk cache : getExternalFilesDir/coil_image_cache        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
