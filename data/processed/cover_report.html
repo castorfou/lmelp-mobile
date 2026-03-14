@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>lmelp — Rapport couvertures</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { font-size: 1.4rem; margin-bottom: 4px; color: #fff; }
+    .subtitle { color: #aaa; font-size: .85rem; margin-bottom: 24px; }
+    section { margin-bottom: 32px; }
+    h2 { font-size: 1.1rem; color: #90caf9; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 6px; }
+    .count { font-size: .8rem; color: #aaa; font-weight: normal; }
+    .grid { display: flex; flex-wrap: wrap; gap: 12px; }
+    .card { width: 130px; border-radius: 8px; overflow: hidden; border: 2px solid #444; background: #16213e; font-size: .75rem; }
+    .card.cached { border-color: #4caf50; }
+    .card.missing { border-color: #ff9800; }
+    .card.empty { border-color: #f44336; }
+    .card.no-babelio { border-color: #9e9e9e; }
+    .img-wrap { width: 130px; height: 180px; background: #0f3460; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .placeholder { font-size: 2rem; color: #555; }
+    .info { padding: 6px 8px 8px; }
+    .status-icon { font-size: .85rem; }
+    .card.cached .status-icon { color: #4caf50; }
+    .card.missing .status-icon { color: #ff9800; }
+    .card.empty .status-icon { color: #f44336; }
+    .card.no-babelio .status-icon { color: #9e9e9e; }
+    .title { font-weight: bold; margin-top: 2px; line-height: 1.3; color: #fff; }
+    .author { color: #aaa; margin-top: 2px; }
+    .meta { color: #90caf9; margin-top: 2px; }
+    .babelio-link { display: inline-block; margin-top: 4px; color: #90caf9; text-decoration: none; font-size: .7rem; }
+    .babelio-link:hover { text-decoration: underline; }
+    .no-link { color: #555; font-size: .7rem; }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; font-size: .8rem; }
+    .legend span { padding: 2px 8px; border-radius: 4px; border: 1px solid; }
+    .leg-cached { border-color: #4caf50; color: #4caf50; }
+    .leg-missing { border-color: #ff9800; color: #ff9800; }
+    .leg-empty { border-color: #f44336; color: #f44336; }
+    .leg-nobabelio { border-color: #9e9e9e; color: #9e9e9e; }
+  </style>
+</head>
+<body>
+  <h1>lmelp — Rapport couvertures</h1>
+  <p class="subtitle">Cache : assets/ enrichi (41 entrées) · 54/54 couvertures en cache</p>
+  <div class="legend">
+    <span class="leg-cached">✓ En cache</span>
+    <span class="leg-missing">✗ Absent du cache</span>
+    <span class="leg-empty">⚠ Aucune image Babelio</span>
+    <span class="leg-nobabelio">⚠ URL Babelio manquante</span>
+  </div>
+
+  <section>
+    <h2>Émissions <span class="count">(10 livres · 10 en cache)</span></h2>
+    <div class="grid">
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Hors-champ_8582.jpg" loading="lazy" alt="Hors champ" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Hors champ</p>
+        <p class="author">Marie-Hélène Lafon</p>
+        <p class='meta'>6.8/10 · 2026-03-01</p>
+        <a href="https://www.babelio.com/livres/Lafon-Hors-champ/1928054" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Departs_8250.jpg" loading="lazy" alt="Départ(s)" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Départ(s)</p>
+        <p class="author">Julian Barnes</p>
+        <p class='meta'>8.8/10 · 2026-02-13</p>
+        <a href="https://www.babelio.com/livres/Barnes-Departs/1937774" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Les-Belles-Promesses_3072.jpg" loading="lazy" alt="Les Belles Promesses" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Les Belles Promesses</p>
+        <p class="author">Pierre Lemaitre</p>
+        <p class='meta'>7.0/10 · 2026-01-18</p>
+        <a href="https://www.babelio.com/livres/Lemaitre-Les-Belles-Promesses/1926672" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Combats-de-filles_2359.jpg" loading="lazy" alt="Combats de filles" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Combats de filles</p>
+        <p class="author">Rita Bullwinkel</p>
+        <p class='meta'>8.2/10 · 2025-12-21</p>
+        <a href="https://www.babelio.com/livres/Bullwinkel-Combats-de-filles/1708135" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/41uSEaWdbEL._SX195_.jpg" loading="lazy" alt="Quatre jours sans ma mère" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Quatre jours sans ma mère</p>
+        <p class="author">Ramsès Kéfi</p>
+        <p class='meta'>9.0/10 · 2025-12-07</p>
+        <a href="https://www.babelio.com/livres/Kefi-Quatre-jours-sans-ma-mere/1866745" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Passageres-de-nuit_1962.jpg" loading="lazy" alt="Passagères de nuit" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Passagères de nuit</p>
+        <p class="author">Yanick Lahens</p>
+        <p class='meta'>7.8/10 · 2025-11-09</p>
+        <a href="https://www.babelio.com/livres/Lahens-Passageres-de-nuit/1835455" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/31vfm3BsKHL._SX195_.jpg" loading="lazy" alt="Les Forces" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Les Forces</p>
+        <p class="author">Laura Vazquez</p>
+        <p class='meta'>9.5/10 · 2025-10-26</p>
+        <a href="https://www.babelio.com/livres/Vazquez-Les-Forces/1866748" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Simone-monet_42.jpg" loading="lazy" alt="Simone Émonet" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Simone Émonet</p>
+        <p class="author">Catherine Millet</p>
+        <p class='meta'>8.5/10 · 2025-09-28</p>
+        <a href="https://www.babelio.com/livres/Millet-Simone-monet/1870367" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_La-maison-vide_2615.jpg" loading="lazy" alt="La Maison vide" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">La Maison vide</p>
+        <p class="author">Laurent Mauvignier</p>
+        <p class='meta'>9.0/10 · 2025-09-14</p>
+        <a href="https://www.babelio.com/livres/Mauvignier-La-Maison-vide/1868350" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Kolkhoze_5317.jpg" loading="lazy" alt="Kolkhoze" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Kolkhoze</p>
+        <p class="author">Emmanuel Carrère</p>
+        <p class='meta'>8.8/10 · 2025-09-07</p>
+        <a href="https://www.babelio.com/livres/Carrere-Kolkhoze/1839593" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div></div>
+  </section>
+
+  <section>
+    <h2>Palmarès <span class="count">(10 livres · 10 en cache)</span></h2>
+    <div class="grid">
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/21bArgKOJuL._SX195_.jpg" loading="lazy" alt="L'Anachronique" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">L'Anachronique</p>
+        <p class="author">Eric Holder</p>
+        <p class='meta'>10.0/10</p>
+        <a href="https://www.babelio.com/livres/Holder-LAnachronique/1430451" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Des-souris-et-des-hommes_3935.jpg" loading="lazy" alt="Des souris et des hommes" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Des souris et des hommes</p>
+        <p class="author">John Steinbeck</p>
+        <p class='meta'>10.0/10</p>
+        <a href="https://www.babelio.com/livres/Steinbeck-Des-souris-et-des-hommes/1426099" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_La-seule-histoire_4913.jpg" loading="lazy" alt="La seule histoire" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">La seule histoire</p>
+        <p class="author">Julian Barnes</p>
+        <p class='meta'>10.0/10</p>
+        <a href="https://www.babelio.com/livres/Barnes-La-seule-histoire/1059028" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/31HfFHpMJuL._SX195_.jpg" loading="lazy" alt="À prendre ou à laisser" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">À prendre ou à laisser</p>
+        <p class="author">Lionel Shriver</p>
+        <p class='meta'>9.8/10</p>
+        <a href="https://www.babelio.com/livres/Shriver--prendre-ou-a-laisser/1471542" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/31Yly9B91wL._SX195_.jpg" loading="lazy" alt="Le lièvre" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Le lièvre</p>
+        <p class="author">Frédéric Boyer</p>
+        <p class='meta'>9.8/10</p>
+        <a href="https://www.babelio.com/livres/Boyer-Le-lievre/1313246" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/31vfm3BsKHL._SX195_.jpg" loading="lazy" alt="Les Forces" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Les Forces</p>
+        <p class="author">Laura Vazquez</p>
+        <p class='meta'>9.5/10</p>
+        <a href="https://www.babelio.com/livres/Vazquez-Les-Forces/1866748" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/61EQ3V1qJ7L._SX195_.jpg" loading="lazy" alt="Le Nageur" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Le Nageur</p>
+        <p class="author">Pierre Assouline</p>
+        <p class='meta'>9.5/10</p>
+        <a href="https://www.babelio.com/livres/Assouline-Le-Nageur/1495723" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Madame-Hayat_6949.jpg" loading="lazy" alt="Madame Hayat" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Madame Hayat</p>
+        <p class="author">Ahmet Altan</p>
+        <p class='meta'>9.5/10</p>
+        <a href="https://www.babelio.com/livres/Altan-Madame-Hayat/1329571" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Il-est-des-hommes-qui-se-perdront-toujours_7166.jpg" loading="lazy" alt="Il est des hommes qui se perdront toujours" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Il est des hommes qui se perdront toujours</p>
+        <p class="author">Rebecca Lighieri</p>
+        <p class='meta'>9.5/10</p>
+        <a href="https://www.babelio.com/livres/Lighieri-Il-est-des-hommes-qui-se-perdront-toujours/1209044" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Eva_2053.jpg" loading="lazy" alt="Eva" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Eva</p>
+        <p class="author">Simon Liberati</p>
+        <p class='meta'>9.5/10</p>
+        <a href="https://www.babelio.com/livres/Liberati-Eva/722744" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div></div>
+  </section>
+
+  <section>
+    <h2>Conseils <span class="count">(10 livres · 10 en cache)</span></h2>
+    <div class="grid">
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Des-souris-et-des-hommes_3935.jpg" loading="lazy" alt="Des souris et des hommes" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Des souris et des hommes</p>
+        <p class="author">John Steinbeck</p>
+        
+        <a href="https://www.babelio.com/livres/Steinbeck-Des-souris-et-des-hommes/1426099" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/21bArgKOJuL._SX195_.jpg" loading="lazy" alt="L'Anachronique" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">L'Anachronique</p>
+        <p class="author">Eric Holder</p>
+        
+        <a href="https://www.babelio.com/livres/Holder-LAnachronique/1430451" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_La-seule-histoire_4913.jpg" loading="lazy" alt="La seule histoire" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">La seule histoire</p>
+        <p class="author">Julian Barnes</p>
+        
+        <a href="https://www.babelio.com/livres/Barnes-La-seule-histoire/1059028" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/31HfFHpMJuL._SX195_.jpg" loading="lazy" alt="À prendre ou à laisser" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">À prendre ou à laisser</p>
+        <p class="author">Lionel Shriver</p>
+        
+        <a href="https://www.babelio.com/livres/Shriver--prendre-ou-a-laisser/1471542" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/31Yly9B91wL._SX195_.jpg" loading="lazy" alt="Le lièvre" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Le lièvre</p>
+        <p class="author">Frédéric Boyer</p>
+        
+        <a href="https://www.babelio.com/livres/Boyer-Le-lievre/1313246" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Le-voyant-dtampes_2484.jpg" loading="lazy" alt="Le voyant d'Étampes" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Le voyant d'Étampes</p>
+        <p class="author">Abel Quentin</p>
+        
+        <a href="https://www.babelio.com/livres/Quentin-Le-voyant-dtampes/1336683" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/61EQ3V1qJ7L._SX195_.jpg" loading="lazy" alt="Le Nageur" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Le Nageur</p>
+        <p class="author">Pierre Assouline</p>
+        
+        <a href="https://www.babelio.com/livres/Assouline-Le-Nageur/1495723" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Il-est-des-hommes-qui-se-perdront-toujours_7166.jpg" loading="lazy" alt="Il est des hommes qui se perdront toujours" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Il est des hommes qui se perdront toujours</p>
+        <p class="author">Rebecca Lighieri</p>
+        
+        <a href="https://www.babelio.com/livres/Lighieri-Il-est-des-hommes-qui-se-perdront-toujours/1209044" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Madame-Hayat_6949.jpg" loading="lazy" alt="Madame Hayat" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Madame Hayat</p>
+        <p class="author">Ahmet Altan</p>
+        
+        <a href="https://www.babelio.com/livres/Altan-Madame-Hayat/1329571" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Eva_2053.jpg" loading="lazy" alt="Eva" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Eva</p>
+        <p class="author">Simon Liberati</p>
+        
+        <a href="https://www.babelio.com/livres/Liberati-Eva/722744" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div></div>
+  </section>
+
+  <section>
+    <h2>Liseuse (OnKindle) <span class="count">(24 livres · 24 en cache)</span></h2>
+    <div class="grid">
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/51J1VrtaxrL._SL160_.jpg" loading="lazy" alt="Aliène" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Aliène</p>
+        <p class="author">Phoebe Hadjimarkos Clarke</p>
+        
+        <a href="https://www.babelio.com/livres/Hadjimarkos-Clarke-Aliene/1576759" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Bien-etre_9321.jpg" loading="lazy" alt="Bien-être" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Bien-être</p>
+        <p class="author">Nathan Hill</p>
+        
+        <a href="https://www.babelio.com/livres/Hill-Bien-etre/1635122" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/614ScdNIqbL._SX195_.jpg" loading="lazy" alt="Frapper l'épopée" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Frapper l'épopée</p>
+        <p class="author">Alice Zeniter</p>
+        
+        <a href="https://www.babelio.com/livres/Zeniter-Frapper-lepopee/1661050" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/61Xml+KDQ5L._SX195_.jpg" loading="lazy" alt="Julienne" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Julienne</p>
+        <p class="author">Scholastique Mukasonga</p>
+        
+        <a href="https://www.babelio.com/livres/Mukasonga-Julienne/1620972" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/41JHx8lB1IL._SX195_.jpg" loading="lazy" alt="Kafka, tome 1 : Le temps des décisions" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Kafka, tome 1 : Le temps des décisions</p>
+        <p class="author">Reiner Stach</p>
+        
+        <a href="https://www.babelio.com/livres/Stach-Kafka-tome-1--Le-temps-des-decisions/1511149" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Kolkhoze_5317.jpg" loading="lazy" alt="Kolkhoze" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Kolkhoze</p>
+        <p class="author">Emmanuel Carrère</p>
+        
+        <a href="https://www.babelio.com/livres/Carrere-Kolkhoze/1839593" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/31c0v0N4q1L._SX195_.jpg" loading="lazy" alt="L'Echiquier" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">L'Echiquier</p>
+        <p class="author">Jean-Philippe Toussaint</p>
+        
+        <a href="https://www.babelio.com/livres/Toussaint-Lechiquier/1525271" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Leternite-nest-pas-de-trop_4167.jpg" loading="lazy" alt="L'Eternité n'est pas de trop" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">L'Eternité n'est pas de trop</p>
+        <p class="author">François Cheng</p>
+        
+        <a href="https://www.babelio.com/livres/Cheng-Leternite-nest-pas-de-trop/18175" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_La-danseuse_8245.jpg" loading="lazy" alt="La danseuse" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">La danseuse</p>
+        <p class="author">Patrick Modiano</p>
+        
+        <a href="https://www.babelio.com/livres/Modiano-La-Danseuse/1530225" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_La-Petite-fasciste_1107.jpg" loading="lazy" alt="La petite fasciste" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">La petite fasciste</p>
+        <p class="author">Jérôme Leroy</p>
+        
+        <a href="https://www.babelio.com/livres/Leroy-La-Petite-fasciste/1754058" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/61Q7n6GD8aL._SX195_.jpg" loading="lazy" alt="La petite-fille" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">La petite-fille</p>
+        <p class="author">Bernhard Schlink</p>
+        
+        <a href="https://www.babelio.com/livres/Schlink-La-Petite-Fille/1465555" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/41OVB-ok9hL._SX195_.jpg" loading="lazy" alt="La vie clandestine" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">La vie clandestine</p>
+        <p class="author">Monica Sabolo</p>
+        
+        <a href="https://www.babelio.com/livres/Sabolo-La-Vie-clandestine/1403776" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Le-Bastion-des-larmes_1676.jpg" loading="lazy" alt="Le bastion des larmes" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Le bastion des larmes</p>
+        <p class="author">Abdellah Taïa</p>
+        
+        <a href="https://www.babelio.com/livres/Taia-Le-Bastion-des-larmes/1689850" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Le-Club-des-enfants-perdus_8050.jpg" loading="lazy" alt="Le club des enfants perdus" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Le club des enfants perdus</p>
+        <p class="author">Rebecca Lighieri</p>
+        
+        <a href="https://www.babelio.com/livres/Lighieri-Le-Club-des-enfants-perdus/1639994" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/61EQ3V1qJ7L._SX195_.jpg" loading="lazy" alt="Le nageur" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Le nageur</p>
+        <p class="author">Pierre Assouline</p>
+        
+        <a href="https://www.babelio.com/livres/Assouline-Le-Nageur/1495723" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Le-Nom-sur-le-mur_5977.jpg" loading="lazy" alt="Le nom sur le mur" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Le nom sur le mur</p>
+        <p class="author">Hervé Le Tellier</p>
+        
+        <a href="https://www.babelio.com/livres/Le-Tellier-Le-Nom-sur-le-mur/1578782" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/31vfm3BsKHL._SX195_.jpg" loading="lazy" alt="Les Forces" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Les Forces</p>
+        <p class="author">Laura Vazquez</p>
+        
+        <a href="https://www.babelio.com/livres/Vazquez-Les-Forces/1866748" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/61-ikmnXgkL._SX195_.jpg" loading="lazy" alt="Les chaînes de Markov" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Les chaînes de Markov</p>
+        <p class="author">Noham Selcer</p>
+        
+        <a href="https://www.babelio.com/livres/Selcer-Les-chaines-de-Markov/1628926" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/41vIBpKF2eL._SX195_.jpg" loading="lazy" alt="Les guerriers de l’hiver" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Les guerriers de l’hiver</p>
+        <p class="author">Olivier Norek</p>
+        
+        <a href="https://www.babelio.com/livres/Norek-Les-Guerriers-de-lhiver/1673573" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/415LKKYAY+L._SX195_.jpg" loading="lazy" alt="Les quatre vies d'un amour" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Les quatre vies d'un amour</p>
+        <p class="author">Mathieu Terence</p>
+        
+        <a href="https://www.babelio.com/livres/Terence-Les-quatre-vies-dun-amour/1501258" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/51AK6TK3AxL._SX195_.jpg" loading="lazy" alt="Les Éclats" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Les Éclats</p>
+        <p class="author">Bret Easton Ellis</p>
+        
+        <a href="https://www.babelio.com/livres/Ellis-Les-clats/1488947" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/41Wy0+iStCL._SX195_.jpg" loading="lazy" alt="Piège à loup" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Piège à loup</p>
+        <p class="author">Aslak Nore</p>
+        
+        <a href="https://www.babelio.com/livres/Nore-Piege-a-loup/1785631" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://www.babelio.com/couv/CVT_Suite-inoubliable_148.jpg" loading="lazy" alt="Suite inoubliable" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">Suite inoubliable</p>
+        <p class="author">Akira Mizubayashi</p>
+        
+        <a href="https://www.babelio.com/livres/Mizubayashi-Suite-inoubliable/1530324" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div>
+
+    <div class="card cached">
+      <div class="img-wrap"><img src="https://m.media-amazon.com/images/I/31HfFHpMJuL._SX195_.jpg" loading="lazy" alt="À prendre ou à laisser" /></div>
+      <div class="info">
+        <span class="status-icon" title="En cache">✓</span>
+        <p class="title">À prendre ou à laisser</p>
+        <p class="author">Lionel Shriver</p>
+        
+        <a href="https://www.babelio.com/livres/Shriver--prendre-ou-a-laisser/1471542" target="_blank" class="babelio-link">Babelio ↗</a>
+      </div>
+    </div></div>
+  </section>
+</body>
+</html>

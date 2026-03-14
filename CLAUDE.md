@@ -41,6 +41,12 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 └── pyproject.toml
 ```
 
+## Environnement local
+
+- **adb** : `/home/vscode/android-sdk/platform-tools/adb` (pas dans le PATH par défaut)
+- **MongoDB** : port **27018** (pas 27017)
+- **Calibre** : `/home/vscode/Calibre Library/metadata.db`, virtual library `guillaume`
+
 ## Commandes essentielles
 
 ### Android
