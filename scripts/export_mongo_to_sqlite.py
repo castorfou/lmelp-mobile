@@ -172,12 +172,11 @@ CREATE TABLE IF NOT EXISTS recommendations (
     masque_count  INTEGER
 );
 
-CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts4(
-    type,
-    ref_id,
+CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
+    type UNINDEXED,
+    ref_id UNINDEXED,
     content,
-    notindexed=type,
-    notindexed=ref_id
+    tokenize = 'unicode61 remove_diacritics 2'
 );
 
 CREATE TABLE IF NOT EXISTS db_metadata (
