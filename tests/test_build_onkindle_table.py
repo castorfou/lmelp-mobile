@@ -28,7 +28,8 @@ def _make_main_db() -> sqlite3.Connection:
             id          TEXT PRIMARY KEY,
             titre       TEXT NOT NULL,
             auteur_nom  TEXT,
-            url_babelio TEXT
+            url_babelio TEXT,
+            url_cover   TEXT
         );
         CREATE TABLE avis (
             id          TEXT PRIMARY KEY,
@@ -41,6 +42,7 @@ def _make_main_db() -> sqlite3.Connection:
             titre          TEXT NOT NULL,
             auteur_nom     TEXT,
             url_babelio    TEXT,
+            url_cover      TEXT,
             calibre_lu     INTEGER NOT NULL DEFAULT 0,
             calibre_rating REAL,
             note_moyenne   REAL,
@@ -136,7 +138,7 @@ class TestBuildOnkindleAvisFallback:
         cur = main_con.cursor()
         cur.execute("INSERT INTO palmares VALUES ('l1', 'Kafka, tome 1', 8.5, 3)")
         cur.execute(
-            "INSERT INTO livres VALUES ('l1', 'Kafka, tome 1', 'Kafka Franz', 'http://babelio/kafka')"
+            "INSERT INTO livres VALUES ('l1', 'Kafka, tome 1', 'Kafka Franz', 'http://babelio/kafka', NULL)"
         )
         main_con.commit()
 
@@ -156,7 +158,7 @@ class TestBuildOnkindleAvisFallback:
         cur = main_con.cursor()
         # Pas dans palmares
         cur.execute(
-            "INSERT INTO livres VALUES ('l2', 'Kafka, tome 1', 'Kafka Franz', NULL)"
+            "INSERT INTO livres VALUES ('l2', 'Kafka, tome 1', 'Kafka Franz', NULL, NULL)"
         )
         cur.execute("INSERT INTO avis VALUES ('a1', 'l2', 9.0, 'Kafka, tome 1')")
         main_con.commit()
@@ -176,7 +178,9 @@ class TestBuildOnkindleAvisFallback:
         """Livre sans avis et absent de palmares → note_moyenne NULL."""
         main_con = _make_main_db()
         cur = main_con.cursor()
-        cur.execute("INSERT INTO livres VALUES ('l3', 'Livre inconnu', NULL, NULL)")
+        cur.execute(
+            "INSERT INTO livres VALUES ('l3', 'Livre inconnu', NULL, NULL, NULL)"
+        )
         main_con.commit()
 
         calibre_con = _make_calibre_db([(101, "Livre inconnu")])
@@ -195,7 +199,7 @@ class TestBuildOnkindleAvisFallback:
         cur = main_con.cursor()
         titre = "Les guerriers de l'hiver"
         cur.execute(
-            "INSERT INTO livres VALUES (?, ?, ?, NULL)", ("l4", titre, "Auteur X")
+            "INSERT INTO livres VALUES (?, ?, ?, NULL, NULL)", ("l4", titre, "Auteur X")
         )
         cur.execute("INSERT INTO avis VALUES (?, ?, ?, ?)", ("a2", "l4", 8.0, titre))
         cur.execute("INSERT INTO avis VALUES (?, ?, ?, ?)", ("a3", "l4", 6.0, titre))

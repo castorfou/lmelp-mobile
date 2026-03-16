@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS livres (
     auteur_nom  TEXT,
     editeur     TEXT,
     url_babelio TEXT,
+    url_cover   TEXT,
     created_at  TEXT,
     updated_at  TEXT,
     FOREIGN KEY (auteur_id) REFERENCES auteurs(id)
@@ -195,6 +196,7 @@ CREATE TABLE IF NOT EXISTS onkindle (
     titre          TEXT NOT NULL,
     auteur_nom     TEXT,
     url_babelio    TEXT,
+    url_cover      TEXT,
     calibre_lu     INTEGER NOT NULL DEFAULT 0,
     calibre_rating REAL,
     note_moyenne   REAL,
@@ -262,11 +264,12 @@ def export_livres(
                 auteur_nom,
                 editeur,
                 livre.get("url_babelio"),
+                livre.get("url_cover"),
                 iso_date(livre.get("created_at")),
                 iso_date(livre.get("updated_at")),
             )
         )
-    cur.executemany("INSERT OR REPLACE INTO livres VALUES (?,?,?,?,?,?,?,?)", rows)
+    cur.executemany("INSERT OR REPLACE INTO livres VALUES (?,?,?,?,?,?,?,?,?)", rows)
     logger.info(f"  → {len(rows)} livres")
 
 
@@ -643,12 +646,12 @@ def build_onkindle_table(
 
         # Index des livres (titre normalisé → row)
         livres_rows = cur.execute(
-            "SELECT id, titre, auteur_nom, url_babelio FROM livres"
+            "SELECT id, titre, auteur_nom, url_babelio, url_cover FROM livres"
         ).fetchall()
-        livres_index: dict[str, tuple[str, str | None, str | None]] = {}
-        for livre_id, titre, auteur_nom, url_babelio in livres_rows:
+        livres_index: dict[str, tuple[str, str | None, str | None, str | None]] = {}
+        for livre_id, titre, auteur_nom, url_babelio, url_cover in livres_rows:
             norm = _normalize_title(titre)
-            livres_index[norm] = (livre_id, auteur_nom, url_babelio)
+            livres_index[norm] = (livre_id, auteur_nom, url_babelio, url_cover)
 
         # Index des avis (livre_id → (note_moyenne, nb_avis)) — fallback pour les livres
         # ayant des avis mais absents de palmares (coups de cœur, nb_avis < 2, etc.)
@@ -698,12 +701,13 @@ def build_onkindle_table(
             if norm in palmares_index:
                 livre_id_from_palmares, note_moyenne, nb_avis = palmares_index[norm]
 
-            # Croisement livres (url_babelio, auteur_nom)
+            # Croisement livres (url_babelio, url_cover, auteur_nom)
             auteur_nom: str | None = None
             url_babelio: str | None = None
+            url_cover: str | None = None
             final_livre_id: str | None = None
             if norm in livres_index:
-                final_livre_id, auteur_nom, url_babelio = livres_index[norm]
+                final_livre_id, auteur_nom, url_babelio, url_cover = livres_index[norm]
             elif livre_id_from_palmares:
                 final_livre_id = livre_id_from_palmares
 
@@ -725,13 +729,14 @@ def build_onkindle_table(
 
             cur.execute(
                 """INSERT OR REPLACE INTO onkindle
-                   (livre_id, titre, auteur_nom, url_babelio, calibre_lu, calibre_rating, note_moyenne, nb_avis)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (livre_id, titre, auteur_nom, url_babelio, url_cover, calibre_lu, calibre_rating, note_moyenne, nb_avis)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     final_livre_id,
                     calibre_titre,
                     auteur_nom,
                     url_babelio,
+                    url_cover,
                     calibre_lu,
                     calibre_rating,
                     note_moyenne,
@@ -947,7 +952,7 @@ def write_metadata(cur: sqlite3.Cursor) -> None:
 
     # user_version = version du schéma Room — doit correspondre à @Database(version=N) dans LmelpDatabase.kt
     # v3 : ajout table onkindle (issue #52)
-    cur.execute("PRAGMA user_version = 3")
+    cur.execute("PRAGMA user_version = 4")
 
     logger.info(
         f"  Metadata: version={version}, date={now.strftime('%Y-%m-%d')}, "

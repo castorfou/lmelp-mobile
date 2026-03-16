@@ -69,67 +69,15 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                     onkindleSlides = onkindleSlides
                 )
             }
-
-            // Chargement des couvertures en background
-            emissionsSlides.forEachIndexed { i, s ->
-                launchCouvertureLoad(s, i,
-                    selectList = { it.emissionsSlides },
-                    updateList = { state, list -> state.copy(emissionsSlides = list) }
-                )
-            }
-            palmaresSlides.forEachIndexed { i, s ->
-                launchCouvertureLoad(s, i,
-                    selectList = { it.palmaresSlides },
-                    updateList = { state, list -> state.copy(palmaresSlides = list) }
-                )
-            }
-            conseilsSlides.forEachIndexed { i, s ->
-                launchCouvertureLoad(s, i,
-                    selectList = { it.conseilsSlides },
-                    updateList = { state, list -> state.copy(conseilsSlides = list) }
-                )
-            }
-            onkindleSlides.forEachIndexed { i, s ->
-                launchCouvertureLoad(s, i,
-                    selectList = { it.onkindleSlides },
-                    updateList = { state, list -> state.copy(onkindleSlides = list) }
-                )
-            }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             _uiState.update { it.copy(isLoading = false, error = e.message) }
         }
     }
 
-    private fun launchCouvertureLoad(
-        slide: SlideItem,
-        slideIndex: Int,
-        selectList: (HomeUiState) -> List<SlideItem>,
-        updateList: (HomeUiState, List<SlideItem>) -> HomeUiState
-    ) {
-        if (slide.urlBabelio == null || slide.urlCouverture != null) return
-        viewModelScope.launch {
-            val url = try {
-                repository.fetchCouvertureBabelio(slide.urlBabelio, slide.titre)
-            } catch (_: Exception) {
-                return@launch
-            }
-            if (url != null) {
-                _uiState.update { state ->
-                    val updated = selectList(state).toMutableList()
-                    if (slideIndex < updated.size) {
-                        updated[slideIndex] = updated[slideIndex].copy(urlCouverture = url)
-                    }
-                    updateList(state, updated)
-                }
-            }
-        }
-    }
-
     private suspend fun startTicker() {
         while (true) {
             delay(TICKER_INTERVAL_MS)
-            // Calculer les nouveaux indices avant la mise à jour
             val current = _uiState.value
             val newEmissionsIdx = if (current.emissionsSlides.size <= 1) 0
                                   else (0 until current.emissionsSlides.size).random()
@@ -147,28 +95,6 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                     conseilsIndex  = newConseilsIdx,
                     onkindleIndex  = newOnkindleIdx
                 )
-            }
-
-            // Forcer le fetch du slide nouvellement affiché s'il n'a pas encore d'image
-            current.emissionsSlides.getOrNull(newEmissionsIdx)?.let { s ->
-                launchCouvertureLoad(s, newEmissionsIdx,
-                    selectList = { it.emissionsSlides },
-                    updateList = { state, list -> state.copy(emissionsSlides = list) })
-            }
-            current.palmaresSlides.getOrNull(newPalmaresIdx)?.let { s ->
-                launchCouvertureLoad(s, newPalmaresIdx,
-                    selectList = { it.palmaresSlides },
-                    updateList = { state, list -> state.copy(palmaresSlides = list) })
-            }
-            current.conseilsSlides.getOrNull(newConseilsIdx)?.let { s ->
-                launchCouvertureLoad(s, newConseilsIdx,
-                    selectList = { it.conseilsSlides },
-                    updateList = { state, list -> state.copy(conseilsSlides = list) })
-            }
-            current.onkindleSlides.getOrNull(newOnkindleIdx)?.let { s ->
-                launchCouvertureLoad(s, newOnkindleIdx,
-                    selectList = { it.onkindleSlides },
-                    updateList = { state, list -> state.copy(onkindleSlides = list) })
             }
         }
     }

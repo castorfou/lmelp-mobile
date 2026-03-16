@@ -11,7 +11,8 @@ data class PalmaresAvecUrlRow(
     val titre: String,
     @ColumnInfo(name = "auteur_nom")   val auteurNom: String?,
     @ColumnInfo(name = "note_moyenne") val noteMoyenne: Double,
-    @ColumnInfo(name = "url_babelio")  val urlBabelio: String?
+    @ColumnInfo(name = "url_babelio")  val urlBabelio: String?,
+    @ColumnInfo(name = "url_cover")    val urlCover: String?
 )
 
 @Dao
@@ -35,7 +36,7 @@ interface PalmaresDao {
     suspend fun getPalmaresFiltres(afficherLus: Int, afficherNonLus: Int): List<PalmaresEntity>
 
     @Query("""
-        SELECT p.rank, p.livre_id, p.titre, p.auteur_nom, p.note_moyenne, l.url_babelio
+        SELECT p.rank, p.livre_id, p.titre, p.auteur_nom, p.note_moyenne, l.url_babelio, l.url_cover
         FROM palmares p
         JOIN livres l ON l.id = p.livre_id
         WHERE p.nb_avis >= 2
