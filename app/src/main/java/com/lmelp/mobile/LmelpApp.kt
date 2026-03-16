@@ -71,8 +71,7 @@ class LmelpApp : Application() {
             database.palmaresDao(),
             database.livresDao(),
             database.recommendationsDao(),
-            database.onKindleDao(),
-            context = this
+            database.onKindleDao()
         )
     }
 }

@@ -19,10 +19,7 @@ On fait manuellement
 # 1. Export DB (rare, uniquement si nouvelle DB)
 python scripts/export_mongo_to_sqlite.py --force
 
-# 2. Fetch couvertures manquantes (rare, uniquement si nouvelle DB)
-python scripts/check_covers.py --fetch --no-open
-
-# 3. Build + deploy
+# 2. Build + deploy
 build.sh && deploy.sh
 ```
 
@@ -69,6 +66,8 @@ deploy.sh
 
 `app/src/main/assets/lmelp.db`
 
+le comportement viens de `scripts/.env` (precedemment on avait des parametres mais maintenant je detecte dans le fichier env les parametre a passer comme calibre-db)
+
 > ⚠️ **Toujours inclure `--calibre-db`** lors de l'export. Sans cette option,
 > `calibre_in_library = 0` et `calibre_lu = 0` pour tous les livres → filtre
 > "Lus" vide dans l'app, aucun ✓ affiché. Un test CI bloque le commit si
@@ -77,22 +76,7 @@ deploy.sh
 ### commande complète (à utiliser systématiquement)
 
 ```bash
-python scripts/export_mongo_to_sqlite.py \
-  --mongo-uri mongodb://localhost:27018 \
-  --output app/src/main/assets/lmelp.db \
-  --force \
-  --calibre-db "/home/vscode/Calibre Library/metadata.db"
-```
-
-### avec filtre bibliothèque virtuelle Calibre (optionnel)
-
-```bash
-python scripts/export_mongo_to_sqlite.py \
-  --mongo-uri mongodb://localhost:27018 \
-  --output app/src/main/assets/lmelp.db \
-  --force \
-  --calibre-db "/home/vscode/Calibre Library/metadata.db" \
-  --calibre-virtual-library guillaume
+python scripts/export_mongo_to_sqlite.py --force
 ```
 
 ### après regénération : forcer la recopie sur le device
@@ -105,49 +89,15 @@ adb uninstall com.lmelp.mobile
 ./gradlew installDebug
 ```
 
-## cache couvertures babelio
+## cache couvertures (Coil)
 
-un script pour avoir des infos sur le cache
+Les images de couverture sont chargées via `url_cover` directement depuis `lmelp.db` et mises en cache par Coil dans `getExternalFilesDir/coil_image_cache` (50 MB max).
 
-```bash
-./scripts/inspect_cover_cache.sh
-```
-
-un script pour verifier la coherence des images
-
-```bash
-python scripts/check_covers.py
-```
-
-un script pour creer le `couvertures_cache.json`
-
-```bash
-python scripts/check_covers.py --fetch --no-open
-```
-
-et un rapport html dans `file:///home/guillaume/git/lmelp-mobile/data/processed/cover_report.html`
+> ⚠️ Ce cache est effacé lors d'une désinstallation (comportement Android 11+). Une issue [#62](https://github.com/castorfou/lmelp-mobile/issues/62) est ouverte pour implémenter Android Backup.
 
 ### nombre d'images dans le cache
 
 ```bash
-adb shell cat /sdcard/Android/data/com.lmelp.mobile/files/couvertures_cache.json | python3 -c "import sys,json; d=json.load(sys.stdin); total=len(d); ok=sum(1 for v in d.values() if v); print(f'Total: {total} | Avec image: {ok} | Vides (pas de couverture Babelio): {total-ok}')"
+ADB=/home/vscode/android-sdk/platform-tools/adb
+$ADB shell "ls /sdcard/Android/data/com.lmelp.mobile/files/coil_image_cache/*.1 2>/dev/null | wc -l" && echo "images en cache"
 ```
-
-### vider le cache des couvertures babelio
-
-```bash
-adb shell rm /sdcard/Android/data/com.lmelp.mobile/files/couvertures_cache.json
-```
-
-### forces et limites de notre archi de fecth des covers
-
-**Ce qui est déjà robuste**
-
-- Nouvelles émissions/palmarès/conseils → `check_covers.py --fetch` fetche uniquement les nouvelles URLs (celles absentes du cache) — les anciennes sont ignorées
-- Nouveaux livres OnKindle → idem
-- Cache JSON dans assets/ → embarqué dans l'APK → fonctionne sans device connecté au moment du build
-
-**Ce qui reste fragile**
-
-- Cookie Babelio (BABELIO_COOKIE dans .env) — expire. Si --fetch commence à retourner des 403, il faudra recopier le cookie depuis Firefox
-- URLs Amazon — plus stables que l'ancien CDN mais pas garanties éternelles

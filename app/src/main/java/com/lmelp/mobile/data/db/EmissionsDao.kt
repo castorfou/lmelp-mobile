@@ -11,13 +11,14 @@ data class DerniereEmissionRow(
     @ColumnInfo(name = "date") val date: String?
 )
 
-/** Meilleur livre (note moyenne) d'une émission, avec son url_babelio. */
+/** Meilleur livre (note moyenne) d'une émission, avec son url_babelio et url_cover. */
 data class TopLivreEmissionRow(
     @ColumnInfo(name = "emission_id")   val emissionId: String,
     @ColumnInfo(name = "emission_date") val emissionDate: String,
     @ColumnInfo(name = "livre_id")      val livreId: String,
     @ColumnInfo(name = "livre_titre")   val livreTitre: String,
     @ColumnInfo(name = "url_babelio")   val urlBabelio: String?,
+    @ColumnInfo(name = "url_cover")     val urlCover: String?,
     @ColumnInfo(name = "note_moyenne")  val noteMoyenne: Double
 )
 
@@ -47,6 +48,7 @@ interface EmissionsDao {
                a.livre_id,
                l.titre AS livre_titre,
                l.url_babelio,
+               l.url_cover,
                AVG(a.note) AS note_moyenne
         FROM emissions em
         JOIN avis a ON a.emission_id = em.id

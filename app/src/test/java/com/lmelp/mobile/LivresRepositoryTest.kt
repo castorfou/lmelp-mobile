@@ -43,6 +43,7 @@ class LivresRepositoryTest {
         auteurNom = "Auteur",
         editeur = null,
         urlBabelio = null,
+        urlCover = null,
         createdAt = null,
         updatedAt = null
     )

@@ -59,6 +59,7 @@ data class LivreEntity(
     @ColumnInfo(name = "auteur_nom") val auteurNom: String?,
     val editeur: String?,
     @ColumnInfo(name = "url_babelio") val urlBabelio: String?,
+    @ColumnInfo(name = "url_cover") val urlCover: String?,
     @ColumnInfo(name = "created_at") val createdAt: String?,
     @ColumnInfo(name = "updated_at") val updatedAt: String?
 )
@@ -165,6 +166,7 @@ data class OnKindleEntity(
     val titre: String,
     @ColumnInfo(name = "auteur_nom") val auteurNom: String?,
     @ColumnInfo(name = "url_babelio") val urlBabelio: String?,
+    @ColumnInfo(name = "url_cover") val urlCover: String? = null,
     @ColumnInfo(name = "calibre_lu", defaultValue = "0") val calibreLu: Int = 0,
     @ColumnInfo(name = "calibre_rating") val calibreRating: Double? = null,
     @ColumnInfo(name = "note_moyenne") val noteMoyenne: Double? = null,

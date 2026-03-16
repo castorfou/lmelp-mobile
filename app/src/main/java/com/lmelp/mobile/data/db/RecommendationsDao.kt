@@ -12,7 +12,8 @@ data class RecommendationAvecUrlRow(
     val titre: String,
     @ColumnInfo(name = "auteur_nom")    val auteurNom: String?,
     @ColumnInfo(name = "score_hybride") val scoreHybride: Double,
-    @ColumnInfo(name = "url_babelio")   val urlBabelio: String?
+    @ColumnInfo(name = "url_babelio")   val urlBabelio: String?,
+    @ColumnInfo(name = "url_cover")     val urlCover: String?
 )
 
 @Dao
@@ -41,7 +42,7 @@ interface RecommendationsDao {
     suspend fun getRecommandationsNonLues(): List<RecommendationAvecCalibreEntity>
 
     @Query("""
-        SELECT r.rank, r.livre_id, r.titre, r.auteur_nom, r.score_hybride, l.url_babelio
+        SELECT r.rank, r.livre_id, r.titre, r.auteur_nom, r.score_hybride, l.url_babelio, l.url_cover
         FROM recommendations r
         JOIN livres l ON l.id = r.livre_id
         ORDER BY r.rank ASC
@@ -50,7 +51,7 @@ interface RecommendationsDao {
     suspend fun getTopRecommendationsAvecUrl(limit: Int): List<RecommendationAvecUrlRow>
 
     @Query("""
-        SELECT r.rank, r.livre_id, r.titre, r.auteur_nom, r.score_hybride, l.url_babelio
+        SELECT r.rank, r.livre_id, r.titre, r.auteur_nom, r.score_hybride, l.url_babelio, l.url_cover
         FROM recommendations r
         JOIN livres l ON l.id = r.livre_id
         LEFT JOIN palmares p ON r.livre_id = p.livre_id

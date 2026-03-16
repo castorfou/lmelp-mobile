@@ -58,6 +58,7 @@ CREATE TABLE livres (
     auteur_nom      TEXT,               -- Dénormalisé pour éviter jointures
     editeur         TEXT,
     url_babelio     TEXT,
+    url_cover       TEXT,               -- URL directe de l'image de couverture (CDN Babelio ou Amazon)
     created_at      TEXT,
     updated_at      TEXT
 );
@@ -213,6 +214,7 @@ CREATE TABLE onkindle (
     titre          TEXT NOT NULL,
     auteur_nom     TEXT,                        -- Depuis livres.auteur_nom ou Calibre (fallback)
     url_babelio    TEXT,                        -- NULL si non discuté au Masque
+    url_cover      TEXT,                        -- URL directe de l'image de couverture
     calibre_lu     INTEGER NOT NULL DEFAULT 0, -- Lu sur Kindle (0/1), depuis Calibre custom column
     calibre_rating REAL,                        -- Note personnelle Calibre (1-10, nullable)
     note_moyenne   REAL,                        -- Note Masque et la Plume (NULL si non discuté)
@@ -224,7 +226,7 @@ CREATE TABLE onkindle (
 1. Interroge Calibre pour récupérer les livres avec tag `onkindle` (+ tag vlib si configuré)
 2. Croise avec `palmares` (par titre normalisé, insensible aux accents et apostrophes typographiques) pour `note_moyenne` / `nb_avis`
 3. Si le livre n'est pas dans `palmares` : fallback sur `avis` (moyenne + count)
-4. Croise avec `livres` pour `url_babelio` et `auteur_nom`
+4. Croise avec `livres` pour `url_babelio`, `url_cover` et `auteur_nom`
 5. Si `auteur_nom` est NULL après croisement : utilise l'auteur depuis Calibre
 
 **Tri dans l'app :** le tri alphabétique est effectué en Kotlin via `java.text.Collator(Locale.FRENCH, PRIMARY)` (SQLite ne gère pas les accents correctement pour le français).
