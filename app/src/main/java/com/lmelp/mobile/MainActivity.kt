@@ -133,6 +133,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .padding(innerPadding)
                             .pointerInput(currentRoute) {
+                                if (currentRoute == Routes.HOME) return@pointerInput
                                 var totalDragX = 0f
                                 detectHorizontalDragGestures(
                                     onDragStart = { totalDragX = 0f },

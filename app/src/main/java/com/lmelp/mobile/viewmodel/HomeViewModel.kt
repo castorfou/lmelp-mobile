@@ -16,6 +16,13 @@ import kotlinx.coroutines.launch
 
 private const val TICKER_INTERVAL_MS = 10 * 1000L
 
+/** Calcule le nouvel index après navigation (modulo, sans effet si liste vide ou singleton). */
+internal fun nextSlideIndex(currentIndex: Int, size: Int): Int =
+    if (size <= 1) 0 else (currentIndex + 1) % size
+
+internal fun prevSlideIndex(currentIndex: Int, size: Int): Int =
+    if (size <= 1) 0 else (currentIndex - 1 + size) % size
+
 data class HomeUiState(
     val isLoading: Boolean = false,
     val nbEmissions: String = "",
@@ -97,6 +104,38 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                 )
             }
         }
+    }
+
+    fun nextEmissionsSlide() {
+        _uiState.update { it.copy(emissionsIndex = nextSlideIndex(it.emissionsIndex, it.emissionsSlides.size)) }
+    }
+
+    fun prevEmissionsSlide() {
+        _uiState.update { it.copy(emissionsIndex = prevSlideIndex(it.emissionsIndex, it.emissionsSlides.size)) }
+    }
+
+    fun nextPalmaresSlide() {
+        _uiState.update { it.copy(palmaresIndex = nextSlideIndex(it.palmaresIndex, it.palmaresSlides.size)) }
+    }
+
+    fun prevPalmaresSlide() {
+        _uiState.update { it.copy(palmaresIndex = prevSlideIndex(it.palmaresIndex, it.palmaresSlides.size)) }
+    }
+
+    fun nextConseilsSlide() {
+        _uiState.update { it.copy(conseilsIndex = nextSlideIndex(it.conseilsIndex, it.conseilsSlides.size)) }
+    }
+
+    fun prevConseilsSlide() {
+        _uiState.update { it.copy(conseilsIndex = prevSlideIndex(it.conseilsIndex, it.conseilsSlides.size)) }
+    }
+
+    fun nextOnkindleSlide() {
+        _uiState.update { it.copy(onkindleIndex = nextSlideIndex(it.onkindleIndex, it.onkindleSlides.size)) }
+    }
+
+    fun prevOnkindleSlide() {
+        _uiState.update { it.copy(onkindleIndex = prevSlideIndex(it.onkindleIndex, it.onkindleSlides.size)) }
     }
 
     class Factory(private val repository: HomeRepository) : ViewModelProvider.Factory {
