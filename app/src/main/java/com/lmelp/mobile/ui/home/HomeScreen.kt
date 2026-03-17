@@ -11,7 +11,9 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -204,6 +206,22 @@ fun HeroSection(
 
 private val SWIPE_THRESHOLD_DP = 60.dp
 
+/** Actions possibles résultant d'un geste sur un DashboardCard. */
+enum class GestureAction { TAP, SWIPE_LEFT, SWIPE_RIGHT }
+
+/**
+ * Résout le geste en action selon le déplacement total accumulé.
+ * Extraite en fonction pure pour faciliter les tests unitaires.
+ *
+ * @param totalDragX déplacement horizontal total (px). 0f = tap pur.
+ * @param thresholdPx seuil (px) au-delà duquel le geste est considéré comme swipe.
+ */
+internal fun resolveGestureAction(totalDragX: Float, thresholdPx: Float): GestureAction = when {
+    totalDragX < -thresholdPx -> GestureAction.SWIPE_LEFT
+    totalDragX > thresholdPx -> GestureAction.SWIPE_RIGHT
+    else -> GestureAction.TAP
+}
+
 /**
  * Carte de dashboard avec fond animé (rotation de couvertures via AnimatedContent) ou couleur unie.
  * La direction du swipe (gauche=-1, droite=+1) détermine le sens de l'animation de slide.
@@ -227,28 +245,28 @@ fun DashboardCard(
     val swipeModifier = if (onSwipeLeft != null || onSwipeRight != null) {
         Modifier.pointerInput(Unit) {
             val thresholdPx = SWIPE_THRESHOLD_DP.toPx()
-            detectHorizontalDragGestures(
-                onDragStart = { totalDragX = 0f },
-                onHorizontalDrag = { change, dragAmount ->
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false)
+                totalDragX = 0f
+                // Accumule le drag horizontal jusqu'au relâchement
+                horizontalDrag(down.id) { change ->
                     change.consume()
-                    totalDragX += dragAmount
-                },
-                onDragEnd = {
-                    when {
-                        totalDragX < -thresholdPx -> {
-                            slideDirection = -1
-                            onSwipeLeft?.invoke()
-                        }
-                        totalDragX > thresholdPx -> {
-                            slideDirection = 1
-                            onSwipeRight?.invoke()
-                        }
-                        else -> onClick()
+                    totalDragX += change.position.x - change.previousPosition.x
+                }
+                // Résout l'action : tap, swipe gauche ou swipe droite
+                when (resolveGestureAction(totalDragX, thresholdPx)) {
+                    GestureAction.SWIPE_LEFT -> {
+                        slideDirection = -1
+                        onSwipeLeft?.invoke()
                     }
-                    totalDragX = 0f
-                },
-                onDragCancel = { totalDragX = 0f }
-            )
+                    GestureAction.SWIPE_RIGHT -> {
+                        slideDirection = 1
+                        onSwipeRight?.invoke()
+                    }
+                    GestureAction.TAP -> onClick()
+                }
+                totalDragX = 0f
+            }
         }
     } else {
         Modifier.clickable(onClick = onClick)
@@ -556,8 +574,8 @@ fun NavTilesGrid(
                     .weight(1.5f)
                     .fillMaxHeight(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, LmelpVert)
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F7F7)),
+                border = androidx.compose.foundation.BorderStroke(6.dp, LmelpVert)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     // Bandeau vert avec titre "Recherche" en haut à gauche
@@ -578,8 +596,9 @@ fun NavTilesGrid(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.Center
+                            .padding(horizontal = 12.dp)
+                            .padding(top = 8.dp),
+                        verticalArrangement = Arrangement.Top
                     ) {
                         Row(
                             modifier = Modifier
