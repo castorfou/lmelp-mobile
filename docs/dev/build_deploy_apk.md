@@ -41,6 +41,9 @@ build.sh
 
 pre-requis : `adb devices` doit afficher mon telephone (et ca marche depuis devcontainer)
 
+si le device ne s'affiche pas, un `adb kill-server` peut aider
+
+
 ```bash
 # liste les telephones connectes en USB
 ~/android-sdk/platform-tools/adb devices
