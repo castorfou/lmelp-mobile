@@ -11,6 +11,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -39,10 +40,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +85,14 @@ fun HomeScreen(
         uiState = uiState,
         onNavigate = onNavigate,
         onSettingsClick = onSettingsClick,
+        onNextEmissions = viewModel::nextEmissionsSlide,
+        onPrevEmissions = viewModel::prevEmissionsSlide,
+        onNextPalmares = viewModel::nextPalmaresSlide,
+        onPrevPalmares = viewModel::prevPalmaresSlide,
+        onNextConseils = viewModel::nextConseilsSlide,
+        onPrevConseils = viewModel::prevConseilsSlide,
+        onNextOnkindle = viewModel::nextOnkindleSlide,
+        onPrevOnkindle = viewModel::prevOnkindleSlide,
         modifier = modifier
     )
 }
@@ -88,6 +102,14 @@ fun HomeContent(
     uiState: HomeUiState,
     onNavigate: (String) -> Unit,
     onSettingsClick: () -> Unit,
+    onNextEmissions: () -> Unit = {},
+    onPrevEmissions: () -> Unit = {},
+    onNextPalmares: () -> Unit = {},
+    onPrevPalmares: () -> Unit = {},
+    onNextConseils: () -> Unit = {},
+    onPrevConseils: () -> Unit = {},
+    onNextOnkindle: () -> Unit = {},
+    onPrevOnkindle: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -99,6 +121,14 @@ fun HomeContent(
         NavTilesGrid(
             uiState = uiState,
             onNavigate = onNavigate,
+            onNextEmissions = onNextEmissions,
+            onPrevEmissions = onPrevEmissions,
+            onNextPalmares = onNextPalmares,
+            onPrevPalmares = onPrevPalmares,
+            onNextConseils = onNextConseils,
+            onPrevConseils = onPrevConseils,
+            onNextOnkindle = onNextOnkindle,
+            onPrevOnkindle = onPrevOnkindle,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
@@ -172,20 +202,60 @@ fun HeroSection(
     }
 }
 
+private val SWIPE_THRESHOLD_DP = 60.dp
+
 /**
  * Carte de dashboard avec fond animé (rotation de couvertures via AnimatedContent) ou couleur unie.
- * La transition (fondu ou glissement) est choisie selon le livreId courant.
+ * La direction du swipe (gauche=-1, droite=+1) détermine le sens de l'animation de slide.
+ * onSwipeLeft/onSwipeRight permettent de naviguer entre les livres par swipe local.
  */
 @Composable
 fun DashboardCard(
     onClick: () -> Unit,
     backgroundColor: Color,
     currentSlide: SlideItem? = null,
+    onSwipeLeft: (() -> Unit)? = null,
+    onSwipeRight: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit
 ) {
+    var totalDragX by remember { mutableFloatStateOf(0f) }
+    // direction: -1 = slide vient de droite (swipe gauche = page suivante)
+    //            +1 = slide vient de gauche (swipe droite = page précédente)
+    var slideDirection by remember { mutableIntStateOf(-1) }
+
+    val swipeModifier = if (onSwipeLeft != null || onSwipeRight != null) {
+        Modifier.pointerInput(Unit) {
+            val thresholdPx = SWIPE_THRESHOLD_DP.toPx()
+            detectHorizontalDragGestures(
+                onDragStart = { totalDragX = 0f },
+                onHorizontalDrag = { change, dragAmount ->
+                    change.consume()
+                    totalDragX += dragAmount
+                },
+                onDragEnd = {
+                    when {
+                        totalDragX < -thresholdPx -> {
+                            slideDirection = -1
+                            onSwipeLeft?.invoke()
+                        }
+                        totalDragX > thresholdPx -> {
+                            slideDirection = 1
+                            onSwipeRight?.invoke()
+                        }
+                        else -> onClick()
+                    }
+                    totalDragX = 0f
+                },
+                onDragCancel = { totalDragX = 0f }
+            )
+        }
+    } else {
+        Modifier.clickable(onClick = onClick)
+    }
+
     Card(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = modifier.then(swipeModifier),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor)
     ) {
@@ -193,13 +263,10 @@ fun DashboardCard(
             AnimatedContent(
                 targetState = currentSlide?.livreId to currentSlide?.urlCouverture,
                 transitionSpec = {
-                    val useSlide = (targetState.first?.hashCode() ?: 0) % 2 == 0
-                    if (useSlide) {
-                        (slideInHorizontally(tween(700)) { it } togetherWith
-                         slideOutHorizontally(tween(700)) { -it })
-                    } else {
-                        (fadeIn(tween(700)) togetherWith fadeOut(tween(700)))
-                    }.using(SizeTransform(clip = true))
+                    val dir = slideDirection
+                    (slideInHorizontally(tween(500)) { if (dir < 0) it else -it } togetherWith
+                     slideOutHorizontally(tween(500)) { if (dir < 0) -it else it })
+                        .using(SizeTransform(clip = true))
                 },
                 modifier = Modifier.fillMaxSize()
             ) { (_, urlCouverture) ->
@@ -237,6 +304,14 @@ fun DashboardCard(
 fun NavTilesGrid(
     uiState: HomeUiState,
     onNavigate: (String) -> Unit,
+    onNextEmissions: () -> Unit = {},
+    onPrevEmissions: () -> Unit = {},
+    onNextPalmares: () -> Unit = {},
+    onPrevPalmares: () -> Unit = {},
+    onNextConseils: () -> Unit = {},
+    onPrevConseils: () -> Unit = {},
+    onNextOnkindle: () -> Unit = {},
+    onPrevOnkindle: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val currentEmission = uiState.emissionsSlides.getOrNull(uiState.emissionsIndex)
@@ -256,6 +331,8 @@ fun NavTilesGrid(
                 onClick = { onNavigate("emissions") },
                 backgroundColor = LmelpBleu,
                 currentSlide = currentEmission,
+                onSwipeLeft = onNextEmissions,
+                onSwipeRight = onPrevEmissions,
                 modifier = Modifier
                     .weight(2f)
                     .fillMaxHeight()
@@ -331,6 +408,8 @@ fun NavTilesGrid(
                     onClick = { onNavigate("palmares") },
                     backgroundColor = LmelpVert,
                     currentSlide = currentPalmares,
+                    onSwipeLeft = onNextPalmares,
+                    onSwipeRight = onPrevPalmares,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
@@ -377,6 +456,8 @@ fun NavTilesGrid(
                     onClick = { onNavigate("recommendations") },
                     backgroundColor = LmelpBordeaux,
                     currentSlide = currentConseils,
+                    onSwipeLeft = onNextConseils,
+                    onSwipeRight = onPrevConseils,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
@@ -430,6 +511,8 @@ fun NavTilesGrid(
                 onClick = { onNavigate("onkindle") },
                 backgroundColor = LmelpBordeaux,
                 currentSlide = currentOnKindle,
+                onSwipeLeft = onNextOnkindle,
+                onSwipeRight = onPrevOnkindle,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -466,40 +549,64 @@ fun NavTilesGrid(
                 }
             }
 
-            DashboardCard(
+            // Bloc Recherche : bandeau vert en haut avec titre, fond blanc dessous avec mini SearchBar
+            Card(
                 onClick = { onNavigate("search") },
-                backgroundColor = LmelpVert,
                 modifier = Modifier
                     .weight(1.5f)
-                    .fillMaxHeight()
+                    .fillMaxHeight(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, LmelpVert)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "Recherche",
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = "Livres, auteurs...",
-                        color = Color.White.copy(alpha = 0.75f),
-                        style = MaterialTheme.typography.labelSmall,
-                        textAlign = TextAlign.Center
-                    )
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Bandeau vert avec titre "Recherche" en haut à gauche
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(LmelpVert)
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Recherche",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                    // Zone blanche avec mini SearchBar
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = Color.Black.copy(alpha = 0.08f),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint = Color.Black.copy(alpha = 0.45f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Livres, auteurs...",
+                                color = Color.Black.copy(alpha = 0.45f),
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                 }
             }
         }
