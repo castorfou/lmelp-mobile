@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sqlite3
 import time
 import unicodedata
@@ -159,7 +160,8 @@ CREATE TABLE IF NOT EXISTS palmares (
     nb_critiques        INTEGER NOT NULL,
     calibre_in_library  INTEGER NOT NULL DEFAULT 0,
     calibre_lu          INTEGER NOT NULL DEFAULT 0,
-    calibre_rating      REAL
+    calibre_rating      REAL,
+    date_lecture        TEXT
 );
 
 CREATE TABLE IF NOT EXISTS recommendations (
@@ -459,6 +461,23 @@ def compute_palmares(cur: sqlite3.Cursor) -> None:
     logger.info(f"  → {count} livres in palmares")
 
 
+_DATE_LECTURE_RE = re.compile(r"\b(\d{2})/(\d{2})/(\d{4})\b")
+
+
+def extract_date_lecture(commentaire: str | None) -> str | None:
+    """Extrait la première date DD/MM/YYYY du champ Commentaire Calibre.
+
+    Retourne une date ISO YYYY-MM-DD, ou None si aucune date trouvée.
+    """
+    if not commentaire:
+        return None
+    m = _DATE_LECTURE_RE.search(str(commentaire))
+    if m:
+        day, month, year = m.group(1), m.group(2), m.group(3)
+        return f"{year}-{month}-{day}"
+    return None
+
+
 def _normalize_title(titre: str) -> str:
     """Normalise un titre pour le matching : minuscules, sans accents ni ligatures.
 
@@ -488,7 +507,7 @@ def import_calibre_data(
 ) -> None:
     """Croise les livres du palmarès avec la bibliothèque Calibre.
 
-    Met à jour calibre_in_library, calibre_lu et calibre_rating dans palmares.
+    Met à jour calibre_in_library, calibre_lu, calibre_rating et date_lecture dans palmares.
     """
     logger.info(f"Importing Calibre data from: {calibre_db_path}")
 
@@ -507,6 +526,19 @@ def import_calibre_data(
             logger.info(f"  Calibre 'read' custom column id: {read_col_id}")
         else:
             logger.warning("  Colonne 'read' non trouvée dans Calibre")
+
+        # Trouve l'id de la colonne personnalisée 'text' (Commentaire — contient les dates de lecture)
+        comment_col_id: int | None = None
+        row = cal_cur.execute(
+            "SELECT id FROM custom_columns WHERE label = 'text'"
+        ).fetchone()
+        if row:
+            comment_col_id = row["id"]
+            logger.info(
+                f"  Calibre 'text' (Commentaire) custom column id: {comment_col_id}"
+            )
+        else:
+            logger.warning("  Colonne 'text' (Commentaire) non trouvée dans Calibre")
 
         # Charge les livres Calibre (avec filtre bibliothèque virtuelle si fourni)
         if virtual_library_tag:
@@ -563,11 +595,21 @@ def import_calibre_data(
             if rating_row and rating_row["rating"] is not None:
                 calibre_rating = float(rating_row["rating"])
 
+            # Date de lecture (extraite du champ Commentaire custom_column_3)
+            date_lecture: str | None = None
+            if comment_col_id is not None:
+                comment_row = cal_cur.execute(
+                    f"SELECT value FROM custom_column_{comment_col_id} WHERE book = ?",
+                    (calibre_id,),
+                ).fetchone()
+                if comment_row:
+                    date_lecture = extract_date_lecture(comment_row["value"])
+
             cur.execute(
                 """UPDATE palmares
-                   SET calibre_in_library = 1, calibre_lu = ?, calibre_rating = ?
+                   SET calibre_in_library = 1, calibre_lu = ?, calibre_rating = ?, date_lecture = ?
                    WHERE livre_id = ?""",
-                (calibre_lu, calibre_rating, livre_id),
+                (calibre_lu, calibre_rating, date_lecture, livre_id),
             )
             matched += 1
 
@@ -1041,7 +1083,7 @@ def write_metadata(cur: sqlite3.Cursor) -> None:
 
     # user_version = version du schéma Room — doit correspondre à @Database(version=N) dans LmelpDatabase.kt
     # v3 : ajout table onkindle (issue #52)
-    cur.execute("PRAGMA user_version = 4")
+    cur.execute("PRAGMA user_version = 5")
 
     logger.info(
         f"  Metadata: version={version}, date={now.strftime('%Y-%m-%d')}, "

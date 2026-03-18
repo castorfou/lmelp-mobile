@@ -16,7 +16,8 @@ data class PalmaresFiltreAvecUrlRow(
     @ColumnInfo(name = "calibre_in_library") val calibreInLibrary: Int = 0,
     @ColumnInfo(name = "calibre_lu")      val calibreLu: Int = 0,
     @ColumnInfo(name = "calibre_rating")  val calibreRating: Double? = null,
-    @ColumnInfo(name = "url_cover")       val urlCover: String?
+    @ColumnInfo(name = "url_cover")       val urlCover: String?,
+    @ColumnInfo(name = "date_lecture")    val dateLecture: String? = null
 )
 
 data class PalmaresAvecUrlRow(
@@ -27,6 +28,18 @@ data class PalmaresAvecUrlRow(
     @ColumnInfo(name = "note_moyenne") val noteMoyenne: Double,
     @ColumnInfo(name = "url_babelio")  val urlBabelio: String?,
     @ColumnInfo(name = "url_cover")    val urlCover: String?
+)
+
+data class MonPalmaresRow(
+    @ColumnInfo(name = "livre_id")        val livreId: String,
+    val titre: String,
+    @ColumnInfo(name = "auteur_nom")      val auteurNom: String?,
+    @ColumnInfo(name = "note_moyenne")    val noteMoyenne: Double,
+    @ColumnInfo(name = "nb_avis")         val nbAvis: Int,
+    @ColumnInfo(name = "nb_critiques")    val nbCritiques: Int,
+    @ColumnInfo(name = "calibre_rating")  val calibreRating: Double?,
+    @ColumnInfo(name = "url_cover")       val urlCover: String?,
+    @ColumnInfo(name = "date_lecture")    val dateLecture: String?
 )
 
 @Dao
@@ -63,7 +76,7 @@ interface PalmaresDao {
     @Query("""
         SELECT p.rank, p.livre_id, p.titre, p.auteur_nom, p.note_moyenne,
                p.nb_avis, p.nb_critiques, p.calibre_in_library, p.calibre_lu, p.calibre_rating,
-               l.url_cover
+               l.url_cover, p.date_lecture
         FROM palmares p
         LEFT JOIN livres l ON l.id = p.livre_id
         WHERE p.nb_avis >= 2
@@ -74,4 +87,30 @@ interface PalmaresDao {
         ORDER BY p.rank ASC
     """)
     suspend fun getPalmaresFiltresAvecUrl(afficherLus: Int, afficherNonLus: Int): List<PalmaresFiltreAvecUrlRow>
+
+    @Query("""
+        SELECT p.livre_id, p.titre, p.auteur_nom, p.note_moyenne, p.nb_avis, p.nb_critiques,
+               p.calibre_rating, l.url_cover, p.date_lecture
+        FROM palmares p
+        LEFT JOIN livres l ON l.id = p.livre_id
+        WHERE p.calibre_lu = 1
+        ORDER BY
+            CASE WHEN p.calibre_rating IS NULL THEN 1 ELSE 0 END ASC,
+            p.calibre_rating DESC,
+            p.titre ASC
+    """)
+    suspend fun getMonPalmares(): List<MonPalmaresRow>
+
+    @Query("""
+        SELECT p.livre_id, p.titre, p.auteur_nom, p.note_moyenne, p.nb_avis, p.nb_critiques,
+               p.calibre_rating, l.url_cover, p.date_lecture
+        FROM palmares p
+        LEFT JOIN livres l ON l.id = p.livre_id
+        WHERE p.calibre_lu = 1
+        ORDER BY
+            CASE WHEN p.date_lecture IS NULL THEN 1 ELSE 0 END ASC,
+            p.date_lecture DESC,
+            p.titre ASC
+    """)
+    suspend fun getMonPalmaresParDate(): List<MonPalmaresRow>
 }
