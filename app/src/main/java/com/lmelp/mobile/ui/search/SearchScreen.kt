@@ -30,6 +30,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.data.model.SearchResultUi
 import com.lmelp.mobile.data.repository.SearchRepository
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
+import com.lmelp.mobile.ui.components.BookCoverThumbnail
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
@@ -111,13 +114,22 @@ fun SearchResultItem(result: SearchResultUi, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable(onClick = onClick)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = result.type.replaceFirstChar { it.uppercase() },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(text = result.content.take(80), style = MaterialTheme.typography.bodyMedium)
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (result.type == "livre") {
+                BookCoverThumbnail(urlCover = result.urlCover)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = result.type.replaceFirstChar { it.uppercase() },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(text = result.content.take(80), style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }

@@ -26,7 +26,8 @@ data class LivreUi(
     val auteurNom: String?,
     val editeur: String?,
     val noteMoyenne: Double? = null,
-    val section: String? = null
+    val section: String? = null,
+    val urlCover: String? = null
 )
 
 data class AvisUi(
@@ -66,7 +67,8 @@ data class PalmaresUi(
     val nbCritiques: Int,
     val calibreInLibrary: Boolean = false,
     val calibreLu: Boolean = false,
-    val calibreRating: Double? = null
+    val calibreRating: Double? = null,
+    val urlCover: String? = null
 )
 
 data class CritiqueUi(
@@ -82,13 +84,15 @@ data class RecommendationUi(
     val titre: String,
     val auteurNom: String?,
     val scoreHybride: Double,
-    val masqueMean: Double?
+    val masqueMean: Double?,
+    val urlCover: String? = null
 )
 
 data class SearchResultUi(
     val type: String,
     val refId: String,
-    val content: String
+    val content: String,
+    val urlCover: String? = null
 )
 
 data class LivreParAuteurUi(
@@ -127,7 +131,8 @@ data class OnKindleUi(
     val calibreRating: Double?,
     val noteMoyenne: Double?,
     val nbAvis: Int,
-    val discusseAuMasque: Boolean = noteMoyenne != null
+    val discusseAuMasque: Boolean = noteMoyenne != null,
+    val urlCover: String? = null
 )
 
 data class DbInfoUi(

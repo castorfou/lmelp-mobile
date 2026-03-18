@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.data.model.OnKindleUi
 import com.lmelp.mobile.data.repository.OnKindleRepository
+import com.lmelp.mobile.ui.components.BookCoverThumbnail
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
@@ -163,9 +164,10 @@ fun OnKindleCard(item: OnKindleUi, onClick: (() -> Unit)?) {
             modifier = Modifier
                 .padding(12.dp)
                 .height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            BookCoverThumbnail(urlCover = item.urlCover)
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = item.titre, style = MaterialTheme.typography.titleSmall)
                 item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }

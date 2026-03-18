@@ -39,7 +39,8 @@ class EmissionsRepository(
         val livres = livresDao.getLivresByEmission(emissionId).map {
             val (note, section) = notesMap[it.id] ?: Pair(null, null)
             LivreUi(id = it.id, titre = it.titre, auteurNom = it.auteurNom,
-                editeur = it.editeur, noteMoyenne = note, section = section)
+                editeur = it.editeur, noteMoyenne = note, section = section,
+                urlCover = it.urlCover)
         }
         val avisCritiques = avisCritiquesDao.getByEmissionId(emissionId)
         return EmissionDetailUi(

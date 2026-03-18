@@ -37,6 +37,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.data.model.EmissionDetailUi
 import com.lmelp.mobile.data.model.LivreUi
 import com.lmelp.mobile.data.repository.EmissionsRepository
+import com.lmelp.mobile.ui.components.BookCoverThumbnail
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
 import com.lmelp.mobile.ui.components.NoteBadge
@@ -204,10 +205,11 @@ fun LivreCard(livre: LivreUi, onClick: () -> Unit) {
     ) {
         Row(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            BookCoverThumbnail(urlCover = livre.urlCover)
+            Column(modifier = Modifier.weight(1f)) {
                 Text(text = livre.titre, style = MaterialTheme.typography.titleSmall)
                 livre.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
