@@ -49,6 +49,7 @@ class LivresRepository(
             auteurNom = livre.auteurNom,
             editeur = livre.editeur,
             urlBabelio = livre.urlBabelio,
+            urlCover = livre.urlCover,
             noteMoyenne = noteMoyenne,
             avisParEmission = avisParEmission
         )

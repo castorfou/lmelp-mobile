@@ -105,6 +105,31 @@ class LivresRepositoryTest {
     }
 
     @Test
+    fun `urlCover est propagee depuis LivreEntity`() = runTest {
+        val dao = mock<LivresDao>()
+        val livreAvecCover = makeLivreEntity("l1").copy(urlCover = "https://example.com/cover.jpg")
+        whenever(dao.getLivreById(any())).thenReturn(livreAvecCover)
+        whenever(dao.getAvisAvecEmissionByLivre(any())).thenReturn(emptyList())
+
+        val repo = LivresRepository(dao)
+        val result = repo.getLivreDetail("l1")
+
+        assertEquals("https://example.com/cover.jpg", result!!.urlCover)
+    }
+
+    @Test
+    fun `urlCover est null si LivreEntity na pas de cover`() = runTest {
+        val dao = mock<LivresDao>()
+        whenever(dao.getLivreById(any())).thenReturn(makeLivreEntity("l1"))
+        whenever(dao.getAvisAvecEmissionByLivre(any())).thenReturn(emptyList())
+
+        val repo = LivresRepository(dao)
+        val result = repo.getLivreDetail("l1")
+
+        assertNull(result!!.urlCover)
+    }
+
+    @Test
     fun `avis tries par critique alphabetique dans chaque groupe`() = runTest {
         val dao = mock<LivresDao>()
         whenever(dao.getLivreById(any())).thenReturn(makeLivreEntity("l1"))

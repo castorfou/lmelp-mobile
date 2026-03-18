@@ -51,6 +51,7 @@ data class LivreDetailUi(
     val auteurNom: String?,
     val editeur: String?,
     val urlBabelio: String?,
+    val urlCover: String?,
     val noteMoyenne: Double?,
     val avisParEmission: List<AvisParEmissionUi>
 )
