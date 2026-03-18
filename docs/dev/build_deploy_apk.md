@@ -105,6 +105,13 @@ ADB=/home/vscode/android-sdk/platform-tools/adb
 $ADB shell "ls /sdcard/Android/data/com.lmelp.mobile/files/coil_image_cache/*.1 2>/dev/null | wc -l" && echo "images en cache"
 ```
 
+### faire le backup dans le cloud
+
+```bash
+ADB=/home/vscode/android-sdk/platform-tools/adb
+$ADB shell "bmgr backupnow com.lmelp.mobile" 2>&1
+```
+
 ## pour l'env python
 
 
