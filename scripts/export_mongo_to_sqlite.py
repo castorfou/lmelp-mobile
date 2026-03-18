@@ -460,17 +460,25 @@ def compute_palmares(cur: sqlite3.Cursor) -> None:
 
 
 def _normalize_title(titre: str) -> str:
-    """Normalise un titre pour le matching : minuscules + suppression accents + apostrophes.
+    """Normalise un titre pour le matching : minuscules, sans accents ni ligatures.
 
-    Remplace les apostrophes typographiques (\u2018, \u2019) par l'apostrophe droite
-    avant la normalisation Unicode, puis supprime toute apostrophe résiduelle
-    pour garantir le matching entre titres Calibre et titres de la base.
+    Même logique que back-office-lmelp normalize_for_matching :
+    - Ligatures œ→oe, æ→ae
+    - Décomposition NFD + retrait des accents
+    - Apostrophes typographiques → apostrophe droite (conservées, pas supprimées)
+    - Tirets typographiques → tiret simple
+    - Minuscules + collapse whitespace
     """
-    normalised = titre.replace("\u2018", "'").replace("\u2019", "'")
-    normalised = normalised.replace("'", "")
-    nfkd = unicodedata.normalize("NFKD", normalised)
-    ascii_str = nfkd.encode("ascii", "ignore").decode("ascii")
-    return ascii_str.lower().strip()
+    import re
+
+    result = titre.replace("œ", "oe").replace("Œ", "Oe")
+    result = result.replace("æ", "ae").replace("Æ", "Ae")
+    nfd = unicodedata.normalize("NFD", result)
+    result = "".join(c for c in nfd if unicodedata.category(c) != "Mn")
+    result = result.replace("\u2013", "-").replace("\u2014", "-")
+    result = result.replace("\u2019", "'").replace("\u2018", "'")
+    result = result.lower().strip()
+    return re.sub(r"\s+", " ", result)
 
 
 def import_calibre_data(
@@ -757,18 +765,43 @@ def build_onkindle_table(
 # ---------------------------------------------------------------------------
 
 
-def compute_recommendations(cur: sqlite3.Cursor, n_factors: int = 20) -> None:
+def compute_recommendations(
+    cur: sqlite3.Cursor,
+    n_factors: int = 20,
+    calibre_db_path: str | None = None,
+) -> None:
     """
-    Collaborative filtering SVD sur la matrice critiques × livres.
-    Score hybride : 70% SVD + 30% moyenne Masque.
+    Collaborative filtering SVD (Surprise) sur la matrice critiques × livres.
+
+    Même algorithme que l'appli desktop (back-office-lmelp) :
+    - surprise.SVD avec n_factors=20, n_epochs=50, lr_all=0.01, reg_all=0.1, random_state=42
+    - Injection des notes Calibre de l'utilisateur ("Moi") via matching titre→livre_id
+      (352 livres Calibre, pas seulement les 122 dans palmares)
+    - Filtres : critiques avec ≥ 10 avis, livres notés par ≥ 2 critiques
+    - Prédiction pour l'utilisateur "Moi" sur les livres non vus
+    - Score hybride : 70% SVD + 30% moyenne Masque
+
+    Fix bug #70 : l'ancienne implémentation utilisait scipy.sparse.linalg.svds
+    avec centrage incluant les zéros (matrix.mean) et un "critique moyen"
+    au lieu de prédire pour l'utilisateur réel avec ses notes Calibre.
     """
-    import numpy as np
-    from scipy.sparse import csr_matrix
-    from scipy.sparse.linalg import svds
+    import pandas as pd
+    from surprise import SVD, Dataset, Reader
 
-    logger.info("Computing SVD recommendations...")
+    svd_params = {
+        "n_factors": n_factors,
+        "n_epochs": 50,
+        "lr_all": 0.01,
+        "reg_all": 0.1,
+        "random_state": 42,
+    }
+    user_id = "Moi"
+    min_avis_per_critique = 10
+    min_critiques_per_livre = 2
 
-    # Load avis matrix
+    logger.info("Computing SVD recommendations (Surprise)...")
+
+    # Load avis data
     rows_data = cur.execute(
         "SELECT critique_id, livre_id, note FROM avis WHERE note IS NOT NULL"
     ).fetchall()
@@ -777,52 +810,108 @@ def compute_recommendations(cur: sqlite3.Cursor, n_factors: int = 20) -> None:
         logger.warning("No avis with notes — skipping recommendations")
         return
 
-    # Build critique_id / livre_id index
-    critique_ids = sorted({r[0] for r in rows_data})
-    livre_ids = sorted({r[1] for r in rows_data})
-    c_idx = {c: i for i, c in enumerate(critique_ids)}
-    l_idx = {lid: i for i, lid in enumerate(livre_ids)}
+    # Filter critiques with >= MIN_AVIS_PER_CRITIQUE avis
+    critique_counts: dict[str, int] = {}
+    for critique_id, _, _ in rows_data:
+        critique_counts[critique_id] = critique_counts.get(critique_id, 0) + 1
+    active_critiques = {
+        c for c, n in critique_counts.items() if n >= min_avis_per_critique
+    }
+    rows_filtered = [(c, lid, n) for c, lid, n in rows_data if c in active_critiques]
 
-    n_critiques = len(critique_ids)
-    n_livres = len(livre_ids)
+    if not rows_filtered:
+        logger.warning("No active critiques — skipping recommendations")
+        return
 
-    # Sparse matrix
-    data, row_idx, col_idx = [], [], []
-    for critique_id, livre_id, note in rows_data:
-        row_idx.append(c_idx[critique_id])
-        col_idx.append(l_idx[livre_id])
-        data.append(float(note))
-
-    matrix = csr_matrix((data, (row_idx, col_idx)), shape=(n_critiques, n_livres))
-
-    # Center by livre mean
-    livre_means = np.array(matrix.mean(axis=0)).flatten()
-    matrix_centered = matrix.copy().toarray()
-    matrix_centered -= livre_means
-
-    # SVD
-    k = min(n_factors, min(n_critiques, n_livres) - 1)
-    u, sigma, vt = svds(csr_matrix(matrix_centered), k=k)
-    # Global critic (average over all critiques — simulates a "new user")
-    global_critic_idx = np.mean(u, axis=0)
-    svd_scores = global_critic_idx.dot(np.diag(sigma)).dot(vt) + livre_means
-
-    # Build hybrid scores
-    masque_means: dict[str, float] = {}
+    # Compute masque_means (before Calibre injection) — only from filtered avis
+    masque_sums: dict[str, float] = {}
     masque_counts: dict[str, int] = {}
-    for _, livre_id, note in rows_data:
-        masque_means.setdefault(livre_id, 0.0)
-        masque_counts.setdefault(livre_id, 0)
-        masque_means[livre_id] += note
-        masque_counts[livre_id] += 1
-    for lid in masque_means:
-        masque_means[lid] /= masque_counts[lid]
+    for _, livre_id, note in rows_filtered:
+        masque_sums[livre_id] = masque_sums.get(livre_id, 0.0) + float(note)
+        masque_counts[livre_id] = masque_counts.get(livre_id, 0) + 1
+    masque_means = {lid: masque_sums[lid] / masque_counts[lid] for lid in masque_sums}
 
+    # Load Calibre notes — read directly from Calibre DB for full coverage (352 livres)
+    # then match titre→livre_id against LMELP livres table.
+    # Fallback: palmares.calibre_rating (122 livres, LMELP-matched only).
+    calibre_notes: dict[str, float] = {}
+    if calibre_db_path:
+        try:
+            cal_con = sqlite3.connect(calibre_db_path)
+            cal_con.row_factory = sqlite3.Row
+            cal_cur = cal_con.cursor()
+            cal_rated = cal_cur.execute(
+                """SELECT b.title, r.rating
+                   FROM books b
+                   JOIN books_ratings_link brl ON b.id = brl.book
+                   JOIN ratings r ON brl.rating = r.id
+                   WHERE r.rating IS NOT NULL AND r.rating > 0"""
+            ).fetchall()
+            cal_con.close()
+            # Build titre_norm → note
+            cal_by_titre: dict[str, float] = {}
+            for row in cal_rated:
+                norm = _normalize_title(row["title"])
+                cal_by_titre[norm] = float(row["rating"])
+            # Match against LMELP livres
+            lmelp_livres = cur.execute("SELECT id, titre FROM livres").fetchall()
+            for livre_id, titre in lmelp_livres:
+                norm = _normalize_title(titre)
+                if norm in cal_by_titre:
+                    calibre_notes[livre_id] = cal_by_titre[norm]
+            logger.info(
+                f"  {len(calibre_notes)} Calibre notes matched from {len(cal_by_titre)} rated books"
+            )
+        except Exception as e:
+            logger.warning(
+                f"  Calibre DB unavailable ({e}), falling back to palmares.calibre_rating"
+            )
+
+    if not calibre_notes:
+        calibre_rows_db = cur.execute(
+            "SELECT livre_id, calibre_rating FROM palmares WHERE calibre_rating IS NOT NULL AND calibre_rating > 0"
+        ).fetchall()
+        calibre_notes = {
+            livre_id: float(rating) for livre_id, rating in calibre_rows_db
+        }
+        logger.info(f"  {len(calibre_notes)} Calibre notes from palmares (fallback)")
+
+    livre_oids_seen = set(calibre_notes.keys())
+
+    logger.info(
+        f"  {len(active_critiques)} active critiques, {len(calibre_notes)} Calibre notes"
+    )
+
+    # Build training dataset: filtered avis + Calibre injection
+    training_rows = [(c, lid, float(n)) for c, lid, n in rows_filtered]
+    for livre_id, note in calibre_notes.items():
+        training_rows.append((user_id, livre_id, note))
+
+    df = pd.DataFrame(training_rows, columns=["user", "item", "rating"])
+    reader = Reader(rating_scale=(1, 10))
+    dataset = Dataset.load_from_df(df[["user", "item", "rating"]], reader)
+    trainset = dataset.build_full_trainset()
+
+    algo = SVD(**svd_params)
+    algo.fit(trainset)
+    logger.info(
+        f"  SVD trained on {trainset.n_ratings} ratings "
+        f"({trainset.n_users} users, {trainset.n_items} items)"
+    )
+
+    # Candidates: not seen by user, >= min_critiques_per_livre masque critiques
+    candidates = [
+        lid
+        for lid, cnt in masque_counts.items()
+        if lid not in livre_oids_seen and cnt >= min_critiques_per_livre
+    ]
+
+    # Score candidates
     scored = []
-    for i, livre_id in enumerate(livre_ids):
-        svd_score = float(svd_scores[i])
-        masque_mean = masque_means.get(livre_id, svd_score)
-        masque_count = masque_counts.get(livre_id, 0)
+    for livre_id in candidates:
+        svd_score = algo.predict(user_id, livre_id).est
+        masque_mean = masque_means[livre_id]
+        masque_count = masque_counts[livre_id]
         hybrid = 0.7 * svd_score + 0.3 * masque_mean
         scored.append((livre_id, hybrid, svd_score, masque_mean, masque_count))
 
@@ -1102,7 +1191,7 @@ def main(
     if calibre_db:
         import_calibre_data(cur, calibre_db, calibre_virtual_library)
         build_onkindle_table(cur, calibre_db, calibre_virtual_library)
-    compute_recommendations(cur, n_factors=svd_factors)
+    compute_recommendations(cur, n_factors=svd_factors, calibre_db_path=calibre_db)
     build_search_index(cur)
     update_critique_stats(cur)
     write_metadata(cur)
