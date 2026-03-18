@@ -104,3 +104,14 @@ Les images de couverture sont chargées via `url_cover` directement depuis `lmel
 ADB=/home/vscode/android-sdk/platform-tools/adb
 $ADB shell "ls /sdcard/Android/data/com.lmelp.mobile/files/coil_image_cache/*.1 2>/dev/null | wc -l" && echo "images en cache"
 ```
+
+## pour l'env python
+
+
+```bash
+# ajout surprise
+uv add --active scikit-surprise
+
+# apres modif de pyproject.toml pour downgrade numpy
+uv sync --active --all-extras
+```

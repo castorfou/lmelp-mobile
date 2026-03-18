@@ -24,7 +24,7 @@ classifiers = [
 
 dependencies = [
     "pymongo>=4.6",
-    "numpy>=1.26",
+    "numpy>=1.26,<2.0.0",
     "scipy>=1.12",
     "click>=8.1",
     "ipykernel",
@@ -32,9 +32,9 @@ dependencies = [
     "python-dotenv",
     "gitpython",
     "pandas",
-    "numpy",
     "matplotlib",
     "cruft>=2.16.0",
+    "scikit-surprise>=1.1.4",
 ]
 
 [project.optional-dependencies]
