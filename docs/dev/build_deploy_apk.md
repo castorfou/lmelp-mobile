@@ -94,11 +94,23 @@ adb uninstall com.lmelp.mobile
 
 ## cache couvertures (Coil)
 
-Les images de couverture sont chargées via `url_cover` directement depuis `lmelp.db` et mises en cache par Coil dans `getExternalFilesDir/coil_image_cache` (50 MB max).
+Les images de couverture sont chargées via `url_cover` directement depuis `lmelp.db` et mises en cache par Coil dans `getExternalFilesDir/coil_image_cache` (25 MB max).
 
-> ⚠️ Ce cache est effacé lors d'une désinstallation (comportement Android 11+). Une issue [#62](https://github.com/castorfou/lmelp-mobile/issues/62) est ouverte pour implémenter Android Backup.
+Android Backup est configuré (issue [#62](https://github.com/castorfou/lmelp-mobile/issues/62)) : le cache est sauvegardé automatiquement sur Google Drive et restauré à la réinstallation.
 
-### nombre d'images dans le cache
+**En usage normal** : Android effectue des backups automatiques toutes les ~24h (device en charge + WiFi). Rien à faire manuellement.
+
+**En dev**, avant de désinstaller, forcer le backup pour ne pas perdre les images :
+
+```bash
+ADB=/home/vscode/android-sdk/platform-tools/adb
+$ADB shell "bmgr backupnow com.lmelp.mobile"
+$ADB uninstall com.lmelp.mobile
+./gradlew installDebug
+# Les images sont restaurées automatiquement depuis Google Drive
+```
+
+### vérifier le nombre d'images dans le cache
 
 ```bash
 ADB=/home/vscode/android-sdk/platform-tools/adb

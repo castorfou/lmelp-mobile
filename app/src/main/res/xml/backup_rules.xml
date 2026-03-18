@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Règles de sauvegarde Android 11 et antérieur (fullBackupContent).
+    Inclut le cache Coil pour que les couvertures de livres soient conservées
+    lors d'une désinstallation/réinstallation ou d'un changement de device.
+    Limite : 25 MB max sur Google Drive (le cache Coil est configuré à 25 MB).
+-->
+<full-backup-content>
+    <include domain="external" path="coil_image_cache" />
+</full-backup-content>

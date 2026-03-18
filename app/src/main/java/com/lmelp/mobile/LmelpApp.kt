@@ -24,8 +24,10 @@ class LmelpApp : Application() {
     override fun onCreate() {
         super.onCreate()
         // Cache des images dans getExternalFilesDir() → /sdcard/Android/data/com.lmelp.mobile/files/
-        // Ce répertoire survit aux désinstallations/réinstallations et aux mises à jour de lmelp.db.
-        // Contrairement à filesDir et cacheDir (tous deux effacés à la désinstallation).
+        // Ce répertoire est effacé par Android 11+ lors d'une désinstallation (protection vie privée).
+        // La sauvegarde via Android Backup (backup_rules.xml / data_extraction_rules.xml) permet de
+        // restaurer le cache depuis Google Drive lors d'une réinstallation ou d'un changement de device.
+        // Limite Google Drive : 25 MB → maxSizeBytes aligné sur cette limite.
         // Fallback sur filesDir si le stockage externe est indisponible (device sans SD).
         val persistentCacheDir = (getExternalFilesDir(null) ?: filesDir)
             .resolve("coil_image_cache")
@@ -39,7 +41,7 @@ class LmelpApp : Application() {
             .diskCache {
                 DiskCache.Builder()
                     .directory(persistentCacheDir.toOkioPath())
-                    .maxSizeBytes(50L * 1024 * 1024) // 50 MB
+                    .maxSizeBytes(25L * 1024 * 1024) // 25 MB (limite Google Drive pour Android Backup)
                     .build()
             }
             .build()
