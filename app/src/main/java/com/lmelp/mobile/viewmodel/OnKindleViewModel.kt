@@ -12,13 +12,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+enum class TriMode { ALPHA, NOTE_MASQUE, NOTE_CONSEIL }
+
 data class OnKindleUiState(
     val isLoading: Boolean = false,
     val livres: List<OnKindleUi> = emptyList(),
     val error: String? = null,
     val afficherLus: Boolean = true,
     val afficherNonLus: Boolean = true,
-    val triParNote: Boolean = false
+    val triMode: TriMode = TriMode.ALPHA
 )
 
 class OnKindleViewModel(private val repository: OnKindleRepository) : ViewModel() {
@@ -40,8 +42,8 @@ class OnKindleViewModel(private val repository: OnKindleRepository) : ViewModel(
         loadOnKindle()
     }
 
-    fun setTriParNote(tri: Boolean) {
-        _uiState.update { it.copy(triParNote = tri) }
+    fun setTriMode(mode: TriMode) {
+        _uiState.update { it.copy(triMode = mode) }
         loadOnKindle()
     }
 
@@ -53,7 +55,7 @@ class OnKindleViewModel(private val repository: OnKindleRepository) : ViewModel(
                 val livres = repository.getOnKindle(
                     afficherLus = state.afficherLus,
                     afficherNonLus = state.afficherNonLus,
-                    triParNote = state.triParNote
+                    triMode = state.triMode
                 )
                 _uiState.update { it.copy(isLoading = false, livres = livres, error = null) }
             } catch (e: Exception) {

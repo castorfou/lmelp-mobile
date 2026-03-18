@@ -1,9 +1,10 @@
 package com.lmelp.mobile
 
+import com.lmelp.mobile.data.db.OnKindleAvecConseilRow
 import com.lmelp.mobile.data.db.OnKindleDao
-import com.lmelp.mobile.data.model.OnKindleEntity
 import com.lmelp.mobile.data.repository.OnKindleRepository
 import com.lmelp.mobile.viewmodel.OnKindleViewModel
+import com.lmelp.mobile.viewmodel.TriMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -37,28 +38,31 @@ class OnKindleViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun fakeEntity(
+    private fun fakeRow(
         livreId: String,
         titre: String,
         calibreLu: Int = 0,
         noteMoyenne: Double? = null,
-        nbAvis: Int = 0
-    ) = OnKindleEntity(
+        nbAvis: Int = 0,
+        scoreHybride: Double? = null
+    ) = OnKindleAvecConseilRow(
         livreId = livreId,
         titre = titre,
         auteurNom = null,
         urlBabelio = null,
+        urlCover = null,
         calibreLu = calibreLu,
         calibreRating = null,
         noteMoyenne = noteMoyenne,
-        nbAvis = nbAvis
+        nbAvis = nbAvis,
+        scoreHybride = scoreHybride
     )
 
     @Test
-    fun `par defaut afficherLus=true afficherNonLus=true triParNote=false`() = runTest {
+    fun `par defaut afficherLus=true afficherNonLus=true triMode=ALPHA`() = runTest {
         val dao = mock<OnKindleDao>()
-        whenever(dao.getOnKindleFiltres(afficherLus = 1, afficherNonLus = 1)).thenReturn(
-            listOf(fakeEntity("id1", "Aventure"), fakeEntity("id2", "Zorro"))
+        whenever(dao.getOnKindleAvecConseil(afficherLus = 1, afficherNonLus = 1)).thenReturn(
+            listOf(fakeRow("id1", "Aventure"), fakeRow("id2", "Zorro"))
         )
         val repo = OnKindleRepository(dao)
         val viewModel = OnKindleViewModel(repo)
@@ -69,21 +73,21 @@ class OnKindleViewModelTest {
         assertFalse(state.isLoading)
         assertTrue(state.afficherLus)
         assertTrue(state.afficherNonLus)
-        assertFalse(state.triParNote)
+        assertEquals(TriMode.ALPHA, state.triMode)
         assertEquals(2, state.livres.size)
         assertEquals("Aventure", state.livres[0].titre)
         assertNull(state.error)
-        verify(dao).getOnKindleFiltres(afficherLus = 1, afficherNonLus = 1)
+        verify(dao).getOnKindleAvecConseil(afficherLus = 1, afficherNonLus = 1)
     }
 
     @Test
     fun `setAfficherLus false affiche seulement non lus`() = runTest {
         val dao = mock<OnKindleDao>()
-        whenever(dao.getOnKindleFiltres(afficherLus = 1, afficherNonLus = 1)).thenReturn(
-            listOf(fakeEntity("id1", "Livre Lu", calibreLu = 1), fakeEntity("id2", "Livre Non Lu"))
+        whenever(dao.getOnKindleAvecConseil(afficherLus = 1, afficherNonLus = 1)).thenReturn(
+            listOf(fakeRow("id1", "Livre Lu", calibreLu = 1), fakeRow("id2", "Livre Non Lu"))
         )
-        whenever(dao.getOnKindleFiltres(afficherLus = 0, afficherNonLus = 1)).thenReturn(
-            listOf(fakeEntity("id2", "Livre Non Lu"))
+        whenever(dao.getOnKindleAvecConseil(afficherLus = 0, afficherNonLus = 1)).thenReturn(
+            listOf(fakeRow("id2", "Livre Non Lu"))
         )
         val repo = OnKindleRepository(dao)
         val viewModel = OnKindleViewModel(repo)
@@ -100,24 +104,24 @@ class OnKindleViewModelTest {
     }
 
     @Test
-    fun `setTriParNote true trie par note decroissante`() = runTest {
+    fun `setTriMode NOTE_MASQUE trie par noteMoyenne decroissante`() = runTest {
         val dao = mock<OnKindleDao>()
-        whenever(dao.getOnKindleFiltres(afficherLus = 1, afficherNonLus = 1)).thenReturn(
+        whenever(dao.getOnKindleAvecConseil(afficherLus = 1, afficherNonLus = 1)).thenReturn(
             listOf(
-                fakeEntity("id1", "Moyen", noteMoyenne = 7.0, nbAvis = 3),
-                fakeEntity("id2", "Excellent", noteMoyenne = 9.5, nbAvis = 4),
-                fakeEntity("id3", "Sans note", noteMoyenne = null, nbAvis = 0)
+                fakeRow("id1", "Moyen", noteMoyenne = 7.0, nbAvis = 3),
+                fakeRow("id2", "Excellent", noteMoyenne = 9.5, nbAvis = 4),
+                fakeRow("id3", "Sans note", noteMoyenne = null, nbAvis = 0)
             )
         )
         val repo = OnKindleRepository(dao)
         val viewModel = OnKindleViewModel(repo)
         advanceUntilIdle()
 
-        viewModel.setTriParNote(true)
+        viewModel.setTriMode(TriMode.NOTE_MASQUE)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertTrue(state.triParNote)
+        assertEquals(TriMode.NOTE_MASQUE, state.triMode)
         assertEquals(3, state.livres.size)
         assertEquals("Excellent", state.livres[0].titre)
         assertEquals("Moyen", state.livres[1].titre)
@@ -125,13 +129,52 @@ class OnKindleViewModelTest {
     }
 
     @Test
+    fun `setTriMode NOTE_CONSEIL trie par scoreHybride decroissant livres sans conseil en dernier`() = runTest {
+        val dao = mock<OnKindleDao>()
+        whenever(dao.getOnKindleAvecConseil(afficherLus = 1, afficherNonLus = 1)).thenReturn(
+            listOf(
+                fakeRow("id1", "Moyen conseil", scoreHybride = 6.5),
+                fakeRow("id2", "Top conseil", scoreHybride = 8.0),
+                fakeRow("id3", "Hors recommendations", scoreHybride = null)
+            )
+        )
+        val repo = OnKindleRepository(dao)
+        val viewModel = OnKindleViewModel(repo)
+        advanceUntilIdle()
+
+        viewModel.setTriMode(TriMode.NOTE_CONSEIL)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(TriMode.NOTE_CONSEIL, state.triMode)
+        assertEquals(3, state.livres.size)
+        assertEquals("Top conseil", state.livres[0].titre)
+        assertEquals("Moyen conseil", state.livres[1].titre)
+        assertEquals("Hors recommendations", state.livres[2].titre)
+    }
+
+    @Test
+    fun `scoreHybride propage dans OnKindleUi`() = runTest {
+        val dao = mock<OnKindleDao>()
+        whenever(dao.getOnKindleAvecConseil(afficherLus = 1, afficherNonLus = 1)).thenReturn(
+            listOf(fakeRow("id1", "Avec conseil", scoreHybride = 7.8))
+        )
+        val repo = OnKindleRepository(dao)
+        val viewModel = OnKindleViewModel(repo)
+        advanceUntilIdle()
+
+        val livre = viewModel.uiState.value.livres[0]
+        assertEquals(7.8, livre.scoreHybride!!, 0.001)
+    }
+
+    @Test
     fun `tri az insensible aux accents`() = runTest {
         val dao = mock<OnKindleDao>()
-        whenever(dao.getOnKindleFiltres(afficherLus = 1, afficherNonLus = 1)).thenReturn(
+        whenever(dao.getOnKindleAvecConseil(afficherLus = 1, afficherNonLus = 1)).thenReturn(
             listOf(
-                fakeEntity("id1", "Zorro"),
-                fakeEntity("id2", "À prendre ou à laisser"),
-                fakeEntity("id3", "Aventure")
+                fakeRow("id1", "Zorro"),
+                fakeRow("id2", "À prendre ou à laisser"),
+                fakeRow("id3", "Aventure")
             )
         )
         val repo = OnKindleRepository(dao)
@@ -147,10 +190,10 @@ class OnKindleViewModelTest {
     @Test
     fun `livre discute au masque a discusseAuMasque=true`() = runTest {
         val dao = mock<OnKindleDao>()
-        whenever(dao.getOnKindleFiltres(afficherLus = 1, afficherNonLus = 1)).thenReturn(
+        whenever(dao.getOnKindleAvecConseil(afficherLus = 1, afficherNonLus = 1)).thenReturn(
             listOf(
-                fakeEntity("id1", "Discuté", noteMoyenne = 8.5, nbAvis = 4),
-                fakeEntity("id2", "Non discuté", noteMoyenne = null, nbAvis = 0)
+                fakeRow("id1", "Discuté", noteMoyenne = 8.5, nbAvis = 4),
+                fakeRow("id2", "Non discuté", noteMoyenne = null, nbAvis = 0)
             )
         )
         val repo = OnKindleRepository(dao)
@@ -165,7 +208,7 @@ class OnKindleViewModelTest {
     @Test
     fun `error case expose erreur dans uiState`() = runTest {
         val dao = mock<OnKindleDao>()
-        whenever(dao.getOnKindleFiltres(afficherLus = 1, afficherNonLus = 1))
+        whenever(dao.getOnKindleAvecConseil(afficherLus = 1, afficherNonLus = 1))
             .thenThrow(RuntimeException("DB error"))
         val repo = OnKindleRepository(dao)
         val viewModel = OnKindleViewModel(repo)
@@ -181,10 +224,10 @@ class OnKindleViewModelTest {
     @Test
     fun `les deux filtres off retourne liste vide`() = runTest {
         val dao = mock<OnKindleDao>()
-        whenever(dao.getOnKindleFiltres(afficherLus = 1, afficherNonLus = 1)).thenReturn(
-            listOf(fakeEntity("id1", "Livre A"))
+        whenever(dao.getOnKindleAvecConseil(afficherLus = 1, afficherNonLus = 1)).thenReturn(
+            listOf(fakeRow("id1", "Livre A"))
         )
-        whenever(dao.getOnKindleFiltres(afficherLus = 0, afficherNonLus = 0)).thenReturn(emptyList())
+        whenever(dao.getOnKindleAvecConseil(afficherLus = 0, afficherNonLus = 0)).thenReturn(emptyList())
         val repo = OnKindleRepository(dao)
         val viewModel = OnKindleViewModel(repo)
         advanceUntilIdle()
