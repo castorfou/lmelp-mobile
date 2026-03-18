@@ -8,14 +8,15 @@ class RecommendationsRepository(
 ) {
 
     suspend fun getAllRecommendations(): List<RecommendationUi> {
-        return recommendationsDao.getRecommandationsNonLues().map {
+        return recommendationsDao.getRecommandationsNonLuesAvecUrl().map {
             RecommendationUi(
                 rank = it.rank,
                 livreId = it.livreId,
                 titre = it.titre,
                 auteurNom = it.auteurNom,
                 scoreHybride = it.scoreHybride,
-                masqueMean = it.masqueMean
+                masqueMean = it.masqueMean,
+                urlCover = it.urlCover
             )
         }
     }

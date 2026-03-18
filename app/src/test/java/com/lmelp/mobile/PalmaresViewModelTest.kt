@@ -1,7 +1,7 @@
 package com.lmelp.mobile
 
 import com.lmelp.mobile.data.db.PalmaresDao
-import com.lmelp.mobile.data.model.PalmaresEntity
+import com.lmelp.mobile.data.db.PalmaresFiltreAvecUrlRow
 import com.lmelp.mobile.data.repository.PalmaresRepository
 import com.lmelp.mobile.viewmodel.PalmaresViewModel
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +37,7 @@ class PalmaresViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun fakeEntity(rank: Int, livreId: String, titre: String) = PalmaresEntity(
+    private fun fakeRow(rank: Int, livreId: String, titre: String) = PalmaresFiltreAvecUrlRow(
         rank = rank,
         livreId = livreId,
         titre = titre,
@@ -47,14 +47,15 @@ class PalmaresViewModelTest {
         nbCritiques = 3,
         calibreInLibrary = 0,
         calibreLu = 0,
-        calibreRating = null
+        calibreRating = null,
+        urlCover = null
     )
 
     @Test
     fun `par defaut afficherNonLus=true afficherLus=false`() = runTest {
         val dao = mock<PalmaresDao>()
-        whenever(dao.getPalmaresFiltres(afficherLus = 0, afficherNonLus = 1)).thenReturn(
-            listOf(fakeEntity(1, "id1", "Livre A"), fakeEntity(2, "id2", "Livre B"))
+        whenever(dao.getPalmaresFiltresAvecUrl(afficherLus = 0, afficherNonLus = 1)).thenReturn(
+            listOf(fakeRow(1, "id1", "Livre A"), fakeRow(2, "id2", "Livre B"))
         )
         val repo = PalmaresRepository(dao)
         val viewModel = PalmaresViewModel(repo)
@@ -68,15 +69,15 @@ class PalmaresViewModelTest {
         assertEquals(2, state.palmares.size)
         assertEquals("Livre A", state.palmares[0].titre)
         assertNull(state.error)
-        verify(dao).getPalmaresFiltres(afficherLus = 0, afficherNonLus = 1)
+        verify(dao).getPalmaresFiltresAvecUrl(afficherLus = 0, afficherNonLus = 1)
     }
 
     @Test
     fun `setAfficherLus true avec afficherNonLus true affiche tout`() = runTest {
         val dao = mock<PalmaresDao>()
-        whenever(dao.getPalmaresFiltres(afficherLus = 0, afficherNonLus = 1)).thenReturn(emptyList())
-        whenever(dao.getPalmaresFiltres(afficherLus = 1, afficherNonLus = 1)).thenReturn(
-            listOf(fakeEntity(1, "id1", "Livre Lu"), fakeEntity(2, "id2", "Livre Non Lu"))
+        whenever(dao.getPalmaresFiltresAvecUrl(afficherLus = 0, afficherNonLus = 1)).thenReturn(emptyList())
+        whenever(dao.getPalmaresFiltresAvecUrl(afficherLus = 1, afficherNonLus = 1)).thenReturn(
+            listOf(fakeRow(1, "id1", "Livre Lu"), fakeRow(2, "id2", "Livre Non Lu"))
         )
         val repo = PalmaresRepository(dao)
         val viewModel = PalmaresViewModel(repo)
@@ -89,16 +90,16 @@ class PalmaresViewModelTest {
         assertTrue(state.afficherLus)
         assertTrue(state.afficherNonLus)
         assertEquals(2, state.palmares.size)
-        verify(dao).getPalmaresFiltres(afficherLus = 1, afficherNonLus = 1)
+        verify(dao).getPalmaresFiltresAvecUrl(afficherLus = 1, afficherNonLus = 1)
     }
 
     @Test
     fun `les deux filtres off retourne liste vide`() = runTest {
         val dao = mock<PalmaresDao>()
-        whenever(dao.getPalmaresFiltres(afficherLus = 0, afficherNonLus = 1)).thenReturn(
-            listOf(fakeEntity(1, "id1", "Livre A"))
+        whenever(dao.getPalmaresFiltresAvecUrl(afficherLus = 0, afficherNonLus = 1)).thenReturn(
+            listOf(fakeRow(1, "id1", "Livre A"))
         )
-        whenever(dao.getPalmaresFiltres(afficherLus = 0, afficherNonLus = 0)).thenReturn(emptyList())
+        whenever(dao.getPalmaresFiltresAvecUrl(afficherLus = 0, afficherNonLus = 0)).thenReturn(emptyList())
         val repo = PalmaresRepository(dao)
         val viewModel = PalmaresViewModel(repo)
         advanceUntilIdle()
@@ -110,13 +111,13 @@ class PalmaresViewModelTest {
         assertFalse(state.afficherNonLus)
         assertFalse(state.afficherLus)
         assertTrue(state.palmares.isEmpty())
-        verify(dao).getPalmaresFiltres(afficherLus = 0, afficherNonLus = 0)
+        verify(dao).getPalmaresFiltresAvecUrl(afficherLus = 0, afficherNonLus = 0)
     }
 
     @Test
     fun `error case repository throws expose erreur`() = runTest {
         val dao = mock<PalmaresDao>()
-        whenever(dao.getPalmaresFiltres(afficherLus = 0, afficherNonLus = 1)).thenThrow(RuntimeException("DB error"))
+        whenever(dao.getPalmaresFiltresAvecUrl(afficherLus = 0, afficherNonLus = 1)).thenThrow(RuntimeException("DB error"))
         val repo = PalmaresRepository(dao)
         val viewModel = PalmaresViewModel(repo)
 

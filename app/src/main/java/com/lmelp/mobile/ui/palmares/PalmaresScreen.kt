@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.data.model.PalmaresUi
 import com.lmelp.mobile.data.repository.PalmaresRepository
+import com.lmelp.mobile.ui.components.BookCoverThumbnail
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
@@ -114,7 +115,7 @@ fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -122,6 +123,7 @@ fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
+            BookCoverThumbnail(urlCover = item.urlCover)
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = item.titre, style = MaterialTheme.typography.titleSmall)
                 item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
