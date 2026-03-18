@@ -5,7 +5,18 @@ Format attendu : DD/MM/YYYY extrait du texte libre.
 Résultat : date ISO YYYY-MM-DD ou None si non trouvée.
 """
 
-from scripts.export_mongo_to_sqlite import extract_date_lecture
+import importlib.util
+import sys
+from pathlib import Path
+
+
+# Charge le module scripts/export_mongo_to_sqlite.py directement (pas de package)
+_script_path = Path(__file__).parent.parent / "scripts" / "export_mongo_to_sqlite.py"
+_spec = importlib.util.spec_from_file_location("export_mongo_to_sqlite", _script_path)
+_mod = importlib.util.module_from_spec(_spec)  # type: ignore[arg-type]
+sys.modules["export_mongo_to_sqlite"] = _mod
+_spec.loader.exec_module(_mod)  # type: ignore[union-attr]
+extract_date_lecture = _mod.extract_date_lecture
 
 
 class TestExtractDateLecture:
