@@ -132,7 +132,8 @@ data class OnKindleUi(
     val noteMoyenne: Double?,
     val nbAvis: Int,
     val discusseAuMasque: Boolean = noteMoyenne != null,
-    val urlCover: String? = null
+    val urlCover: String? = null,
+    val scoreHybride: Double? = null
 )
 
 data class DbInfoUi(

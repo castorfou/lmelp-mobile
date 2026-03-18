@@ -47,6 +47,7 @@ import com.lmelp.mobile.ui.components.NoteBadge
 import com.lmelp.mobile.ui.theme.LmelpVert
 import com.lmelp.mobile.viewmodel.OnKindleUiState
 import com.lmelp.mobile.viewmodel.OnKindleViewModel
+import com.lmelp.mobile.viewmodel.TriMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,7 +79,7 @@ fun OnKindleScreen(
             onLivreClick = onLivreClick,
             onToggleLus = { viewModel.setAfficherLus(!uiState.afficherLus) },
             onToggleNonLus = { viewModel.setAfficherNonLus(!uiState.afficherNonLus) },
-            onToggleTriParNote = { viewModel.setTriParNote(!uiState.triParNote) },
+            onSetTriMode = { viewModel.setTriMode(it) },
             modifier = Modifier.padding(padding)
         )
     }
@@ -90,7 +91,7 @@ fun OnKindleContent(
     onLivreClick: (String) -> Unit,
     onToggleLus: () -> Unit,
     onToggleNonLus: () -> Unit,
-    onToggleTriParNote: () -> Unit,
+    onSetTriMode: (TriMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -111,15 +112,28 @@ fun OnKindleContent(
                 onClick = onToggleLus,
                 label = { Text("Lus") }
             )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             FilterChip(
-                selected = !uiState.triParNote,
-                onClick = { if (uiState.triParNote) onToggleTriParNote() },
+                selected = uiState.triMode == TriMode.ALPHA,
+                onClick = { onSetTriMode(TriMode.ALPHA) },
                 label = { Text("a→z") }
             )
             FilterChip(
-                selected = uiState.triParNote,
-                onClick = { if (!uiState.triParNote) onToggleTriParNote() },
-                label = { Text("Note ↓") }
+                selected = uiState.triMode == TriMode.NOTE_MASQUE,
+                onClick = { onSetTriMode(TriMode.NOTE_MASQUE) },
+                label = { Text("Note masque ↓") }
+            )
+            FilterChip(
+                selected = uiState.triMode == TriMode.NOTE_CONSEIL,
+                onClick = { onSetTriMode(TriMode.NOTE_CONSEIL) },
+                label = { Text("Note conseil ↓") }
             )
             Spacer(modifier = Modifier.weight(1f))
             Box(

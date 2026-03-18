@@ -46,6 +46,11 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 - **adb** : `/home/vscode/android-sdk/platform-tools/adb` (pas dans le PATH par défaut)
 - **MongoDB** : port **27018** (pas 27017)
 - **Calibre** : `/home/vscode/Calibre Library/metadata.db`, virtual library `guillaume`
+- **sqlite3** : disponible via le venv Python — toujours activer avant usage :
+  ```bash
+  source /workspaces/lmelp-mobile/.venv/bin/activate
+  sqlite3 app/src/main/assets/lmelp.db "..."
+  ```
 
 ## Commandes essentielles
 
