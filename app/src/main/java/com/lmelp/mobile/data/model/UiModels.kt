@@ -68,7 +68,8 @@ data class PalmaresUi(
     val calibreInLibrary: Boolean = false,
     val calibreLu: Boolean = false,
     val calibreRating: Double? = null,
-    val urlCover: String? = null
+    val urlCover: String? = null,
+    val dateLecture: String? = null
 )
 
 data class CritiqueUi(

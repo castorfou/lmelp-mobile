@@ -15,6 +15,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -34,6 +37,8 @@ import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
 import com.lmelp.mobile.ui.components.NoteBadge
+import com.lmelp.mobile.viewmodel.MonPalmaresTriMode
+import com.lmelp.mobile.viewmodel.PalmaresMode
 import com.lmelp.mobile.viewmodel.PalmaresUiState
 import com.lmelp.mobile.viewmodel.PalmaresViewModel
 
@@ -61,44 +66,91 @@ fun PalmaresScreen(
             onLivreClick = onLivreClick,
             onToggleLus = { viewModel.setAfficherLus(!uiState.afficherLus) },
             onToggleNonLus = { viewModel.setAfficherNonLus(!uiState.afficherNonLus) },
+            onSetPalmaresMode = { viewModel.setPalmaresMode(it) },
+            onSetMonPalmaresTriMode = { viewModel.setMonPalmaresTriMode(it) },
             modifier = Modifier.padding(padding)
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PalmaresContent(
     uiState: PalmaresUiState,
     onLivreClick: (String) -> Unit,
     onToggleLus: () -> Unit,
     onToggleNonLus: () -> Unit,
+    onSetPalmaresMode: (PalmaresMode) -> Unit,
+    onSetMonPalmaresTriMode: (MonPalmaresTriMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
+        // Bascule Palmarès critiques / Mon palmarès
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+        ) {
+            SegmentedButton(
+                selected = uiState.palmaresMode == PalmaresMode.CRITIQUES,
+                onClick = { onSetPalmaresMode(PalmaresMode.CRITIQUES) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                label = { Text("Palmarès critiques") }
+            )
+            SegmentedButton(
+                selected = uiState.palmaresMode == PalmaresMode.PERSONNEL,
+                onClick = { onSetPalmaresMode(PalmaresMode.PERSONNEL) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                label = { Text("Mon palmarès") }
+            )
+        }
+
+        // Filtres (mode CRITIQUES) ou tri (mode PERSONNEL)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+                .padding(horizontal = 16.dp, vertical = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            FilterChip(
-                selected = uiState.afficherNonLus,
-                onClick = onToggleNonLus,
-                label = { Text("Non lus") }
-            )
-            FilterChip(
-                selected = uiState.afficherLus,
-                onClick = onToggleLus,
-                label = { Text("Lus") }
-            )
+            if (uiState.palmaresMode == PalmaresMode.CRITIQUES) {
+                FilterChip(
+                    selected = uiState.afficherNonLus,
+                    onClick = onToggleNonLus,
+                    label = { Text("Non lus") }
+                )
+                FilterChip(
+                    selected = uiState.afficherLus,
+                    onClick = onToggleLus,
+                    label = { Text("Lus") }
+                )
+            } else {
+                FilterChip(
+                    selected = uiState.monPalmaresTriMode == MonPalmaresTriMode.NOTE_PERSO,
+                    onClick = { onSetMonPalmaresTriMode(MonPalmaresTriMode.NOTE_PERSO) },
+                    label = { Text("Note ↓") }
+                )
+                FilterChip(
+                    selected = uiState.monPalmaresTriMode == MonPalmaresTriMode.DATE_LECTURE,
+                    onClick = { onSetMonPalmaresTriMode(MonPalmaresTriMode.DATE_LECTURE) },
+                    label = { Text("Date lecture ↓") }
+                )
+            }
         }
+
         when {
             uiState.isLoading -> LoadingIndicator()
             uiState.error != null -> ErrorMessage(uiState.error)
-            uiState.palmares.isEmpty() -> EmptyState("Palmarès vide")
+            uiState.palmares.isEmpty() -> EmptyState(
+                if (uiState.palmaresMode == PalmaresMode.PERSONNEL) "Aucun livre lu"
+                else "Palmarès vide"
+            )
             else -> LazyColumn {
                 items(uiState.palmares, key = { it.livreId }) { item ->
-                    PalmaresCard(item = item, onClick = { onLivreClick(item.livreId) })
+                    if (uiState.palmaresMode == PalmaresMode.PERSONNEL) {
+                        MonPalmaresCard(item = item, onClick = { onLivreClick(item.livreId) })
+                    } else {
+                        PalmaresCard(item = item, onClick = { onLivreClick(item.livreId) })
+                    }
                 }
             }
         }
@@ -151,6 +203,42 @@ fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
                 Text(
                     text = "${item.nbAvis} avis",
                     style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MonPalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BookCoverThumbnail(urlCover = item.urlCover)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = item.titre, style = MaterialTheme.typography.titleSmall)
+                item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                item.dateLecture?.let {
+                    Text(
+                        text = "Lu le ${it.substring(8, 10)}/${it.substring(5, 7)}/${it.substring(0, 4)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+            item.calibreRating?.let {
+                Text(
+                    text = "${it.toInt()}/10",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFF2E7D32)
                 )
             }
         }

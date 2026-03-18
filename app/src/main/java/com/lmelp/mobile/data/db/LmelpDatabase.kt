@@ -33,7 +33,7 @@ import com.lmelp.mobile.data.model.RecommendationEntity
         DbMetadataEntity::class,
         OnKindleEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class LmelpDatabase : RoomDatabase() {

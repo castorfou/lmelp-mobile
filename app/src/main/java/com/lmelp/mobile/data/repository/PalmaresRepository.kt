@@ -1,5 +1,6 @@
 package com.lmelp.mobile.data.repository
 
+import com.lmelp.mobile.data.db.MonPalmaresRow
 import com.lmelp.mobile.data.db.PalmaresFiltreAvecUrlRow
 import com.lmelp.mobile.data.db.PalmaresDao
 import com.lmelp.mobile.data.model.PalmaresEntity
@@ -19,6 +20,12 @@ class PalmaresRepository(
             afficherNonLus = if (afficherNonLus) 1 else 0
         ).map { it.toUi() }
     }
+
+    suspend fun getMonPalmares(): List<PalmaresUi> =
+        palmaresDao.getMonPalmares().map { it.toUi() }
+
+    suspend fun getMonPalmaresParDate(): List<PalmaresUi> =
+        palmaresDao.getMonPalmaresParDate().map { it.toUi() }
 
     private fun PalmaresEntity.toUi() = PalmaresUi(
         rank = rank,
@@ -44,6 +51,22 @@ class PalmaresRepository(
         calibreInLibrary = calibreInLibrary == 1,
         calibreLu = calibreLu == 1,
         calibreRating = calibreRating,
-        urlCover = urlCover
+        urlCover = urlCover,
+        dateLecture = dateLecture
+    )
+
+    private fun MonPalmaresRow.toUi() = PalmaresUi(
+        rank = 0,
+        livreId = livreId,
+        titre = titre,
+        auteurNom = auteurNom,
+        noteMoyenne = noteMoyenne,
+        nbAvis = nbAvis,
+        nbCritiques = nbCritiques,
+        calibreInLibrary = true,
+        calibreLu = true,
+        calibreRating = calibreRating,
+        urlCover = urlCover,
+        dateLecture = dateLecture
     )
 }

@@ -133,16 +133,22 @@ CREATE TABLE emission_livres (
 
 ```sql
 CREATE TABLE palmares (
-    rank            INTEGER NOT NULL,   -- Rang (1 = meilleure note)
-    livre_id        TEXT PRIMARY KEY,
-    titre           TEXT NOT NULL,
-    auteur_nom      TEXT,
-    note_moyenne    REAL NOT NULL,      -- Moyenne des notes
-    nb_avis         INTEGER NOT NULL,   -- Nombre d'avis avec note
-    nb_critiques    INTEGER NOT NULL,   -- Nombre de critiques distincts
+    rank                INTEGER NOT NULL,   -- Rang (1 = meilleure note)
+    livre_id            TEXT PRIMARY KEY,
+    titre               TEXT NOT NULL,
+    auteur_nom          TEXT,
+    note_moyenne        REAL NOT NULL,      -- Moyenne des notes
+    nb_avis             INTEGER NOT NULL,   -- Nombre d'avis avec note
+    nb_critiques        INTEGER NOT NULL,   -- Nombre de critiques distincts
+    calibre_in_library  INTEGER DEFAULT 0, -- Livre présent dans Calibre (0/1)
+    calibre_lu          INTEGER DEFAULT 0, -- Lu dans Calibre (0/1)
+    calibre_rating      REAL,              -- Note personnelle Calibre (1-10, nullable)
+    date_lecture        TEXT,              -- Date de lecture ISO YYYY-MM-DD (depuis Calibre custom_column_3)
     FOREIGN KEY (livre_id) REFERENCES livres(id)
 );
 ```
+
+**Colonne `date_lecture`** : extraite depuis le champ Commentaire (`custom_column_3`) de Calibre via une regex `\b(\d{2})/(\d{2})/(\d{4})\b`. La date est convertie du format `DD/MM/YYYY` vers `YYYY-MM-DD` pour permettre un tri correct en SQLite.
 
 ### `recommendations`
 
