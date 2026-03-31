@@ -41,7 +41,11 @@ build.sh
 
 pre-requis : `adb devices` doit afficher mon telephone (et ca marche depuis devcontainer)
 
-si le device ne s'affiche pas, un `adb kill-server` peut aider
+Si le device ne s'affiche pas :
+
+- un `adb kill-server` peut aider, revoquer les autorisations de debogage USB, et relancer `adb devices` (une popup d'autorisation doit arriver)
+- bien verifier que le mode USB est sur Transferts de fichiers (et non pas Aucun transfert de donnees qui est l'option par defaut)
+- il faut aussi que le debogage USB soit active
 
 
 ```bash
