@@ -1,6 +1,5 @@
 nav:
   - Contenu: README.md
-  - Outils Documentation: documentation_tools.md
   - Configuration environnement Android: setup-mobile.md
   - Build / Deploy apk: build_deploy_apk.md
   - Schéma des données: data-schema.md

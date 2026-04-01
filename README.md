@@ -38,35 +38,33 @@ Application Android (Kotlin + Jetpack Compose + Room)
 GitHub Actions → APK → GitHub Releases
 ```
 
-Voir [docs/architecture.md](docs/architecture.md) pour les détails.
-
 ## Stack technique
 
-| Composant | Technologie |
-|-----------|-------------|
-| Langage | Kotlin |
-| UI | Jetpack Compose |
-| ORM | Room (SQLite) |
-| Navigation | Navigation Compose |
-| Build | Gradle (Kotlin DSL) |
-| CI/CD | GitHub Actions |
-| Distribution | GitHub Releases |
+| Composant      | Technologie                     |
+| -------------- | ------------------------------- |
+| Langage        | Kotlin                          |
+| UI             | Jetpack Compose                 |
+| ORM            | Room (SQLite)                   |
+| Navigation     | Navigation Compose              |
+| Build          | Gradle (Kotlin DSL)             |
+| CI/CD          | GitHub Actions                  |
+| Distribution   | GitHub Releases                 |
 | Export données | Python 3.11+ (pymongo → SQLite) |
 
 ## Fonctionnalités cibles
 
 ### V1 — Consultation offline
 
-| Écran | Description |
-|-------|-------------|
-| **Émissions** | Liste des émissions avec date, durée, statut |
-| **Détail émission** | Livres discutés, critiques présents, avis par livre |
-| **Palmarès** | Livres classés par note moyenne décroissante |
-| **Critiques** | Liste des 25 critiques avec leurs avis |
-| **Détail critique** | Tous les avis d'un critique avec notes |
-| **Recherche** | Full-text search sur titres, auteurs, critiques |
-| **Recommandations** | Livres recommandés par collaborative filtering SVD |
-| **Sur ma liseuse** | Livres Calibre tagués `onkindle`, filtrés par virtual library, avec notes Masque |
+| Écran               | Description                                                                      |
+| ------------------- | -------------------------------------------------------------------------------- |
+| **Émissions**       | Liste des émissions avec date, durée, statut                                     |
+| **Détail émission** | Livres discutés, critiques présents, avis par livre                              |
+| **Palmarès**        | Livres classés par note moyenne décroissante                                     |
+| **Critiques**       | Liste des 25 critiques avec leurs avis                                           |
+| **Détail critique** | Tous les avis d'un critique avec notes                                           |
+| **Recherche**       | Full-text search sur titres, auteurs, critiques                                  |
+| **Recommandations** | Livres recommandés par collaborative filtering SVD                               |
+| **Sur ma liseuse**  | Livres Calibre tagués `onkindle`, filtrés par virtual library, avec notes Masque |
 
 ### V2 — Mise à jour des données (à définir)
 
