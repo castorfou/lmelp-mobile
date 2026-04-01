@@ -2,11 +2,12 @@
 
 Application Android pour consulter le contenu de Le Masque et la Plume (LMELP) — émission littéraire de France Inter — hors connexion.
 
-[![CI](https://github.com/castorfou/lmelp-mobile/actions/workflows/ci.yml/badge.svg)](https://github.com/castorfou/lmelp-mobile/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/castorfou/lmelp-mobile/branch/main/graph/badge.svg)](https://codecov.io/gh/castorfou/lmelp-mobile)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+## pyfoundry-template
+
+Ce projet a été instancié depuis un template.
+
+Toutes les infos sur ce template et la façon de l'utiliser sont dans sa [documentation](https://castorfou.github.io/PyFoundry/).
+
 
 ## Vision
 
