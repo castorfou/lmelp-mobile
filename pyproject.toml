@@ -34,6 +34,7 @@ dependencies = [
     "pandas",
     "matplotlib",
     "cruft>=2.16.0",
+    "chardet<5",
     "scikit-surprise>=1.1.4",
 ]
 
