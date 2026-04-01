@@ -52,6 +52,45 @@ cp scripts/lmelp-update-mobile.sh ~/bin/lmelp-update-mobile
 chmod +x ~/bin/lmelp-update-mobile
 ```
 
+### Démarrer le container lmelp-export
+
+Il y a 3 niveaux selon l'avancement de la configuration :
+
+**Niveau 1 — image locale (dev/test)** : image buildée localement depuis le repo
+
+```bash
+# depuis le repo lmelp-mobile
+docker build -f Dockerfile.export -t lmelp-mobile-export:local .
+docker run -d --name lmelp-export \
+  --network lmelp-stack_lmelp-network \
+  --add-host host-gateway:host-gateway \
+  -v "/home/guillaume/Calibre Library:/calibre:ro" \
+  -e LMELP_MONGO_URI=mongodb://mongo:27017 \
+  -e LMELP_CALIBRE_DB=/calibre/metadata.db \
+  -e LMELP_CALIBRE_VIRTUAL_LIBRARY=guillaume \
+  -e ADB_HOST=host-gateway \
+  -e ADB_PORT=5037 \
+  lmelp-mobile-export:local
+```
+
+**Niveau 2 — image ghcr.io (usage normal en attendant docker-lmelp#41)** : image publiée automatiquement par la CI, gérée par Watchtower
+
+```bash
+docker run -d --name lmelp-export \
+  --network lmelp-stack_lmelp-network \
+  --add-host host-gateway:host-gateway \
+  -v "/home/guillaume/Calibre Library:/calibre:ro" \
+  -e LMELP_MONGO_URI=mongodb://mongo:27017 \
+  -e LMELP_CALIBRE_DB=/calibre/metadata.db \
+  -e LMELP_CALIBRE_VIRTUAL_LIBRARY=guillaume \
+  -e ADB_HOST=host-gateway \
+  -e ADB_PORT=5037 \
+  --label "com.centurylinklabs.watchtower.enable=true" \
+  ghcr.io/castorfou/lmelp-mobile-export:latest
+```
+
+**Niveau 3 — intégré à la stack docker-lmelp (cible finale)** : le container démarre automatiquement avec `docker compose up -d`, voir [docker-lmelp#41](https://github.com/castorfou/docker-lmelp/issues/41).
+
 ### En cas de problème ADB
 
 Si `adb devices` ne voit pas le téléphone :
