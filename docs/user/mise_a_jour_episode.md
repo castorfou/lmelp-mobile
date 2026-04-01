@@ -23,75 +23,41 @@ Le logiciel lmelp-mobile ne change pas, seule la base de données évolue.
 
 ### Pré-requis
 
+- adb est installe
 - Le téléphone est branché en USB au laptop
 - Le mode USB est sur **Transfert de fichiers** (pas "Aucun transfert de données")
 - Le débogage USB est activé (Paramètres → Options développeur)
-- Le daemon ADB est actif sur le laptop
+- La stack docker-lmelp est démarrée (en suivant [Déploiement avec Portainer](https://castorfou.github.io/docker-lmelp/user/portainer/), les conteneurs `lmelp-mongo` et `lmelp-export` doivent tourner)
 
 ### Commande unique
 
 ```bash
-# Sur le laptop
-adb start-server
-docker compose --profile export run --rm lmelp-export
+lmelp-update-mobile
 ```
 
-Le container `lmelp-export` fait tout automatiquement :
+Le script `scripts/lmelp-update-mobile.sh` (à copier une fois sur le laptop dans `~/bin/`) fait tout :
 
-1. Export MongoDB → SQLite (avec données Calibre pour le filtre "Lus")
-2. Vérification d'intégrité de la base
-3. Push de la base sur le téléphone via ADB
-4. Redémarrage de l'app Android
+1. Redémarre le daemon ADB en mode réseau (`0.0.0.0:5037`)
+2. Vérifie qu'un téléphone est connecté
+3. Vérifie que le container `lmelp-export` tourne
+4. Lance l'export MongoDB → SQLite (avec données Calibre pour le filtre "Lus")
+5. Vérifie l'intégrité de la base
+6. Pousse la base sur le téléphone via ADB
+7. Redémarre l'app Android
+
+### Installation du script (une seule fois)
+
+```bash
+cp scripts/lmelp-update-mobile.sh ~/bin/lmelp-update-mobile
+chmod +x ~/bin/lmelp-update-mobile
+```
 
 ### En cas de problème ADB
 
 Si `adb devices` ne voit pas le téléphone :
 
-```bash
-adb kill-server
-adb start-server
-adb devices
-```
-
-Vérifier que le téléphone affiche bien une popup "Autoriser le débogage USB" et la valider.
+- Vérifier que le mode USB est sur **Transfert de fichiers**
+- Valider la popup "Autoriser le débogage USB" sur le téléphone
+- En dernier recours : `adb kill-server && adb -a start-server`
 
 Voir aussi [docs/dev/build_deploy_apk.md](../dev/build_deploy_apk.md) pour le diagnostic complet.
-
-### test pendant les developpement
-
-#### build lmelp-mobile-export image
-
-```bash
-docker build -f Dockerfile.export -t lmelp-mobile-export:local .
-```
-
-
-#### lancement lmelp-mobile-export container
-
-il faut que adb ecoute sur 0.0.0.0
-
-```bash
-adb kill-server
-adb -a start-server
-```
-
-a verifier avec
-
-```bash
-❯ ss -tlnp | grep 5037
-
-LISTEN 0      4                       *:5037             *:*    users:(("adb",pid=583910,fd=10))
-```
-
-```bash
-docker run --rm \
-  --network lmelp-stack_lmelp-network \
-  --add-host host-gateway:host-gateway \
-  -v "/home/guillaume/Calibre Library:/calibre:ro" \
-  -e LMELP_MONGO_URI=mongodb://mongo:27017 \
-  -e LMELP_CALIBRE_DB=/calibre/metadata.db \
-  -e LMELP_CALIBRE_VIRTUAL_LIBRARY=guillaume \
-  -e ADB_HOST=host-gateway \
-  -e ADB_PORT=5037 \
-  lmelp-mobile-export:local
-```

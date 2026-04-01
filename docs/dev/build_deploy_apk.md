@@ -34,8 +34,8 @@ Le container `lmelp-export` fait tout : export MongoDB → push ADB → restart 
 
 ```bash
 # Sur le laptop
-adb start-server
-docker compose --profile export run --rm lmelp-export
+adb -a start-server                          # flag -a obligatoire (écoute sur 0.0.0.0)
+docker exec lmelp-export export-and-push
 ```
 
 L'image `ghcr.io/castorfou/lmelp-mobile-export` est publiée automatiquement depuis ce repo (CI/CD sur `Dockerfile.export`). Le service `lmelp-export` est configuré dans le repo `castorfou/docker-lmelp` ([issue #41](https://github.com/castorfou/docker-lmelp/issues/41)).

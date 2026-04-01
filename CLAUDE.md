@@ -133,11 +133,11 @@ Pour pousser une nouvelle base directement sur le téléphone (sans rebuild APK)
 
 ```bash
 # Pré-requis : téléphone en USB, mode Transfert de fichiers, débogage USB activé
-adb start-server
-docker compose --profile export run --rm lmelp-export
+adb -a start-server          # flag -a obligatoire : écoute sur 0.0.0.0 (pas 127.0.0.1)
+docker exec lmelp-export export-and-push
 ```
 
-Le container `lmelp-export` (image `ghcr.io/castorfou/lmelp-mobile-export`) :
+Le container `lmelp-export` tourne en daemon avec la stack `docker-lmelp`. Il :
 - Se connecte à MongoDB via le réseau `lmelp-network`
 - Exporte la base avec les données Calibre
 - La pousse sur le téléphone via le daemon ADB du laptop (`host-gateway:5037`)

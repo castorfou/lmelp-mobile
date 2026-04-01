@@ -22,4 +22,5 @@ COPY scripts/export_mongo_to_sqlite.py scripts/
 COPY scripts/docker_export_and_push.sh /usr/local/bin/export-and-push
 RUN chmod +x /usr/local/bin/export-and-push
 
-ENTRYPOINT ["export-and-push"]
+# En mode daemon : le container reste actif, on appelle export-and-push via docker exec
+CMD ["sleep", "infinity"]
