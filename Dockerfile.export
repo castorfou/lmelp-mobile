@@ -1,0 +1,26 @@
+FROM python:3.11-slim
+
+# Install ADB and system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    android-tools-adb \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies depuis pyproject.toml (sans extras dev)
+# On copie d'abord pyproject.toml seul pour bénéficier du cache Docker
+COPY pyproject.toml README.md ./
+# Stub src/ pour que pip install -e . réussisse sans le code source complet
+RUN mkdir -p src && pip install --no-cache-dir -e .
+
+# Copy export script
+COPY scripts/export_mongo_to_sqlite.py scripts/
+
+# Entrypoint script
+COPY scripts/docker_export_and_push.sh /usr/local/bin/export-and-push
+RUN chmod +x /usr/local/bin/export-and-push
+
+# En mode daemon : le container reste actif, on appelle export-and-push via docker exec
+CMD ["sleep", "infinity"]

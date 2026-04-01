@@ -127,6 +127,24 @@ adb uninstall com.lmelp.mobile
 ./gradlew installDebug
 ```
 
+### Mise à jour DB sur le téléphone sans recompiler l'APK (issue #81)
+
+Pour pousser une nouvelle base directement sur le téléphone (sans rebuild APK) :
+
+```bash
+# Pré-requis : téléphone en USB, mode Transfert de fichiers, débogage USB activé
+adb -a start-server          # flag -a obligatoire : écoute sur 0.0.0.0 (pas 127.0.0.1)
+docker exec lmelp-export export-and-push
+```
+
+Le container `lmelp-export` tourne en daemon avec la stack `docker-lmelp`. Il :
+- Se connecte à MongoDB via le réseau `lmelp-network`
+- Exporte la base avec les données Calibre
+- La pousse sur le téléphone via le daemon ADB du laptop (`host-gateway:5037`)
+- Redémarre l'app
+
+Le service `lmelp-export` est défini dans le `docker-compose.yml` du repo `castorfou/docker-lmelp`.
+
 ## Architecture MVVM
 
 ```

@@ -13,8 +13,6 @@ Nouvelle DB peut etre cause par :
 
 On fait manuellement
 
-
-
 ```bash
 # 1. Export DB (rare, uniquement si nouvelle DB)
 python scripts/export_mongo_to_sqlite.py --force
@@ -22,6 +20,25 @@ python scripts/export_mongo_to_sqlite.py --force
 # 2. Build + deploy
 build.sh && deploy.sh
 ```
+
+## mise à jour DB sans rebuild APK (issue #81)
+
+Quand seule la base de données change (nouvelle émission), inutile de recompiler l'APK.
+Le container `lmelp-export` fait tout : export MongoDB → push ADB → restart app.
+
+**Pré-requis :**
+
+- Téléphone branché en USB, mode **Transfert de fichiers**
+- Débogage USB activé (Paramètres → Options développeur)
+- Stack docker-lmelp démarrée (`docker compose up -d`)
+
+```bash
+# Sur le laptop
+adb -a start-server                          # flag -a obligatoire (écoute sur 0.0.0.0)
+docker exec lmelp-export export-and-push
+```
+
+L'image `ghcr.io/castorfou/lmelp-mobile-export` est publiée automatiquement depuis ce repo (CI/CD sur `Dockerfile.export`). Le service `lmelp-export` est configuré dans le repo `castorfou/docker-lmelp` ([issue #41](https://github.com/castorfou/docker-lmelp/issues/41)).
 
 ## build apk depuis vscode
 
@@ -41,7 +58,10 @@ build.sh
 
 pre-requis : `adb devices` doit afficher mon telephone (et ca marche depuis devcontainer)
 
-si le device ne s'affiche pas, un `adb kill-server` peut aider
+Si le device ne s'affiche pas :
+
+- un `adb kill-server` peut aider, revoquer les autorisations de debogage USB, et relancer `adb devices` (une popup d'autorisation doit arriver)
+- il faut aussi que le debogage USB soit active
 
 
 ```bash
