@@ -10,6 +10,33 @@
 #   - Docker installé, stack docker-lmelp démarrée (container lmelp-export actif)
 #   - Téléphone branché en USB, mode Transfert de fichiers, débogage USB activé
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    cat <<'EOF'
+Usage: lmelp-update-mobile
+
+Met à jour la base de données lmelp sur le téléphone Android.
+
+Ce script exporte les données depuis MongoDB vers SQLite, puis pousse
+la nouvelle base sur le téléphone via ADB — sans recompiler l'APK.
+
+Pré-requis :
+  - adb installé sur le laptop
+  - Téléphone branché en USB, mode "Transfert de fichiers"
+  - Débogage USB activé (Paramètres → Options développeur)
+  - Stack docker-lmelp démarrée (containers lmelp-mongo et lmelp-export actifs)
+
+Étapes exécutées :
+  1. Redémarre le daemon ADB en mode réseau (0.0.0.0:5037)
+  2. Vérifie qu'un téléphone Android est connecté
+  3. Vérifie que le container lmelp-export est actif
+  4. Exporte MongoDB → SQLite avec données Calibre
+  5. Vérifie l'intégrité de la base générée
+  6. Pousse la base sur le téléphone via ADB
+  7. Redémarre l'app lmelp-mobile
+EOF
+    exit 0
+fi
+
 set -euo pipefail
 
 RED='\033[0;31m'
