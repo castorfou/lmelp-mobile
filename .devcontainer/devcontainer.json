@@ -1,19 +1,21 @@
 {
     "name": "lmelp-mobile - Dev Environment",
-	"workspaceFolder": "/workspaces/lmelp-mobile",
+    "workspaceFolder": "/workspaces/lmelp-mobile",
     "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
     "runArgs": [
         "--network=host",
-        "--label", "com.centurylinklabs.watchtower.enable=false",
-        "--env", "CONTAINER_NAME=vscode-dev-container_lmelp-mobile" # pragma: allowlist secret
+        "--label",
+        "com.centurylinklabs.watchtower.enable=false",
+        "--env",
+        "CONTAINER_NAME=vscode-dev-container_lmelp-mobile" # pragma: allowlist secret
     ],
-
     // Variables d'environnement
     "containerEnv": {
         "PROJECT_NAME": "lmelp-mobile",
         "PROJECT_SLUG": "lmelp-mobile",
         "GITHUB_USERNAME": "castorfou",
         "PYTHON_VERSION": "3.11",
+        "WORKSPACE_FOLDER": "/workspaces/lmelp-mobile",
         "PYTHONPATH": "/workspaces/lmelp-mobile/src",
         "UV_VENV_CLEAR": "1",
         "UV_LINK_MODE": "copy",
@@ -21,7 +23,6 @@
         "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
         "ANDROID_HOME": "/home/vscode/android-sdk"
     },
-
     "customizations": {
         "vscode": {
             "extensions": [
@@ -42,10 +43,10 @@
                 "GitHub.copilot-chat",
                 "dbaeumer.vscode-eslint",
                 "ms-python.autopep8",
-				"xelad0m.jupyter-toc",
+                "xelad0m.jupyter-toc",
                 "anthropic.claude-code",
-				"catppuccin.catppuccin-vsc-icons",
-				"catppuccin.catppuccin-vsc",
+                "catppuccin.catppuccin-vsc-icons",
+                "catppuccin.catppuccin-vsc",
                 "vscjava.vscode-gradle",
                 "pomdtr.excalidraw-editor"
             ],
@@ -54,14 +55,15 @@
                 "python.defaultInterpreterPath": "/home/vscode/.venv/bin/python",
                 "python.analysis.autoImportCompletions": true,
                 "python.analysis.typeCheckingMode": "basic",
- 				"terminal.integrated.env.linux": {
- 					"VIRTUAL_ENV": "/home/vscode/.venv",
- 					"PATH": "/home/vscode/.venv/bin:${env:PATH}"
- 				},
+                "terminal.integrated.env.linux": {
+                    "VIRTUAL_ENV": "/home/vscode/.venv",
+                    "PATH": "/home/vscode/.venv/bin:${env:PATH}"
+                },
                 // Configuration générale
                 "editor.minimap.enabled": true,
-                "editor.rulers": [100],
-
+                "editor.rulers": [
+                    100
+                ],
                 // Exclusions pour améliorer les performances
                 "files.exclude": {
                     "**/__pycache__": true,
@@ -70,7 +72,6 @@
                     "**/.git": true,
                     "**/.venv": true
                 },
-
                 "search.exclude": {
                     "**/__pycache__": true,
                     "**/.venv": true,
@@ -78,7 +79,6 @@
                 },
                 // Désactive l'auto-forward automatique (empêche VS Code de créer des listeners qui peuvent bloquer des ports)
                 "remote.autoForwardPorts": false,
-
                 // Désactive l'activation automatique du venv par les extensions Python
                 // (on utilise un guard dans .bashrc à la place, pour éviter les activations multiples)
                 "python.terminal.activateEnvironment": false,
@@ -86,7 +86,6 @@
             }
         }
     },
-
     // Features devcontainer
     "features": {
         "ghcr.io/va-h/devcontainers-features/uv:1": {},
@@ -97,10 +96,9 @@
         "ghcr.io/devcontainers/features/node:1": {
             "nodeGypDependencies": true,
             "version": "lts",
-			"installYarnUsingApt": false
+            "installYarnUsingApt": false
         }
     },
-
     // Montages pour hériter de la config git du host et de la timezone
     "mounts": [
         "source=${localEnv:HOME}/Calibre Library,target=/home/vscode/Calibre Library,type=bind,consistency=cached,readonly",
@@ -108,14 +106,11 @@
         "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached,readonly",
         "source=/etc/localtime,target=/etc/localtime,type=bind,consistency=cached,readonly"
     ],
-
     // Configuration du shell et de l'environnement
     "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
     "postStartCommand": "echo '🚀 lmelp-mobile - Environnement prêt!'",
-
     // Utilisateur non-root pour la sécurité
     "remoteUser": "vscode",
-
     // Optimisations de performance
     "shutdownAction": "none"
 }
