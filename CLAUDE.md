@@ -48,7 +48,7 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 - **Calibre** : `/home/vscode/Calibre Library/metadata.db`, virtual library `guillaume`
 - **sqlite3** : disponible via le venv Python — toujours activer avant usage :
   ```bash
-  source /workspaces/lmelp-mobile/.venv/bin/activate
+  source /home/vscode/.venv/bin/activate
   sqlite3 app/src/main/assets/lmelp.db "..."
   ```
 
