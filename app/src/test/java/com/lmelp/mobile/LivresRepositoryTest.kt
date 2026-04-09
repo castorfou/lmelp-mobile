@@ -1,9 +1,9 @@
 package com.lmelp.mobile
 
 import com.lmelp.mobile.data.db.AvisAvecEmissionRow
+import com.lmelp.mobile.data.db.LivreAvecCalibreRow
 import com.lmelp.mobile.data.db.LivresDao
 import com.lmelp.mobile.data.model.AvisEntity
-import com.lmelp.mobile.data.model.LivreEntity
 import com.lmelp.mobile.data.repository.LivresRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -36,14 +36,14 @@ class LivresRepositoryTest {
         createdAt = null
     )
 
-    private fun makeLivreEntity(id: String) = LivreEntity(
+    private fun makeLivreAvecCalibreRow(id: String, urlCover: String? = null) = LivreAvecCalibreRow(
         id = id,
         titre = "Titre $id",
         auteurId = null,
         auteurNom = "Auteur",
         editeur = null,
         urlBabelio = null,
-        urlCover = null,
+        urlCover = urlCover,
         createdAt = null,
         updatedAt = null
     )
@@ -51,7 +51,7 @@ class LivresRepositoryTest {
     @Test
     fun `noteMoyenne calculee comme moyenne des notes non nulles`() = runTest {
         val dao = mock<LivresDao>()
-        whenever(dao.getLivreById(any())).thenReturn(makeLivreEntity("l1"))
+        whenever(dao.getLivreAvecCalibreById(any())).thenReturn(makeLivreAvecCalibreRow("l1"))
         whenever(dao.getAvisAvecEmissionByLivre(any())).thenReturn(
             listOf(
                 AvisAvecEmissionRow(makeAvisEntity("a1", "e1", "l1", "Zola", 8.0), "Emission 1", "2023-01-10"),
@@ -70,7 +70,7 @@ class LivresRepositoryTest {
     @Test
     fun `noteMoyenne est null si aucun avis na de note`() = runTest {
         val dao = mock<LivresDao>()
-        whenever(dao.getLivreById(any())).thenReturn(makeLivreEntity("l1"))
+        whenever(dao.getLivreAvecCalibreById(any())).thenReturn(makeLivreAvecCalibreRow("l1"))
         whenever(dao.getAvisAvecEmissionByLivre(any())).thenReturn(
             listOf(
                 AvisAvecEmissionRow(makeAvisEntity("a1", "e1", "l1", "Zola", null), "Emission 1", "2023-01-10"),
@@ -86,7 +86,7 @@ class LivresRepositoryTest {
     @Test
     fun `avis regroupes par emission dans l ordre chronologique inverse`() = runTest {
         val dao = mock<LivresDao>()
-        whenever(dao.getLivreById(any())).thenReturn(makeLivreEntity("l1"))
+        whenever(dao.getLivreAvecCalibreById(any())).thenReturn(makeLivreAvecCalibreRow("l1"))
         // e2 est plus récente (2024), e1 est plus ancienne (2023)
         whenever(dao.getAvisAvecEmissionByLivre(any())).thenReturn(
             listOf(
@@ -105,10 +105,11 @@ class LivresRepositoryTest {
     }
 
     @Test
-    fun `urlCover est propagee depuis LivreEntity`() = runTest {
+    fun `urlCover est propagee depuis LivreAvecCalibreRow`() = runTest {
         val dao = mock<LivresDao>()
-        val livreAvecCover = makeLivreEntity("l1").copy(urlCover = "https://example.com/cover.jpg")
-        whenever(dao.getLivreById(any())).thenReturn(livreAvecCover)
+        whenever(dao.getLivreAvecCalibreById(any())).thenReturn(
+            makeLivreAvecCalibreRow("l1", urlCover = "https://example.com/cover.jpg")
+        )
         whenever(dao.getAvisAvecEmissionByLivre(any())).thenReturn(emptyList())
 
         val repo = LivresRepository(dao)
@@ -118,9 +119,9 @@ class LivresRepositoryTest {
     }
 
     @Test
-    fun `urlCover est null si LivreEntity na pas de cover`() = runTest {
+    fun `urlCover est null si row na pas de cover`() = runTest {
         val dao = mock<LivresDao>()
-        whenever(dao.getLivreById(any())).thenReturn(makeLivreEntity("l1"))
+        whenever(dao.getLivreAvecCalibreById(any())).thenReturn(makeLivreAvecCalibreRow("l1"))
         whenever(dao.getAvisAvecEmissionByLivre(any())).thenReturn(emptyList())
 
         val repo = LivresRepository(dao)
@@ -132,7 +133,7 @@ class LivresRepositoryTest {
     @Test
     fun `avis tries par critique alphabetique dans chaque groupe`() = runTest {
         val dao = mock<LivresDao>()
-        whenever(dao.getLivreById(any())).thenReturn(makeLivreEntity("l1"))
+        whenever(dao.getLivreAvecCalibreById(any())).thenReturn(makeLivreAvecCalibreRow("l1"))
         whenever(dao.getAvisAvecEmissionByLivre(any())).thenReturn(
             listOf(
                 AvisAvecEmissionRow(makeAvisEntity("a1", "e1", "l1", "Zola", 8.0), "Emission 1", "2023-01-10"),

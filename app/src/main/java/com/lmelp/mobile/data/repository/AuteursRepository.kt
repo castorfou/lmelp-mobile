@@ -19,7 +19,10 @@ class AuteursRepository(
                     livreId = row.livreId,
                     titre = row.titre,
                     noteMoyenne = row.noteMoyenne,
-                    derniereEmissionDate = row.derniereEmissionDate
+                    derniereEmissionDate = row.derniereEmissionDate,
+                    calibreInLibrary = row.calibreInLibrary == 1,
+                    calibreLu = row.calibreLu == 1,
+                    calibreRating = row.calibreRating
                 )
             }
 

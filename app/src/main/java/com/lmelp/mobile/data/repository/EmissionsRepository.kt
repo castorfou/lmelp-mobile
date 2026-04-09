@@ -36,11 +36,16 @@ class EmissionsRepository(
         val episode = episodesDao.getEpisodeById(emission.episodeId)
         val notesMap = livresDao.getNotesParLivreForEmission(emissionId)
             .associate { it.livreId to Pair(it.avgNote, it.section) }
-        val livres = livresDao.getLivresByEmission(emissionId).map {
+        val livres = livresDao.getLivresAvecCalibreByEmission(emissionId).map {
             val (note, section) = notesMap[it.id] ?: Pair(null, null)
-            LivreUi(id = it.id, titre = it.titre, auteurNom = it.auteurNom,
+            LivreUi(
+                id = it.id, titre = it.titre, auteurNom = it.auteurNom,
                 editeur = it.editeur, noteMoyenne = note, section = section,
-                urlCover = it.urlCover)
+                urlCover = it.urlCover,
+                calibreInLibrary = it.calibreInLibrary == 1,
+                calibreLu = it.calibreLu == 1,
+                calibreRating = it.calibreRating
+            )
         }
         val avisCritiques = avisCritiquesDao.getByEmissionId(emissionId)
         return EmissionDetailUi(

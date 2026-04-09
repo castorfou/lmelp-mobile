@@ -48,6 +48,7 @@ import com.lmelp.mobile.data.model.AvisParEmissionUi
 import com.lmelp.mobile.data.model.AvisUi
 import com.lmelp.mobile.data.model.LivreDetailUi
 import com.lmelp.mobile.data.repository.LivresRepository
+import com.lmelp.mobile.ui.components.CalibreBadge
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
@@ -169,8 +170,16 @@ fun LivreDetailContent(
                         )
                     }
                 }
-                livre.noteMoyenne?.let {
-                    NoteBadge(note = it, fontSize = 32.sp, modifier = Modifier.padding(start = 8.dp))
+                Column(horizontalAlignment = Alignment.End) {
+                    livre.noteMoyenne?.let {
+                        NoteBadge(note = it, fontSize = 32.sp)
+                    }
+                    CalibreBadge(
+                        calibreInLibrary = livre.calibreInLibrary,
+                        calibreLu = livre.calibreLu,
+                        calibreRating = livre.calibreRating,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
         }

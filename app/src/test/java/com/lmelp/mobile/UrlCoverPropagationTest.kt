@@ -1,7 +1,7 @@
 package com.lmelp.mobile
 
+import com.lmelp.mobile.data.db.LivreAvecCalibreRow
 import com.lmelp.mobile.data.db.LivresDao
-import com.lmelp.mobile.data.model.LivreEntity
 import com.lmelp.mobile.data.repository.EmissionsRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -17,12 +17,12 @@ import com.lmelp.mobile.data.model.EmissionEntity
 import com.lmelp.mobile.data.model.EpisodeEntity
 
 /**
- * Tests RED → vérifie que urlCover est propagé depuis LivreEntity vers LivreUi
- * dans EmissionsRepository (et par extension dans PalmaresUi, RecommendationUi, SearchResultUi).
+ * Tests RED → vérifie que urlCover est propagé depuis LivreAvecCalibreRow vers LivreUi
+ * dans EmissionsRepository.
  */
 class UrlCoverPropagationTest {
 
-    private fun makeLivreEntity(id: String, urlCover: String? = null) = LivreEntity(
+    private fun makeLivreAvecCalibreRow(id: String, urlCover: String? = null) = LivreAvecCalibreRow(
         id = id,
         titre = "Titre $id",
         auteurId = null,
@@ -65,8 +65,8 @@ class UrlCoverPropagationTest {
         whenever(emissionsDao.getEmissionById(any())).thenReturn(makeEmissionEntity("e1"))
         whenever(episodesDao.getEpisodeById(any())).thenReturn(makeEpisodeEntity())
         whenever(livresDao.getNotesParLivreForEmission(any())).thenReturn(emptyList())
-        whenever(livresDao.getLivresByEmission(any())).thenReturn(
-            listOf(makeLivreEntity("l1", urlCover = "https://example.com/cover.jpg"))
+        whenever(livresDao.getLivresAvecCalibreByEmission(any())).thenReturn(
+            listOf(makeLivreAvecCalibreRow("l1", urlCover = "https://example.com/cover.jpg"))
         )
         whenever(avisCritiquesDao.getByEmissionId(any())).thenReturn(null)
 
@@ -86,8 +86,8 @@ class UrlCoverPropagationTest {
         whenever(emissionsDao.getEmissionById(any())).thenReturn(makeEmissionEntity("e1"))
         whenever(episodesDao.getEpisodeById(any())).thenReturn(makeEpisodeEntity())
         whenever(livresDao.getNotesParLivreForEmission(any())).thenReturn(emptyList())
-        whenever(livresDao.getLivresByEmission(any())).thenReturn(
-            listOf(makeLivreEntity("l1", urlCover = null))
+        whenever(livresDao.getLivresAvecCalibreByEmission(any())).thenReturn(
+            listOf(makeLivreAvecCalibreRow("l1", urlCover = null))
         )
         whenever(avisCritiquesDao.getByEmissionId(any())).thenReturn(null)
 
