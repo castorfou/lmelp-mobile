@@ -29,6 +29,7 @@ Le container `lmelp-export` fait tout : export MongoDB → push ADB → restart 
 **Pré-requis :**
 
 - Téléphone branché en USB, mode **Transfert de fichiers**
+- Mode développeur activé (Paramètres → À propos du téléphone, et cliquer 7 fois de suite sur Numéro de version)
 - Débogage USB activé (Paramètres → Options développeur)
 - Stack docker-lmelp démarrée (`docker compose up -d`)
 
