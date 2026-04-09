@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.data.model.LivreParAuteurUi
 import com.lmelp.mobile.data.repository.AuteursRepository
+import com.lmelp.mobile.ui.components.CalibreBadge
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
@@ -111,9 +112,14 @@ fun LivreParAuteurCard(livre: LivreParAuteurUi, onClick: () -> Unit) {
                     )
                 }
             }
-            livre.noteMoyenne?.let {
-                NoteBadge(
-                    note = it,
+            Column(horizontalAlignment = Alignment.End) {
+                livre.noteMoyenne?.let {
+                    NoteBadge(note = it)
+                }
+                CalibreBadge(
+                    calibreInLibrary = livre.calibreInLibrary,
+                    calibreLu = livre.calibreLu,
+                    calibreRating = livre.calibreRating,
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }

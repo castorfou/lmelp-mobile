@@ -10,7 +10,7 @@ class LivresRepository(
 ) {
 
     suspend fun getLivreDetail(livreId: String): LivreDetailUi? {
-        val livre = livresDao.getLivreById(livreId) ?: return null
+        val livre = livresDao.getLivreAvecCalibreById(livreId) ?: return null
         val rows = livresDao.getAvisAvecEmissionByLivre(livreId)
 
         val noteMoyenne = rows.mapNotNull { it.avis.note }
@@ -51,7 +51,11 @@ class LivresRepository(
             urlBabelio = livre.urlBabelio,
             urlCover = livre.urlCover,
             noteMoyenne = noteMoyenne,
-            avisParEmission = avisParEmission
+            avisParEmission = avisParEmission,
+            calibreInLibrary = livre.calibreInLibrary == 1,
+            calibreLu = livre.calibreLu == 1,
+            calibreRating = livre.calibreRating,
+            dateLecture = livre.dateLecture
         )
     }
 }

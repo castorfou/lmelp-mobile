@@ -21,6 +21,23 @@ data class AvisAvecEmissionRow(
     @ColumnInfo(name = "emission_date") val emissionDate: String?
 )
 
+/** Livre enrichi avec les données Calibre depuis la table palmares (LEFT JOIN). */
+data class LivreAvecCalibreRow(
+    val id: String,
+    val titre: String,
+    @ColumnInfo(name = "auteur_id") val auteurId: String?,
+    @ColumnInfo(name = "auteur_nom") val auteurNom: String?,
+    val editeur: String?,
+    @ColumnInfo(name = "url_babelio") val urlBabelio: String?,
+    @ColumnInfo(name = "url_cover") val urlCover: String?,
+    @ColumnInfo(name = "created_at") val createdAt: String?,
+    @ColumnInfo(name = "updated_at") val updatedAt: String?,
+    @ColumnInfo(name = "calibre_in_library", defaultValue = "0") val calibreInLibrary: Int = 0,
+    @ColumnInfo(name = "calibre_lu", defaultValue = "0") val calibreLu: Int = 0,
+    @ColumnInfo(name = "calibre_rating") val calibreRating: Double? = null,
+    @ColumnInfo(name = "date_lecture") val dateLecture: String? = null
+)
+
 @Dao
 interface LivresDao {
 
@@ -28,11 +45,37 @@ interface LivresDao {
     suspend fun getLivreById(id: String): LivreEntity?
 
     @Query("""
+        SELECT l.id, l.titre, l.auteur_id, l.auteur_nom, l.editeur,
+               l.url_babelio, l.url_cover, l.created_at, l.updated_at,
+               COALESCE(p.calibre_in_library, 0) as calibre_in_library,
+               COALESCE(p.calibre_lu, 0) as calibre_lu,
+               p.calibre_rating,
+               p.date_lecture
+        FROM livres l
+        LEFT JOIN palmares p ON p.livre_id = l.id
+        WHERE l.id = :id
+    """)
+    suspend fun getLivreAvecCalibreById(id: String): LivreAvecCalibreRow?
+
+    @Query("""
         SELECT l.* FROM livres l
         JOIN emission_livres el ON el.livre_id = l.id
         WHERE el.emission_id = :emissionId
     """)
     suspend fun getLivresByEmission(emissionId: String): List<LivreEntity>
+
+    @Query("""
+        SELECT l.id, l.titre, l.auteur_id, l.auteur_nom, l.editeur,
+               l.url_babelio, l.url_cover, l.created_at, l.updated_at,
+               COALESCE(p.calibre_in_library, 0) as calibre_in_library,
+               COALESCE(p.calibre_lu, 0) as calibre_lu,
+               p.calibre_rating
+        FROM livres l
+        JOIN emission_livres el ON el.livre_id = l.id
+        LEFT JOIN palmares p ON p.livre_id = l.id
+        WHERE el.emission_id = :emissionId
+    """)
+    suspend fun getLivresAvecCalibreByEmission(emissionId: String): List<LivreAvecCalibreRow>
 
     @Query("SELECT * FROM avis WHERE livre_id = :livreId ORDER BY created_at DESC")
     suspend fun getAvisByLivre(livreId: String): List<AvisEntity>

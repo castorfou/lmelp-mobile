@@ -38,6 +38,7 @@ import com.lmelp.mobile.data.model.EmissionDetailUi
 import com.lmelp.mobile.data.model.LivreUi
 import com.lmelp.mobile.data.repository.EmissionsRepository
 import com.lmelp.mobile.ui.components.BookCoverThumbnail
+import com.lmelp.mobile.ui.components.CalibreBadge
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
 import com.lmelp.mobile.ui.components.NoteBadge
@@ -213,7 +214,15 @@ fun LivreCard(livre: LivreUi, onClick: () -> Unit) {
                 Text(text = livre.titre, style = MaterialTheme.typography.titleSmall)
                 livre.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
-            livre.noteMoyenne?.let { NoteBadge(note = it) }
+            Column(horizontalAlignment = Alignment.End) {
+                livre.noteMoyenne?.let { NoteBadge(note = it) }
+                CalibreBadge(
+                    calibreInLibrary = livre.calibreInLibrary,
+                    calibreLu = livre.calibreLu,
+                    calibreRating = livre.calibreRating,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
         }
     }
 }

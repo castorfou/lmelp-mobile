@@ -2,6 +2,7 @@ package com.lmelp.mobile.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -9,11 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -78,6 +81,37 @@ fun BookCoverThumbnail(
         )
     } else {
         Spacer(modifier = modifier.width(width).height(height))
+    }
+}
+
+/**
+ * Badge Calibre : affiche ✓ (vert) si lu, ◯ (gris) si dans la bibliothèque mais non lu,
+ * et la note personnelle (X/10) si le livre est lu et noté.
+ * N'affiche rien si le livre n'est pas dans la bibliothèque Calibre.
+ */
+@Composable
+fun CalibreBadge(
+    calibreInLibrary: Boolean,
+    calibreLu: Boolean,
+    calibreRating: Double?,
+    modifier: Modifier = Modifier
+) {
+    if (!calibreInLibrary) return
+    Column(modifier = modifier, horizontalAlignment = Alignment.End) {
+        Text(
+            text = if (calibreLu) "✓" else "◯",
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (calibreLu) Color(0xFF2E7D32) else Color.Gray
+        )
+        if (calibreLu) {
+            calibreRating?.let {
+                Text(
+                    text = "${it.toInt()}/10",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF2E7D32)
+                )
+            }
+        }
     }
 }
 

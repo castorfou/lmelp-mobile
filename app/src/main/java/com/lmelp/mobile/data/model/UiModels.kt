@@ -27,7 +27,10 @@ data class LivreUi(
     val editeur: String?,
     val noteMoyenne: Double? = null,
     val section: String? = null,
-    val urlCover: String? = null
+    val urlCover: String? = null,
+    val calibreInLibrary: Boolean = false,
+    val calibreLu: Boolean = false,
+    val calibreRating: Double? = null
 )
 
 data class AvisUi(
@@ -54,7 +57,11 @@ data class LivreDetailUi(
     val urlBabelio: String?,
     val urlCover: String?,
     val noteMoyenne: Double?,
-    val avisParEmission: List<AvisParEmissionUi>
+    val avisParEmission: List<AvisParEmissionUi>,
+    val calibreInLibrary: Boolean = false,
+    val calibreLu: Boolean = false,
+    val calibreRating: Double? = null,
+    val dateLecture: String? = null
 )
 
 data class PalmaresUi(
@@ -100,7 +107,10 @@ data class LivreParAuteurUi(
     val livreId: String,
     val titre: String,
     val noteMoyenne: Double?,
-    val derniereEmissionDate: String?
+    val derniereEmissionDate: String?,
+    val calibreInLibrary: Boolean = false,
+    val calibreLu: Boolean = false,
+    val calibreRating: Double? = null
 )
 
 data class AuteurDetailUi(
