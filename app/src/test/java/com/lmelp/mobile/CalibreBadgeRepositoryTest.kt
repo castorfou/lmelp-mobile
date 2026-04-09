@@ -42,7 +42,8 @@ class CalibreBadgeRepositoryTest {
         id: String,
         calibreInLibrary: Int = 0,
         calibreLu: Int = 0,
-        calibreRating: Double? = null
+        calibreRating: Double? = null,
+        dateLecture: String? = null
     ) = LivreAvecCalibreRow(
         id = id,
         titre = "Titre $id",
@@ -55,7 +56,8 @@ class CalibreBadgeRepositoryTest {
         updatedAt = null,
         calibreInLibrary = calibreInLibrary,
         calibreLu = calibreLu,
-        calibreRating = calibreRating
+        calibreRating = calibreRating,
+        dateLecture = dateLecture
     )
 
     private fun makeAuteurEntity(id: String) = AuteurEntity(id = id, nom = "Auteur", urlBabelio = null)
@@ -123,6 +125,34 @@ class CalibreBadgeRepositoryTest {
         assertTrue(result.calibreInLibrary)
         assertFalse(result.calibreLu)
         assertNull(result.calibreRating)
+    }
+
+    @Test
+    fun `LivreDetailUi dateLecture propagee quand livre lu avec date`() = runTest {
+        val dao = mock<LivresDao>()
+        whenever(dao.getLivreAvecCalibreById(any())).thenReturn(
+            makeLivreAvecCalibre("l1", calibreInLibrary = 1, calibreLu = 1, dateLecture = "2024-03-15")
+        )
+        whenever(dao.getAvisAvecEmissionByLivre(any())).thenReturn(emptyList())
+
+        val repo = LivresRepository(dao)
+        val result = repo.getLivreDetail("l1")!!
+
+        assertEquals("2024-03-15", result.dateLecture)
+    }
+
+    @Test
+    fun `LivreDetailUi dateLecture est null quand non disponible`() = runTest {
+        val dao = mock<LivresDao>()
+        whenever(dao.getLivreAvecCalibreById(any())).thenReturn(
+            makeLivreAvecCalibre("l1", calibreInLibrary = 1, calibreLu = 1, dateLecture = null)
+        )
+        whenever(dao.getAvisAvecEmissionByLivre(any())).thenReturn(emptyList())
+
+        val repo = LivresRepository(dao)
+        val result = repo.getLivreDetail("l1")!!
+
+        assertNull(result.dateLecture)
     }
 
     @Test

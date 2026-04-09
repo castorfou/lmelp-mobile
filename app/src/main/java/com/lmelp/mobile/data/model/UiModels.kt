@@ -60,7 +60,8 @@ data class LivreDetailUi(
     val avisParEmission: List<AvisParEmissionUi>,
     val calibreInLibrary: Boolean = false,
     val calibreLu: Boolean = false,
-    val calibreRating: Double? = null
+    val calibreRating: Double? = null,
+    val dateLecture: String? = null
 )
 
 data class PalmaresUi(

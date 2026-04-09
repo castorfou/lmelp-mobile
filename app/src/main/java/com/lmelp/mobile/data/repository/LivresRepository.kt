@@ -54,7 +54,8 @@ class LivresRepository(
             avisParEmission = avisParEmission,
             calibreInLibrary = livre.calibreInLibrary == 1,
             calibreLu = livre.calibreLu == 1,
-            calibreRating = livre.calibreRating
+            calibreRating = livre.calibreRating,
+            dateLecture = livre.dateLecture
         )
     }
 }
