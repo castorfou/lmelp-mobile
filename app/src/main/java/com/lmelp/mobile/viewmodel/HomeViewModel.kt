@@ -14,14 +14,30 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-private const val TICKER_INTERVAL_MS = 10 * 1000L
-
 /** Calcule le nouvel index après navigation (modulo, sans effet si liste vide ou singleton). */
 internal fun nextSlideIndex(currentIndex: Int, size: Int): Int =
     if (size <= 1) 0 else (currentIndex + 1) % size
 
 internal fun prevSlideIndex(currentIndex: Int, size: Int): Int =
     if (size <= 1) 0 else (currentIndex - 1 + size) % size
+
+/** Retourne un index initial aléatoire dans [0, size-1], ou 0 si vide/singleton. */
+internal fun randomInitialIndex(size: Int): Int =
+    if (size <= 1) 0 else (0 until size).random()
+
+/**
+ * Tire un délai selon une distribution normale N(meanMs, stdDevMs), tronquée à minMs.
+ * Le paramètre [random] est injectable pour faciliter les tests déterministes.
+ */
+internal fun sampleTickerDelayMs(
+    meanMs: Long = 5_000L,
+    stdDevMs: Long = 2_000L,
+    minMs: Long = 1_000L,
+    random: java.util.Random = java.util.Random()
+): Long {
+    val sample = meanMs + (random.nextGaussian() * stdDevMs).toLong()
+    return maxOf(sample, minMs)
+}
 
 data class HomeUiState(
     val isLoading: Boolean = false,
@@ -46,7 +62,7 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
 
     init {
         viewModelScope.launch { loadStats() }
-        viewModelScope.launch { startTicker() }
+        startTicker()
     }
 
     private suspend fun loadStats() {
@@ -73,7 +89,11 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
                     emissionsSlides = emissionsSlides,
                     palmaresSlides = palmaresSlides,
                     conseilsSlides = conseilsSlides,
-                    onkindleSlides = onkindleSlides
+                    onkindleSlides = onkindleSlides,
+                    emissionsIndex = randomInitialIndex(emissionsSlides.size),
+                    palmaresIndex  = randomInitialIndex(palmaresSlides.size),
+                    conseilsIndex  = randomInitialIndex(conseilsSlides.size),
+                    onkindleIndex  = randomInitialIndex(onkindleSlides.size),
                 )
             }
         } catch (e: Exception) {
@@ -82,26 +102,43 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         }
     }
 
-    private suspend fun startTicker() {
-        while (true) {
-            delay(TICKER_INTERVAL_MS)
-            val current = _uiState.value
-            val newEmissionsIdx = if (current.emissionsSlides.size <= 1) 0
-                                  else (0 until current.emissionsSlides.size).random()
-            val newPalmaresIdx  = if (current.palmaresSlides.size <= 1) 0
-                                  else (0 until current.palmaresSlides.size).random()
-            val newConseilsIdx  = if (current.conseilsSlides.size <= 1) 0
-                                  else (0 until current.conseilsSlides.size).random()
-            val newOnkindleIdx  = if (current.onkindleSlides.size <= 1) 0
-                                  else (0 until current.onkindleSlides.size).random()
+    /** Lance 4 coroutines indépendantes, chacune avec son propre délai stochastique N(5s, 2s). */
+    private fun startTicker() {
+        viewModelScope.launch {
+            tickerLoop(
+                getSize = { state -> state.emissionsSlides.size },
+                updateIndex = { state, idx -> state.copy(emissionsIndex = idx) }
+            )
+        }
+        viewModelScope.launch {
+            tickerLoop(
+                getSize = { state -> state.palmaresSlides.size },
+                updateIndex = { state, idx -> state.copy(palmaresIndex = idx) }
+            )
+        }
+        viewModelScope.launch {
+            tickerLoop(
+                getSize = { state -> state.conseilsSlides.size },
+                updateIndex = { state, idx -> state.copy(conseilsIndex = idx) }
+            )
+        }
+        viewModelScope.launch {
+            tickerLoop(
+                getSize = { state -> state.onkindleSlides.size },
+                updateIndex = { state, idx -> state.copy(onkindleIndex = idx) }
+            )
+        }
+    }
 
-            _uiState.update { state ->
-                state.copy(
-                    emissionsIndex = newEmissionsIdx,
-                    palmaresIndex  = newPalmaresIdx,
-                    conseilsIndex  = newConseilsIdx,
-                    onkindleIndex  = newOnkindleIdx
-                )
+    private suspend fun tickerLoop(
+        getSize: (HomeUiState) -> Int,
+        updateIndex: (HomeUiState, Int) -> HomeUiState
+    ) {
+        while (true) {
+            delay(sampleTickerDelayMs())
+            val size = getSize(_uiState.value)
+            if (size > 1) {
+                _uiState.update { state -> updateIndex(state, (0 until size).random()) }
             }
         }
     }
