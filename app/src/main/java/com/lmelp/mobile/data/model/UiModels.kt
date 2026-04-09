@@ -116,7 +116,8 @@ data class LivreParAuteurUi(
 data class AuteurDetailUi(
     val id: String,
     val nom: String,
-    val livres: List<LivreParAuteurUi>
+    val livres: List<LivreParAuteurUi>,
+    val livresHorsMasque: List<CalibreHorsMasqueUi> = emptyList()
 )
 
 data class DerniereEmissionUi(
@@ -145,6 +146,28 @@ data class OnKindleUi(
     val discusseAuMasque: Boolean = noteMoyenne != null,
     val urlCover: String? = null,
     val scoreHybride: Double? = null
+)
+
+data class CalibreHorsMasqueUi(
+    val id: String,
+    val titre: String,
+    val auteurNom: String?,
+    val calibreRating: Double?,
+    val dateLecture: String?
+)
+
+/**
+ * Item unifié pour Mon Palmarès : peut être un livre du Masque (livreId != null, cliquable)
+ * ou un livre hors Masque (livreId == null, non cliquable, sans couverture).
+ */
+data class MonPalmaresItemUi(
+    val id: String,
+    val titre: String,
+    val auteurNom: String?,
+    val calibreRating: Double?,
+    val dateLecture: String?,
+    val livreId: String? = null,
+    val urlCover: String? = null
 )
 
 data class DbInfoUi(

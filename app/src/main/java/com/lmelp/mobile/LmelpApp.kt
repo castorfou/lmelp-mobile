@@ -17,6 +17,7 @@ import com.lmelp.mobile.data.repository.OnKindleRepository
 import com.lmelp.mobile.data.repository.PalmaresRepository
 import com.lmelp.mobile.data.repository.RecommendationsRepository
 import com.lmelp.mobile.data.repository.SearchRepository
+import com.lmelp.mobile.data.repository.UserPreferencesRepository
 import okio.Path.Companion.toOkioPath
 
 class LmelpApp : Application() {
@@ -60,12 +61,13 @@ class LmelpApp : Application() {
     }
     val livresRepository by lazy { LivresRepository(database.livresDao()) }
     val critiquesRepository by lazy { CritiquesRepository(database.critiquesDao()) }
-    val palmaresRepository by lazy { PalmaresRepository(database.palmaresDao()) }
+    val palmaresRepository by lazy { PalmaresRepository(database.palmaresDao(), database.calibreHorsMasqueDao()) }
     val recommendationsRepository by lazy { RecommendationsRepository(database.recommendationsDao()) }
     val searchRepository by lazy { SearchRepository(database.searchDao()) }
     val metadataRepository by lazy { MetadataRepository(database.metadataDao()) }
-    val auteursRepository by lazy { AuteursRepository(database.auteursDao()) }
+    val auteursRepository by lazy { AuteursRepository(database.auteursDao(), database.calibreHorsMasqueDao()) }
     val onKindleRepository by lazy { OnKindleRepository(database.onKindleDao()) }
+    val userPreferencesRepository by lazy { UserPreferencesRepository(this) }
     val homeRepository by lazy {
         HomeRepository(
             database.metadataDao(),

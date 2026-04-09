@@ -1,13 +1,18 @@
 package com.lmelp.mobile.data.repository
 
+import com.lmelp.mobile.data.db.CalibreHorsMasqueDao
 import com.lmelp.mobile.data.db.MonPalmaresRow
 import com.lmelp.mobile.data.db.PalmaresFiltreAvecUrlRow
 import com.lmelp.mobile.data.db.PalmaresDao
+import com.lmelp.mobile.data.model.CalibreHorsMasqueEntity
+import com.lmelp.mobile.data.model.CalibreHorsMasqueUi
+import com.lmelp.mobile.data.model.MonPalmaresItemUi
 import com.lmelp.mobile.data.model.PalmaresEntity
 import com.lmelp.mobile.data.model.PalmaresUi
 
 class PalmaresRepository(
-    private val palmaresDao: PalmaresDao
+    private val palmaresDao: PalmaresDao,
+    private val horsMasqueDao: CalibreHorsMasqueDao? = null
 ) {
 
     suspend fun getAllPalmares(): List<PalmaresUi> {
@@ -26,6 +31,44 @@ class PalmaresRepository(
 
     suspend fun getMonPalmaresParDate(): List<PalmaresUi> =
         palmaresDao.getMonPalmaresParDate().map { it.toUi() }
+
+    /** Livres hors Masque triés par note décroissante, sans note en fin. */
+    suspend fun getMonPalmaresHorsMasque(): List<MonPalmaresItemUi> =
+        horsMasqueDao?.getAll().orEmpty().map { it.toItemUi() }
+
+    /** Livres hors Masque triés par date lecture décroissante, sans date en fin. */
+    suspend fun getMonPalmaresHorsMasqueParDate(): List<MonPalmaresItemUi> =
+        horsMasqueDao?.getAllParDate().orEmpty().map { it.toItemUi() }
+
+    /** Livres hors Masque pour un auteur donné (match sur auteur_nom). */
+    suspend fun getHorsMasqueByAuteurNom(auteurNom: String): List<CalibreHorsMasqueUi> =
+        horsMasqueDao?.getByAuteurNom(auteurNom).orEmpty().map { it.toCalibreUi() }
+
+    /** Fusionne livres Masque + hors Masque en une liste unifiée triée par note. */
+    suspend fun getMonPalmaresUnifieParNote(): List<MonPalmaresItemUi> {
+        val masque = palmaresDao.getMonPalmares().map { it.toItemUi() }
+        val horsMasque = horsMasqueDao?.getAll().orEmpty().map { it.toItemUi() }
+        return (masque + horsMasque).sortedWith(
+            compareBy(
+                { if (it.calibreRating == null) 1 else 0 },
+                { -(it.calibreRating ?: 0.0) },
+                { it.titre }
+            )
+        )
+    }
+
+    /** Fusionne livres Masque + hors Masque en une liste unifiée triée par date. */
+    suspend fun getMonPalmaresUnifieParDate(): List<MonPalmaresItemUi> {
+        val masque = palmaresDao.getMonPalmaresParDate().map { it.toItemUi() }
+        val horsMasque = horsMasqueDao?.getAllParDate().orEmpty().map { it.toItemUi() }
+        return (masque + horsMasque).sortedWith(
+            compareBy(
+                { if (it.dateLecture == null) 1 else 0 },
+                { it.dateLecture?.let { d -> -d.replace("-", "").toLong() } ?: 0L },
+                { it.titre }
+            )
+        )
+    }
 
     private fun PalmaresEntity.toUi() = PalmaresUi(
         rank = rank,
@@ -67,6 +110,34 @@ class PalmaresRepository(
         calibreLu = true,
         calibreRating = calibreRating,
         urlCover = urlCover,
+        dateLecture = dateLecture
+    )
+
+    private fun MonPalmaresRow.toItemUi() = MonPalmaresItemUi(
+        id = livreId,
+        titre = titre,
+        auteurNom = auteurNom,
+        calibreRating = calibreRating,
+        dateLecture = dateLecture,
+        livreId = livreId,
+        urlCover = urlCover
+    )
+
+    private fun CalibreHorsMasqueEntity.toItemUi() = MonPalmaresItemUi(
+        id = id,
+        titre = titre,
+        auteurNom = auteurNom,
+        calibreRating = calibreRating,
+        dateLecture = dateLecture,
+        livreId = null,
+        urlCover = null
+    )
+
+    private fun CalibreHorsMasqueEntity.toCalibreUi() = CalibreHorsMasqueUi(
+        id = id,
+        titre = titre,
+        auteurNom = auteurNom,
+        calibreRating = calibreRating,
         dateLecture = dateLecture
     )
 }

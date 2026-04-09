@@ -125,6 +125,7 @@ fun LmelpNavHost(
         ) {
             PalmaresScreen(
                 repository = app.palmaresRepository,
+                userPrefsRepository = app.userPreferencesRepository,
                 onLivreClick = { navController.navigate(Routes.livreDetail(it)) }
             )
         }
