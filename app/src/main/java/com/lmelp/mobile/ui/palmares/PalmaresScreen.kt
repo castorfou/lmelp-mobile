@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -30,8 +31,10 @@ import com.lmelp.mobile.ui.theme.LmelpVert
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lmelp.mobile.data.model.MonPalmaresItemUi
 import com.lmelp.mobile.data.model.PalmaresUi
 import com.lmelp.mobile.data.repository.PalmaresRepository
+import com.lmelp.mobile.data.repository.UserPreferencesRepository
 import com.lmelp.mobile.ui.components.BookCoverThumbnail
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
@@ -46,9 +49,10 @@ import com.lmelp.mobile.viewmodel.PalmaresViewModel
 @Composable
 fun PalmaresScreen(
     repository: PalmaresRepository,
+    userPrefsRepository: UserPreferencesRepository? = null,
     onLivreClick: (String) -> Unit
 ) {
-    val viewModel: PalmaresViewModel = viewModel(factory = PalmaresViewModel.Factory(repository))
+    val viewModel: PalmaresViewModel = viewModel(factory = PalmaresViewModel.Factory(repository, userPrefsRepository))
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
@@ -68,6 +72,7 @@ fun PalmaresScreen(
             onToggleNonLus = { viewModel.setAfficherNonLus(!uiState.afficherNonLus) },
             onSetPalmaresMode = { viewModel.setPalmaresMode(it) },
             onSetMonPalmaresTriMode = { viewModel.setMonPalmaresTriMode(it) },
+            onToggleHorsMasque = { viewModel.setShowHorsMasque(!uiState.showHorsMasque) },
             modifier = Modifier.padding(padding)
         )
     }
@@ -82,6 +87,7 @@ fun PalmaresContent(
     onToggleNonLus: () -> Unit,
     onSetPalmaresMode: (PalmaresMode) -> Unit,
     onSetMonPalmaresTriMode: (MonPalmaresTriMode) -> Unit,
+    onToggleHorsMasque: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -134,23 +140,30 @@ fun PalmaresContent(
                     onClick = { onSetMonPalmaresTriMode(MonPalmaresTriMode.DATE_LECTURE) },
                     label = { Text("Date lecture ↓") }
                 )
+                Spacer(modifier = Modifier.weight(1f))
+                FilterChip(
+                    selected = uiState.showHorsMasque,
+                    onClick = onToggleHorsMasque,
+                    label = { Text("Hors Masque") }
+                )
             }
         }
 
         when {
             uiState.isLoading -> LoadingIndicator()
             uiState.error != null -> ErrorMessage(uiState.error)
-            uiState.palmares.isEmpty() -> EmptyState(
-                if (uiState.palmaresMode == PalmaresMode.PERSONNEL) "Aucun livre lu"
-                else "Palmarès vide"
-            )
+            uiState.palmaresMode == PalmaresMode.PERSONNEL && uiState.monPalmares.isEmpty() ->
+                EmptyState("Aucun livre lu")
+            uiState.palmaresMode == PalmaresMode.CRITIQUES && uiState.palmares.isEmpty() ->
+                EmptyState("Palmarès vide")
+            uiState.palmaresMode == PalmaresMode.PERSONNEL -> LazyColumn {
+                items(uiState.monPalmares, key = { it.id }) { item ->
+                    MonPalmaresCard(item = item, onLivreClick = onLivreClick)
+                }
+            }
             else -> LazyColumn {
                 items(uiState.palmares, key = { it.livreId }) { item ->
-                    if (uiState.palmaresMode == PalmaresMode.PERSONNEL) {
-                        MonPalmaresCard(item = item, onClick = { onLivreClick(item.livreId) })
-                    } else {
-                        PalmaresCard(item = item, onClick = { onLivreClick(item.livreId) })
-                    }
+                    PalmaresCard(item = item, onClick = { onLivreClick(item.livreId) })
                 }
             }
         }
@@ -210,19 +223,25 @@ fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
 }
 
 @Composable
-fun MonPalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
+fun MonPalmaresCard(item: MonPalmaresItemUi, onLivreClick: (String) -> Unit) {
+    val isClickable = item.livreId != null
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick)
+            .then(
+                if (isClickable) Modifier.clickable { onLivreClick(item.livreId!!) }
+                else Modifier
+            )
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BookCoverThumbnail(urlCover = item.urlCover)
+            if (isClickable) {
+                BookCoverThumbnail(urlCover = item.urlCover)
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = item.titre, style = MaterialTheme.typography.titleSmall)
                 item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }

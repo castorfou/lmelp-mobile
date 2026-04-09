@@ -204,6 +204,14 @@ CREATE TABLE IF NOT EXISTS onkindle (
     note_moyenne   REAL,
     nb_avis        INTEGER NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS calibre_hors_masque (
+    id             TEXT NOT NULL PRIMARY KEY,
+    titre          TEXT NOT NULL,
+    auteur_nom     TEXT,
+    calibre_rating REAL,
+    date_lecture   TEXT
+);
 """
 
 
@@ -618,6 +626,141 @@ def import_calibre_data(
 
     except Exception as e:
         logger.error(f"Erreur import Calibre : {e}")
+
+
+def build_calibre_hors_masque_table(
+    cur: sqlite3.Cursor,
+    calibre_db_path: str,
+    virtual_library_tag: str | None = None,
+) -> None:
+    """Construit la table calibre_hors_masque.
+
+    Contient les livres Calibre lus (calibre_lu=1) dont le titre normalisé
+    n'est PAS présent dans palmares. Ce sont des livres lus par l'utilisateur
+    mais non discutés au Masque et la Plume.
+    """
+    logger.info("Building calibre_hors_masque table...")
+
+    try:
+        cal_con = sqlite3.connect(calibre_db_path)
+        cal_con.row_factory = sqlite3.Row
+        cal_cur = cal_con.cursor()
+
+        # Trouve les colonnes personnalisées (read, text/Commentaire)
+        read_col_id: int | None = None
+        row = cal_cur.execute(
+            "SELECT id FROM custom_columns WHERE label = 'read'"
+        ).fetchone()
+        if row:
+            read_col_id = row["id"]
+
+        comment_col_id: int | None = None
+        row = cal_cur.execute(
+            "SELECT id FROM custom_columns WHERE label = 'text'"
+        ).fetchone()
+        if row:
+            comment_col_id = row["id"]
+
+        # Charge les livres Calibre (avec filtre bibliothèque virtuelle si fourni)
+        if virtual_library_tag:
+            cal_cur.execute(
+                """
+                SELECT b.id, b.title, a.name as author_name
+                FROM books b
+                JOIN books_tags_link btl ON b.id = btl.book
+                JOIN tags t ON btl.tag = t.id
+                LEFT JOIN books_authors_link bal ON b.id = bal.book
+                LEFT JOIN authors a ON bal.author = a.id
+                WHERE t.name = ?
+            """,
+                (virtual_library_tag,),
+            )
+        else:
+            cal_cur.execute(
+                """
+                SELECT b.id, b.title, a.name as author_name
+                FROM books b
+                LEFT JOIN books_authors_link bal ON b.id = bal.book
+                LEFT JOIN authors a ON bal.author = a.id
+            """
+            )
+
+        calibre_books = cal_cur.fetchall()
+
+        # Index des titres palmares déjà présents (normalisés)
+        palmares_norms = {
+            _normalize_title(row[0])
+            for row in cur.execute("SELECT titre FROM palmares").fetchall()
+        }
+
+        # Vide la table avant reconstruction
+        cur.execute("DELETE FROM calibre_hors_masque")
+
+        inserted = 0
+        seen_norms: set[str] = set()  # dédoublonnage par titre normalisé
+
+        for book in calibre_books:
+            cal_id = book["id"]
+            titre = book["title"]
+            auteur_nom = book["author_name"]
+            norm = _normalize_title(titre)
+
+            # Ignorer les livres déjà dans palmares
+            if norm in palmares_norms:
+                continue
+
+            # Dédoublonnage (un livre peut avoir plusieurs auteurs dans Calibre)
+            if norm in seen_norms:
+                continue
+
+            # Vérifier si lu
+            calibre_lu = 0
+            if read_col_id is not None:
+                lu_row = cal_cur.execute(
+                    f"SELECT value FROM custom_column_{read_col_id} WHERE book = ?",
+                    (cal_id,),
+                ).fetchone()
+                if lu_row and lu_row["value"]:
+                    calibre_lu = 1
+
+            if not calibre_lu:
+                continue
+
+            # Rating
+            calibre_rating: float | None = None
+            rating_row = cal_cur.execute(
+                """SELECT r.rating FROM ratings r
+                   JOIN books_ratings_link brl ON r.id = brl.rating
+                   WHERE brl.book = ?""",
+                (cal_id,),
+            ).fetchone()
+            if rating_row and rating_row["rating"] is not None:
+                calibre_rating = float(rating_row["rating"])
+
+            # Date de lecture
+            date_lecture: str | None = None
+            if comment_col_id is not None:
+                comment_row = cal_cur.execute(
+                    f"SELECT value FROM custom_column_{comment_col_id} WHERE book = ?",
+                    (cal_id,),
+                ).fetchone()
+                if comment_row:
+                    date_lecture = extract_date_lecture(comment_row["value"])
+
+            cur.execute(
+                """INSERT OR REPLACE INTO calibre_hors_masque
+                   (id, titre, auteur_nom, calibre_rating, date_lecture)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (norm, titre, auteur_nom, calibre_rating, date_lecture),
+            )
+            seen_norms.add(norm)
+            inserted += 1
+
+        cal_con.close()
+        logger.info(f"  → {inserted} livres hors Masque insérés")
+
+    except Exception as e:
+        logger.error(f"Erreur build_calibre_hors_masque_table : {e}")
 
 
 def build_onkindle_table(
@@ -1083,7 +1226,7 @@ def write_metadata(cur: sqlite3.Cursor) -> None:
 
     # user_version = version du schéma Room — doit correspondre à @Database(version=N) dans LmelpDatabase.kt
     # v3 : ajout table onkindle (issue #52)
-    cur.execute("PRAGMA user_version = 5")
+    cur.execute("PRAGMA user_version = 6")
 
     logger.info(
         f"  Metadata: version={version}, date={now.strftime('%Y-%m-%d')}, "
@@ -1112,6 +1255,7 @@ def verify_database(db_path: Path) -> None:
         "recommendations",
         "avis_critiques",
         "onkindle",
+        "calibre_hors_masque",
     ]
 
     click.echo(f"\n{'=' * 50}")
@@ -1232,6 +1376,7 @@ def main(
     compute_palmares(cur)
     if calibre_db:
         import_calibre_data(cur, calibre_db, calibre_virtual_library)
+        build_calibre_hors_masque_table(cur, calibre_db, calibre_virtual_library)
         build_onkindle_table(cur, calibre_db, calibre_virtual_library)
     compute_recommendations(cur, n_factors=svd_factors, calibre_db_path=calibre_db)
     build_search_index(cur)

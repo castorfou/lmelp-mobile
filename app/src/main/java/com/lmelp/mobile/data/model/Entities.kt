@@ -174,6 +174,15 @@ data class OnKindleEntity(
     @ColumnInfo(name = "nb_avis", defaultValue = "0") val nbAvis: Int = 0
 )
 
+@Entity(tableName = "calibre_hors_masque")
+data class CalibreHorsMasqueEntity(
+    @PrimaryKey val id: String,
+    val titre: String,
+    @ColumnInfo(name = "auteur_nom") val auteurNom: String?,
+    @ColumnInfo(name = "calibre_rating") val calibreRating: Double?,
+    @ColumnInfo(name = "date_lecture") val dateLecture: String?
+)
+
 @Entity(tableName = "db_metadata")
 data class DbMetadataEntity(
     @PrimaryKey val key: String,

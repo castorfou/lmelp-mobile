@@ -237,6 +237,30 @@ CREATE TABLE onkindle (
 
 **Tri dans l'app :** le tri alphabétique est effectué en Kotlin via `java.text.Collator(Locale.FRENCH, PRIMARY)` (SQLite ne gère pas les accents correctement pour le français).
 
+### `calibre_hors_masque`
+
+**Table précalculée** à l'export. Livres lus dans Calibre mais **non discutés au Masque et la Plume**.
+
+```sql
+CREATE TABLE calibre_hors_masque (
+    id             TEXT PRIMARY KEY,   -- Titre normalisé (slug, identifiant stable)
+    titre          TEXT NOT NULL,
+    auteur_nom     TEXT,               -- Depuis Calibre (peut différer de livres.auteur_nom)
+    calibre_rating REAL,              -- Note personnelle Calibre (1-10, nullable)
+    date_lecture   TEXT               -- Date de lecture ISO YYYY-MM-DD (nullable)
+);
+```
+
+**Logique de construction (`build_calibre_hors_masque_table`) :**
+1. Charge tous les livres Calibre de la virtual library (`calibre_lu = 1`)
+2. Exclut ceux dont le titre normalisé est déjà dans `palmares`
+3. Dédoublonne par titre normalisé (un livre peut avoir plusieurs auteurs dans Calibre)
+4. Récupère `calibre_rating` et `date_lecture` (même logique que `import_calibre_data`)
+
+**Affichage dans l'app :**
+- **Mon Palmarès** (mode PERSONNEL) : mélangés avec les livres du Masque dans le même flux de tri (note ou date), non cliquables, sans couverture. Chip "Hors Masque" (persistant via DataStore) permet de les masquer.
+- **Page auteur** : section "Lus hors Masque" si `auteur_nom` correspond.
+
 ### `db_metadata`
 
 Métadonnées de la base (version, date d'export).

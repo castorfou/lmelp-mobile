@@ -1,11 +1,14 @@
 package com.lmelp.mobile.data.repository
 
 import com.lmelp.mobile.data.db.AuteursDao
+import com.lmelp.mobile.data.db.CalibreHorsMasqueDao
 import com.lmelp.mobile.data.model.AuteurDetailUi
+import com.lmelp.mobile.data.model.CalibreHorsMasqueUi
 import com.lmelp.mobile.data.model.LivreParAuteurUi
 
 class AuteursRepository(
-    private val auteursDao: AuteursDao
+    private val auteursDao: AuteursDao,
+    private val horsMasqueDao: CalibreHorsMasqueDao? = null
 ) {
 
     suspend fun getAuteurDetail(auteurId: String): AuteurDetailUi? {
@@ -26,10 +29,22 @@ class AuteursRepository(
                 )
             }
 
+        val livresHorsMasque = horsMasqueDao
+            ?.getByAuteurNom(auteur.nom)
+            .orEmpty()
+            .map { CalibreHorsMasqueUi(
+                id = it.id,
+                titre = it.titre,
+                auteurNom = it.auteurNom,
+                calibreRating = it.calibreRating,
+                dateLecture = it.dateLecture
+            )}
+
         return AuteurDetailUi(
             id = auteur.id,
             nom = auteur.nom,
-            livres = livres
+            livres = livres,
+            livresHorsMasque = livresHorsMasque
         )
     }
 }

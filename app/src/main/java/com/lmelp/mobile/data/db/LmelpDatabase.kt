@@ -8,6 +8,7 @@ import androidx.room.RoomDatabase
 import com.lmelp.mobile.data.model.AvisCritiquesEntity
 import com.lmelp.mobile.data.model.AvisEntity
 import com.lmelp.mobile.data.model.AuteurEntity
+import com.lmelp.mobile.data.model.CalibreHorsMasqueEntity
 import com.lmelp.mobile.data.model.CritiqueEntity
 import com.lmelp.mobile.data.model.DbMetadataEntity
 import com.lmelp.mobile.data.model.EmissionEntity
@@ -32,8 +33,9 @@ import com.lmelp.mobile.data.model.RecommendationEntity
         AvisCritiquesEntity::class,
         DbMetadataEntity::class,
         OnKindleEntity::class,
+        CalibreHorsMasqueEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class LmelpDatabase : RoomDatabase() {
@@ -49,6 +51,7 @@ abstract class LmelpDatabase : RoomDatabase() {
     abstract fun avisCritiquesDao(): AvisCritiquesDao
     abstract fun auteursDao(): AuteursDao
     abstract fun onKindleDao(): OnKindleDao
+    abstract fun calibreHorsMasqueDao(): CalibreHorsMasqueDao
 
     companion object {
         @Volatile
