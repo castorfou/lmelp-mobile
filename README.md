@@ -2,6 +2,9 @@
 
 Application Android pour consulter le contenu de Le Masque et la Plume (LMELP) — émission littéraire de France Inter — hors connexion.
 
+
+![](img/screenshot_lmelp-mobile.png)
+
 ## pyfoundry-template
 
 Ce projet a été instancié depuis un template.
