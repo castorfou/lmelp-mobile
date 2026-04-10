@@ -35,6 +35,7 @@ data class LivreUi(
 
 data class AvisUi(
     val id: String,
+    val critiqueId: String?,
     val critiqueNom: String?,
     val note: Double?,
     val commentaire: String?,
@@ -84,6 +85,24 @@ data class CritiqueUi(
     val nom: String,
     val animateur: Boolean,
     val nbAvis: Int
+)
+
+data class AvisParCritiqueUi(
+    val livreId: String,
+    val livreTitre: String?,
+    val auteurNom: String?,
+    val note: Double?,
+    val emissionDate: String?
+)
+
+data class CritiqueDetailUi(
+    val id: String,
+    val nom: String,
+    val animateur: Boolean,
+    val nbAvis: Int,
+    val noteMoyenne: Double?,
+    val distribution: Map<Int, Int>,
+    val coupsDeCoeur: List<AvisParCritiqueUi>
 )
 
 data class RecommendationUi(

@@ -62,7 +62,8 @@ fun LivreDetailScreen(
     repository: LivresRepository,
     onBack: () -> Unit,
     onEmissionClick: (String) -> Unit = {},
-    onAuteurClick: (String) -> Unit = {}
+    onAuteurClick: (String) -> Unit = {},
+    onCritiqueClick: (String) -> Unit = {}
 ) {
     val viewModel: LivreDetailViewModel = viewModel(
         factory = LivreDetailViewModel.Factory(repository, livreId)
@@ -88,6 +89,7 @@ fun LivreDetailScreen(
                 livre = uiState.livre!!,
                 onEmissionClick = onEmissionClick,
                 onAuteurClick = onAuteurClick,
+                onCritiqueClick = onCritiqueClick,
                 modifier = Modifier.padding(padding)
             )
             else -> EmptyState("Livre introuvable", Modifier.padding(padding))
@@ -100,6 +102,7 @@ fun LivreDetailContent(
     livre: LivreDetailUi,
     onEmissionClick: (String) -> Unit,
     onAuteurClick: (String) -> Unit = {},
+    onCritiqueClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showCoverFullscreen by remember { mutableStateOf(false) }
@@ -204,7 +207,7 @@ fun LivreDetailContent(
                 )
             }
             items(groupe.avis, key = { it.id }) { avis ->
-                AvisCard(avis = avis)
+                AvisCard(avis = avis, onCritiqueClick = onCritiqueClick)
             }
         }
     }
@@ -235,7 +238,7 @@ fun EmissionGroupHeader(groupe: AvisParEmissionUi, onClick: () -> Unit) {
 }
 
 @Composable
-fun AvisCard(avis: AvisUi) {
+fun AvisCard(avis: AvisUi, onCritiqueClick: (String) -> Unit = {}) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -243,10 +246,17 @@ fun AvisCard(avis: AvisUi) {
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row {
+                val critiqueId = avis.critiqueId
                 Text(
                     text = avis.critiqueNom ?: "Critique",
                     style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.weight(1f)
+                    color = if (critiqueId != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(
+                            if (critiqueId != null) Modifier.clickable { onCritiqueClick(critiqueId) }
+                            else Modifier
+                        )
                 )
                 avis.note?.let { NoteBadge(note = it) }
             }

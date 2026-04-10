@@ -1,5 +1,6 @@
 package com.lmelp.mobile.ui.critiques
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,7 +37,10 @@ import com.lmelp.mobile.viewmodel.CritiquesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CritiquesScreen(repository: CritiquesRepository) {
+fun CritiquesScreen(
+    repository: CritiquesRepository,
+    onCritiqueClick: (String) -> Unit = {}
+) {
     val viewModel: CritiquesViewModel = viewModel(factory = CritiquesViewModel.Factory(repository))
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -50,19 +54,23 @@ fun CritiquesScreen(repository: CritiquesRepository) {
             )
         }
     ) { padding ->
-        CritiquesContent(uiState = uiState, modifier = Modifier.padding(padding))
+        CritiquesContent(uiState = uiState, onCritiqueClick = onCritiqueClick, modifier = Modifier.padding(padding))
     }
 }
 
 @Composable
-fun CritiquesContent(uiState: CritiquesUiState, modifier: Modifier = Modifier) {
+fun CritiquesContent(
+    uiState: CritiquesUiState,
+    onCritiqueClick: (String) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     when {
         uiState.isLoading -> LoadingIndicator(modifier)
         uiState.error != null -> ErrorMessage(uiState.error, modifier)
         uiState.critiques.isEmpty() -> EmptyState("Aucun critique", modifier)
         else -> LazyColumn(modifier = modifier) {
             items(uiState.critiques, key = { it.id }) { critique ->
-                CritiqueCard(critique = critique)
+                CritiqueCard(critique = critique, onClick = { onCritiqueClick(critique.id) })
             }
         }
     }
@@ -70,11 +78,12 @@ fun CritiquesContent(uiState: CritiquesUiState, modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CritiqueCard(critique: CritiqueUi) {
+fun CritiqueCard(critique: CritiqueUi, onClick: () -> Unit = {}) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
