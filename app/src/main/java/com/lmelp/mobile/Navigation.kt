@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.lmelp.mobile.ui.about.AboutScreen
 import com.lmelp.mobile.ui.auteurs.AuteurDetailScreen
+import com.lmelp.mobile.ui.critiques.CritiqueDetailScreen
 import com.lmelp.mobile.ui.critiques.CritiquesScreen
 import com.lmelp.mobile.ui.emissions.EmissionDetailScreen
 import com.lmelp.mobile.ui.emissions.EmissionsScreen
@@ -30,6 +31,7 @@ object Routes {
     const val AUTEUR_DETAIL = "auteur/{auteurId}"
     const val PALMARES = "palmares"
     const val CRITIQUES = "critiques"
+    const val CRITIQUE_DETAIL = "critique/{critiqueId}"
     const val SEARCH = "search"
     const val RECOMMENDATIONS = "recommendations"
     const val ONKINDLE = "onkindle"
@@ -37,6 +39,7 @@ object Routes {
     fun emissionDetail(emissionId: String) = "emission/$emissionId"
     fun livreDetail(livreId: String) = "livre/$livreId"
     fun auteurDetail(auteurId: String) = "auteur/$auteurId"
+    fun critiqueDetail(critiqueId: String) = "critique/$critiqueId"
 }
 
 @Composable
@@ -101,7 +104,8 @@ fun LmelpNavHost(
                 repository = app.livresRepository,
                 onBack = { navController.popBackStack() },
                 onEmissionClick = { navController.navigate(Routes.emissionDetail(it)) },
-                onAuteurClick = { navController.navigate(Routes.auteurDetail(it)) }
+                onAuteurClick = { navController.navigate(Routes.auteurDetail(it)) },
+                onCritiqueClick = { navController.navigate(Routes.critiqueDetail(it)) }
             )
         }
 
@@ -131,7 +135,23 @@ fun LmelpNavHost(
         }
 
         composable(Routes.CRITIQUES) {
-            CritiquesScreen(repository = app.critiquesRepository)
+            CritiquesScreen(
+                repository = app.critiquesRepository,
+                onCritiqueClick = { navController.navigate(Routes.critiqueDetail(it)) }
+            )
+        }
+
+        composable(
+            route = Routes.CRITIQUE_DETAIL,
+            arguments = listOf(navArgument("critiqueId") { type = NavType.StringType })
+        ) { backStack ->
+            val critiqueId = backStack.arguments?.getString("critiqueId") ?: return@composable
+            CritiqueDetailScreen(
+                critiqueId = critiqueId,
+                repository = app.critiquesRepository,
+                onBack = { navController.popBackStack() },
+                onLivreClick = { navController.navigate(Routes.livreDetail(it)) }
+            )
         }
 
         composable(Routes.ONKINDLE) {
@@ -154,6 +174,7 @@ fun LmelpNavHost(
                         "livre" -> navController.navigate(Routes.livreDetail(id))
                         "emission" -> navController.navigate(Routes.emissionDetail(id))
                         "auteur" -> navController.navigate(Routes.auteurDetail(id))
+                        "critique" -> navController.navigate(Routes.critiqueDetail(id))
                         else -> {}
                     }
                 }

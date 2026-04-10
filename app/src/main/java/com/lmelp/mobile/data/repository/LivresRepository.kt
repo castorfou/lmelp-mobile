@@ -33,6 +33,7 @@ class LivresRepository(
                         .map { row ->
                             AvisUi(
                                 id = row.avis.id,
+                                critiqueId = row.avis.critiqueId,
                                 critiqueNom = row.avis.critiqueNom,
                                 note = row.avis.note,
                                 commentaire = row.avis.commentaire,
