@@ -164,7 +164,8 @@ data class OnKindleUi(
     val nbAvis: Int,
     val discusseAuMasque: Boolean = noteMoyenne != null,
     val urlCover: String? = null,
-    val scoreHybride: Double? = null
+    val scoreHybride: Double? = null,
+    val isPinned: Boolean = false
 )
 
 data class CalibreHorsMasqueUi(

@@ -85,13 +85,15 @@
 │                                                                 │
 │  EmissionsRepository  LivresRepository  CritiquesRepository     │
 │  SearchRepository     RecommendRepository  OnKindleRepository   │
+│  UserPreferencesRepository  (DataStore — état local utilisateur)│
 │                                                                 │
 │  Responsabilités :                                              │
 │    - Source unique de vérité                                    │
 │    - Mapping Entity → UI model                                  │
 │    - Coordination des DAOs                                      │
+│    - UserPreferencesRepository : préférences hors DB (épingles) │
 └───────────────────────────┬─────────────────────────────────────┘
-                            │ Room DAOs
+                            │ Room DAOs + DataStore
 ┌───────────────────────────▼─────────────────────────────────────┐
 │  Database Layer (Room)                                          │
 │                                                                 │
@@ -105,6 +107,10 @@
 │                                                                 │
 │  SQLite : app/src/main/assets/lmelp.db                          │
 │    └── Copié dans /data/data/.../databases/ au 1er lancement   │
+│                                                                 │
+│  DataStore (user_prefs) — état local persisté hors lmelp.db     │
+│    ├── show_hors_masque (Boolean)                               │
+│    └── pinned_reading (Set<String>) — livres épinglés           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
