@@ -157,6 +157,7 @@ fun LmelpNavHost(
         composable(Routes.ONKINDLE) {
             OnKindleScreen(
                 repository = app.onKindleRepository,
+                userPrefsRepository = app.userPreferencesRepository,
                 onLivreClick = { navController.navigate(Routes.livreDetail(it)) },
                 onBack = { navController.popBackStack() }
             )
