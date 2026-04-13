@@ -21,9 +21,11 @@
 > Note: cliquer sur **Episodes sans Avis Critiques** dans la zone Informations générales dans la zone Informations générales nous améne à cette page
 > - ![](img/livres_et_auteurs.png) page **Livres et Auteurs** : extrait les livres/auteurs de l'épisode sur la base du summary et se base sur les metadonnées babelio (il faut au préalable lancer un VPN système (pas browser), et valider le captcha d'accès [babelio](https://www.babelio.com/)) pour corriger les titres/auteurs/éditeurs.
 > Note: cliquer sur **Avis Critiques sans Analyse** dans la zone Informations générales nous amène à cette page
-> - **Identification des critiques** : si nécessaire pour un nouveau critique
-> - **Liaison babelio** : pour lier aux pages auteurs / livres / url de la couverture
-> - **Emissions** : visu du resultat de l'émission structurée : toutes les oeuvres doivent aparaitre identifiées, notées
+> - ![](img/identification_des_critiques.png) **Identification des Critiques** : nécessaire si un critique participe pour la 1ère fois à l'émission
+> - ![](img/liaison_babelio.png) **Liaison Babelio** : pour lier les oeuvres / auteurs à leurs pages babelio respectives, ainsi que le lien vers la couverture de l'oeuvre.
+>  Note: cliquer sur **Livres sans lien Babelio** / **Auteurs sans lien Babelio** dans la zone Informations générales nous amène à cette page
+> - ![](img/emissions.png) **Emissions** : visu du resultat de l'émission structurée : toutes les oeuvres doivent aparaitre identifiées, notées
+>  Note: cliquer sur **Emissions avec Problème** dans la zone Informations générales nous amène à cette page
 
 
 à l'issue de tout cela la base de données a été enrichie avec ce nouvel episode
