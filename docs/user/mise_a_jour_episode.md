@@ -1,31 +1,43 @@
-a la diffusion d'une nouvelle emission, j'ai pas mal de boulot :
+## Ajouter l'épisode à la base de données LMELP
 
-> depuis **lmelp-frontoffice** : detection de la nouvelle emission (rafraichir Episodes) - cela telecharge l'enregistrement audio
+à la diffusion d'un nouvel épisode de l'émission, j'ai pas mal de boulot :
+
+> ![](img/favicon_lmelp-frontoffice.png) depuis **lmelp-frontoffice** :
 >
-> creation de la transcription (je fais ca manuellement depuis une machine **GPU avec whisper**), et copie dans docker-lmelp/data/audios
+> - ![](img/rafraichir.png) télécharge l'enregistrement audio dans `docker-lmelp/data/audios`
 >
-> depuis **lmelp-frontoffice**: Telecharger la transcription (cela va charger le fichier de transcription) (gestion de cache)
+> ![](img/favicon_whisper.png) transcription de l'épisode
 >
-> depuis **lmelp-backoffice** - frontend : dans les pages suivantes
+> ??? info "mode d'emploi"
+>     manuellement depuis une machine **GPU avec whisper** en fournissant le `.m4a` depuis `docker-lmelp/data/audios`, et en retour copie du fichier `.txt` dans `docker-lmelp/data/audios`
 >
-> - **Generation de l'avis critique** : (avec un llm) depuis la transcription, cela cree un summary pour cet episode
-> - **Livres et auteurs** : extrait les livres/auteurs de l'episode sur la base du summary. metdonnees babelio (il faut au prealable lancer le VPN) pour corriger les titres/auteurs/editeurs
-> - **Identification des critiques** : si necessaire pour un nouveau critique
-> - **Liaison babelio** : pour lier aux pages auteurs / livres / url de la couverture
-> - **Emissions** : visu du resultat de l'emission structuree : toutes les oeuvres doivent etre identifiees, notees
+> ![](img/favicon_lmelp-frontoffice.png) depuis **lmelp-frontoffice**:
+>
+> - ![](img/telecharger_transcriptions.png) charge le fichier de transcription (gestion de cache) dans le champ transcription de l'épisode (mongo/episodes)
+>
+> ![](img/favicon_lmelp-backoffice.png) depuis **lmelp-backoffice** - frontend :
+>
+> - ![](img/generation_avis_critiques.png) page **Génération Avis Critiques (LLM)** : crée un summary depuis la transcription d'un épisode.
+> Note: cliquer sur **Episodes sans Avis Critiques** dans la zone Informations générales dans la zone Informations générales nous améne à cette page
+> - ![](img/livres_et_auteurs.png) page **Livres et Auteurs** : extrait les livres/auteurs de l'épisode sur la base du summary et se base sur les metadonnées babelio (il faut au préalable lancer un VPN système (pas browser), et valider le captcha d'accès [babelio](https://www.babelio.com/)) pour corriger les titres/auteurs/éditeurs.
+> Note: cliquer sur **Avis Critiques sans Analyse** dans la zone Informations générales nous amène à cette page
+> - ![](img/identification_des_critiques.png) **Identification des Critiques** : nécessaire si un critique participe pour la 1ère fois à l'émission
+> - ![](img/liaison_babelio.png) **Liaison Babelio** : pour lier les oeuvres / auteurs à leurs pages babelio respectives, ainsi que le lien vers la couverture de l'oeuvre.
+>  Note: cliquer sur **Livres sans lien Babelio** / **Auteurs sans lien Babelio** dans la zone Informations générales nous amène à cette page
+> - ![](img/emissions.png) **Emissions** : visu du resultat de l'émission structurée : toutes les oeuvres doivent aparaitre identifiées, notées
+>  Note: cliquer sur **Emissions avec Problème** dans la zone Informations générales nous amène à cette page
 
 
-a l'issue de tout cela la base de donnees a ete enrichie avec ce nouvel episode
+à l'issue de tout cela la base de données a été enrichie avec ce nouvel episode
 
-## Passer la nouvelle base vers l'application mobile
+## Intégrer la nouvelle base de données LMELP à l'application mobile
 
 Le logiciel lmelp-mobile ne change pas, seule la base de données évolue.
 
 ### Pré-requis
 
-- adb est installe
+- adb est installé et [fonctionnel](#en-cas-de-problème-adb)
 - Le téléphone est branché en USB au laptop
-- Le mode USB est sur **Transfert de fichiers** (pas "Aucun transfert de données")
 - Le débogage USB est activé (Paramètres → Options développeur)
 - La stack docker-lmelp est démarrée (en suivant [Déploiement avec Portainer](https://castorfou.github.io/docker-lmelp/user/portainer/), les conteneurs `lmelp-mongo` et `lmelp-export` doivent tourner)
 
