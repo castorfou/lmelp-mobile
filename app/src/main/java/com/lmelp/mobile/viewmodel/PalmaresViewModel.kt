@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class PalmaresMode { CRITIQUES, PERSONNEL }
-enum class MonPalmaresTriMode { NOTE_PERSO, DATE_LECTURE }
+enum class MonPalmaresTriMode { NOTE_PERSO, DATE_LECTURE, VITESSE_ASC, VITESSE_DESC }
 
 data class PalmaresUiState(
     val isLoading: Boolean = false,
@@ -62,7 +62,13 @@ class PalmaresViewModel(
     }
 
     fun setMonPalmaresTriMode(tri: MonPalmaresTriMode) {
-        _uiState.update { it.copy(monPalmaresTriMode = tri) }
+        val current = _uiState.value.monPalmaresTriMode
+        val newMode = when {
+            tri == MonPalmaresTriMode.VITESSE_ASC && current == MonPalmaresTriMode.VITESSE_ASC -> MonPalmaresTriMode.VITESSE_DESC
+            tri == MonPalmaresTriMode.VITESSE_ASC && current == MonPalmaresTriMode.VITESSE_DESC -> MonPalmaresTriMode.VITESSE_ASC
+            else -> tri
+        }
+        _uiState.update { it.copy(monPalmaresTriMode = newMode) }
         loadPalmares()
     }
 
@@ -91,6 +97,8 @@ class PalmaresViewModel(
                         val allItems = when (state.monPalmaresTriMode) {
                             MonPalmaresTriMode.NOTE_PERSO -> repository.getMonPalmaresUnifieParNote()
                             MonPalmaresTriMode.DATE_LECTURE -> repository.getMonPalmaresUnifieParDate()
+                            MonPalmaresTriMode.VITESSE_ASC -> repository.getMonPalmaresUnifieParVitesse(ascendant = true)
+                            MonPalmaresTriMode.VITESSE_DESC -> repository.getMonPalmaresUnifieParVitesse(ascendant = false)
                         }
                         val monPalmares = if (state.showHorsMasque) allItems
                             else allItems.filter { it.livreId != null }

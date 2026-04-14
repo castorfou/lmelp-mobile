@@ -6,7 +6,8 @@ import com.lmelp.mobile.data.model.AvisUi
 import com.lmelp.mobile.data.model.LivreDetailUi
 
 class LivresRepository(
-    private val livresDao: LivresDao
+    private val livresDao: LivresDao,
+    private val palmaresRepository: PalmaresRepository? = null
 ) {
 
     suspend fun getLivreDetail(livreId: String): LivreDetailUi? {
@@ -43,6 +44,10 @@ class LivresRepository(
                 )
             }
 
+        val joursLecture = if (livre.calibreLu == 1 && livre.dateLecture != null)
+            palmaresRepository?.getJoursLecturePourLivre(livre.id)
+        else null
+
         return LivreDetailUi(
             id = livre.id,
             titre = livre.titre,
@@ -56,7 +61,8 @@ class LivresRepository(
             calibreInLibrary = livre.calibreInLibrary == 1,
             calibreLu = livre.calibreLu == 1,
             calibreRating = livre.calibreRating,
-            dateLecture = livre.dateLecture
+            dateLecture = livre.dateLecture,
+            joursLecture = joursLecture
         )
     }
 }

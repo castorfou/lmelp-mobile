@@ -173,8 +173,12 @@ fun LivreDetailContent(
                         )
                     }
                     if (livre.calibreLu && livre.dateLecture != null) {
+                        val dateTxt = buildString {
+                            append("Lu le ${formatDateLong(livre.dateLecture)}")
+                            livre.joursLecture?.let { append(" (${it}j)") }
+                        }
                         Text(
-                            text = "Lu le ${formatDateLong(livre.dateLecture)}",
+                            text = dateTxt,
                             style = MaterialTheme.typography.labelSmall,
                             color = androidx.compose.ui.graphics.Color(0xFF2E7D32),
                             modifier = Modifier.padding(top = 4.dp)

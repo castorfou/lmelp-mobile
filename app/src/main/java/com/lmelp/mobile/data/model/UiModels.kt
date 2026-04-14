@@ -62,7 +62,8 @@ data class LivreDetailUi(
     val calibreInLibrary: Boolean = false,
     val calibreLu: Boolean = false,
     val calibreRating: Double? = null,
-    val dateLecture: String? = null
+    val dateLecture: String? = null,
+    val joursLecture: Int? = null
 )
 
 data class PalmaresUi(
@@ -187,7 +188,8 @@ data class MonPalmaresItemUi(
     val calibreRating: Double?,
     val dateLecture: String?,
     val livreId: String? = null,
-    val urlCover: String? = null
+    val urlCover: String? = null,
+    val joursLecture: Int? = null
 )
 
 data class DbInfoUi(
