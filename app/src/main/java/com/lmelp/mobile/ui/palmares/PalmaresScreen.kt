@@ -140,6 +140,17 @@ fun PalmaresContent(
                     onClick = { onSetMonPalmaresTriMode(MonPalmaresTriMode.DATE_LECTURE) },
                     label = { Text("Date lecture ↓") }
                 )
+                FilterChip(
+                    selected = uiState.monPalmaresTriMode == MonPalmaresTriMode.VITESSE_ASC ||
+                               uiState.monPalmaresTriMode == MonPalmaresTriMode.VITESSE_DESC,
+                    onClick = { onSetMonPalmaresTriMode(MonPalmaresTriMode.VITESSE_ASC) },
+                    label = {
+                        Text(
+                            if (uiState.monPalmaresTriMode == MonPalmaresTriMode.VITESSE_DESC)
+                                "Vitesse ↑" else "Vitesse ↓"
+                        )
+                    }
+                )
                 Spacer(modifier = Modifier.weight(1f))
                 FilterChip(
                     selected = uiState.showHorsMasque,
@@ -253,12 +264,21 @@ fun MonPalmaresCard(item: MonPalmaresItemUi, onLivreClick: (String) -> Unit) {
                     )
                 }
             }
-            item.calibreRating?.let {
-                Text(
-                    text = "${it.toInt()}/10",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFF2E7D32)
-                )
+            Column(horizontalAlignment = Alignment.End) {
+                item.joursLecture?.let {
+                    Text(
+                        text = "${it}j",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+                item.calibreRating?.let {
+                    Text(
+                        text = "${it.toInt()}/10",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF2E7D32)
+                    )
+                }
             }
         }
     }

@@ -57,6 +57,51 @@ class PalmaresRepository(
         )
     }
 
+    /**
+     * Retourne le nombre de jours de lecture pour un livre donné (null si non calculable :
+     * 1er livre lu, pas de date_lecture, ou livreId inconnu).
+     */
+    suspend fun getJoursLecturePourLivre(livreId: String): Int? {
+        val masque = palmaresDao.getMonPalmares().map { it.toItemUi() }
+        val horsMasque = horsMasqueDao?.getAll().orEmpty().map { it.toItemUi() }
+        val avecDate = (masque + horsMasque)
+            .filter { it.dateLecture != null }
+            .sortedBy { it.dateLecture }
+        val idx = avecDate.indexOfFirst { it.id == livreId }
+        if (idx <= 0) return null  // non trouvé ou 1er livre
+        return calculerJoursEntre(avecDate[idx - 1].dateLecture!!, avecDate[idx].dateLecture!!)
+    }
+
+    /** Fusionne livres Masque + hors Masque et calcule la vitesse de lecture (jours entre livres consécutifs). */
+    suspend fun getMonPalmaresUnifieParVitesse(ascendant: Boolean = true): List<MonPalmaresItemUi> {
+        val masque = palmaresDao.getMonPalmares().map { it.toItemUi() }
+        val horsMasque = horsMasqueDao?.getAll().orEmpty().map { it.toItemUi() }
+        return calculerVitesse(masque + horsMasque, ascendant)
+    }
+
+    private fun calculerVitesse(items: List<MonPalmaresItemUi>, ascendant: Boolean): List<MonPalmaresItemUi> {
+        val avecDate = items
+            .filter { it.dateLecture != null }
+            .sortedBy { it.dateLecture }
+        val resultat = mutableListOf<MonPalmaresItemUi>()
+        for (i in 1 until avecDate.size) {
+            val prev = avecDate[i - 1]
+            val curr = avecDate[i]
+            val jours = calculerJoursEntre(prev.dateLecture!!, curr.dateLecture!!)
+            resultat.add(curr.copy(joursLecture = jours))
+        }
+        return if (ascendant)
+            resultat.sortedWith(compareBy({ it.joursLecture ?: Int.MAX_VALUE }, { it.titre }))
+        else
+            resultat.sortedWith(compareByDescending<MonPalmaresItemUi> { it.joursLecture ?: 0 }.thenBy { it.titre })
+    }
+
+    private fun calculerJoursEntre(date1: String, date2: String): Int {
+        val d1 = java.time.LocalDate.parse(date1)
+        val d2 = java.time.LocalDate.parse(date2)
+        return java.time.temporal.ChronoUnit.DAYS.between(d1, d2).toInt()
+    }
+
     /** Fusionne livres Masque + hors Masque en une liste unifiée triée par date. */
     suspend fun getMonPalmaresUnifieParDate(): List<MonPalmaresItemUi> {
         val masque = palmaresDao.getMonPalmaresParDate().map { it.toItemUi() }

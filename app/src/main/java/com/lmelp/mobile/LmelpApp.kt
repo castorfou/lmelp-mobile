@@ -59,9 +59,9 @@ class LmelpApp : Application() {
             database.avisCritiquesDao()
         )
     }
-    val livresRepository by lazy { LivresRepository(database.livresDao()) }
-    val critiquesRepository by lazy { CritiquesRepository(database.critiquesDao()) }
     val palmaresRepository by lazy { PalmaresRepository(database.palmaresDao(), database.calibreHorsMasqueDao()) }
+    val livresRepository by lazy { LivresRepository(database.livresDao(), palmaresRepository) }
+    val critiquesRepository by lazy { CritiquesRepository(database.critiquesDao()) }
     val recommendationsRepository by lazy { RecommendationsRepository(database.recommendationsDao()) }
     val searchRepository by lazy { SearchRepository(database.searchDao()) }
     val metadataRepository by lazy { MetadataRepository(database.metadataDao()) }
