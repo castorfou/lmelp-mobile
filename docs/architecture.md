@@ -18,7 +18,7 @@
 │  scripts/export_mongo_to_sqlite.py                              │
 │    ├── Exporte les collections                                  │
 │    ├── Précalcule palmarès + recommandations SVD                │
-│    ├── Construit index FTS5 (recherche full-text)               │
+│    ├── Construit index FTS4 (recherche full-text)               │
 │    ├── Croise avec Calibre (onkindle, lu/non lu, rating)        │
 │    └── Écrit lmelp.db (SQLite)                                  │
 │         │                                                       │
@@ -42,7 +42,7 @@
 │    ├── Émissions                                                │
 │    ├── Palmarès                                                 │
 │    ├── Critiques                                                │
-│    ├── Recherche (FTS5)                                         │
+│    ├── Recherche (FTS4)                                         │
 │    ├── Recommandations                                          │
 │    └── Sur ma liseuse (OnKindle)                                │
 │                                                                 │
@@ -103,7 +103,7 @@
 │    ├── CritiquesDao                                             │
 │    ├── AvisDao                                                  │
 │    ├── OnKindleDao                                              │
-│    └── SearchDao (FTS5)                                         │
+│    └── SearchDao (FTS4)                                         │
 │                                                                 │
 │  SQLite : app/src/main/assets/lmelp.db                          │
 │    └── Copié dans /data/data/.../databases/ au 1er lancement   │
@@ -182,14 +182,16 @@ ORDER BY note_moyenne DESC
 - Top N recommandations précalculées et stockées dans `recommendations`
 - Reproductible depuis `back-office-lmelp` (même algorithme)
 
-### Index FTS5
+### Index FTS4
 ```sql
 -- Construit à l'export pour recherche instantanée
-INSERT INTO search_index(type, ref_id, content) VALUES
-  ('emission', id, titre || ' ' || description),
-  ('livre', id, titre || ' ' || auteur_nom || ' ' || editeur),
-  ('critique', id, nom),
-  ('auteur', id, nom);
+-- content = texte normalisé sans accents (indexé)
+-- display_content = texte original avec accents (affiché)
+INSERT INTO search_index(type, ref_id, content, display_content) VALUES
+  ('emission', id, normalize(titre || ' ' || description), titre || ' ' || description),
+  ('livre', id, normalize(titre || ' ' || auteur_nom || ' ' || editeur), titre),
+  ('critique', id, normalize(nom), nom),
+  ('auteur', id, normalize(nom), nom);
 ```
 
 ## Taille estimée

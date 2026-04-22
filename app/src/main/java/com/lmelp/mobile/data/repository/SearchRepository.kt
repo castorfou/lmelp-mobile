@@ -24,7 +24,7 @@ class SearchRepository(
                l.url_cover AS url_cover
                FROM search_index si
                LEFT JOIN livres l ON (si.type = 'livre' AND l.id = si.ref_id)
-               WHERE si.search_index MATCH ? AND si.type IN ('livre', 'auteur', 'critique')
+               WHERE search_index MATCH ? AND si.type IN ('livre', 'auteur', 'critique')
                LIMIT 50""",
             arrayOf(ftsQuery)
         )
