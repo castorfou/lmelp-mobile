@@ -105,6 +105,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.car.app)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -29,7 +29,8 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 │       │   ├── palmares/            # Écran Palmarès
 │       │   ├── critiques/           # Écran Critiques
 │       │   ├── search/              # Écran Recherche
-│       │   └── recommendations/    # Écran Recommandations
+│       │   ├── recommendations/    # Écran Recommandations
+│       │   └── auto/               # Android Auto (Car App Library)
 │       ├── viewmodel/               # ViewModels par feature
 │       └── MainActivity.kt
 ├── scripts/
