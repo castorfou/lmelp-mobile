@@ -188,17 +188,26 @@ CREATE TABLE avis_critiques (
 );
 ```
 
-### `search_index` (FTS5)
+### `search_index` (FTS4)
 
-**Index full-text** pour la recherche. Table virtuelle SQLite FTS5.
+**Index full-text** pour la recherche. Table virtuelle SQLite FTS4.
 
 ```sql
-CREATE VIRTUAL TABLE search_index USING fts5(
-    type,       -- 'emission' | 'livre' | 'auteur' | 'critique'
-    ref_id,     -- ID de l'entité référencée (TEXT)
-    content,    -- Contenu indexé (titre + auteur + description...)
-    tokenize = 'unicode61 remove_diacritics 2'
+CREATE VIRTUAL TABLE search_index USING fts4(
+    type,            -- 'emission' | 'livre' | 'auteur' | 'critique'
+    ref_id,          -- ID de l'entité référencée (TEXT)
+    content,         -- Texte normalisé sans accents (indexé pour MATCH)
+    display_content, -- Texte original avec accents (affiché dans l'UI)
+    notindexed=type,
+    notindexed=ref_id,
+    notindexed=display_content
 );
+```
+
+⚠️ **Syntaxe MATCH** : s'applique au nom de la table, pas à un alias de colonne :
+```sql
+WHERE search_index MATCH ?   -- ✅ correct
+WHERE si.search_index MATCH ?  -- ❌ invalide (search_index est le nom de la table)
 ```
 
 **Contenu indexé par type :**

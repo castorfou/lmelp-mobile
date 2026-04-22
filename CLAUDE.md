@@ -302,16 +302,27 @@ Voir [docs/data-schema.md](docs/data-schema.md) pour le schéma complet.
 
 ## Recherche full-text
 
-SQLite FTS5 pour la recherche :
+SQLite **FTS4** pour la recherche (attention : c'est FTS4, pas FTS5) :
 
 ```sql
--- Table virtuelle FTS5
-CREATE VIRTUAL TABLE search_index USING fts5(
-    type,        -- 'emission' | 'livre' | 'auteur' | 'critique'
-    ref_id,      -- ID de l'entité référencée
-    content,     -- Texte indexé
-    tokenize = 'unicode61 remove_diacritics 2'  -- Insensible aux accents
+-- Table virtuelle FTS4
+CREATE VIRTUAL TABLE search_index USING fts4(
+    type,            -- 'emission' | 'livre' | 'auteur' | 'critique'
+    ref_id,          -- ID de l'entité référencée
+    content,         -- Texte normalisé sans accents (indexé)
+    display_content, -- Texte original avec accents (affiché dans l'UI)
+    notindexed=type,
+    notindexed=ref_id,
+    notindexed=display_content
 );
+```
+
+⚠️ **Syntaxe MATCH FTS4** : le MATCH s'applique au nom de la table, pas à un alias de colonne :
+```sql
+-- ✅ CORRECT
+WHERE search_index MATCH ?
+-- ❌ INVALIDE (search_index est le nom de la table, pas une colonne)
+WHERE si.search_index MATCH ?
 ```
 
 ## Conventions de nommage
