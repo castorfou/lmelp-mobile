@@ -4,4 +4,5 @@ nav:
   - Build / Deploy apk: build_deploy_apk.md
   - Schéma des données: data-schema.md
   - État local utilisateur (DataStore): local-state-datastore.md
+  - Android Auto: android-auto.md
   - Héritage PyFoundry: pyfoundry.md
