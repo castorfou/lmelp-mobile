@@ -3,8 +3,10 @@ package com.lmelp.mobile
 import com.lmelp.mobile.data.model.EmissionUi
 import com.lmelp.mobile.data.model.PalmaresUi
 import com.lmelp.mobile.data.model.RecommendationUi
+import com.lmelp.mobile.ui.auto.CAR_APP_CATEGORY
 import com.lmelp.mobile.ui.auto.CarScreenBuilder
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -24,6 +26,17 @@ class AndroidAutoScreenTest {
         rank = rank, livreId = "livre$rank", titre = titre, auteurNom = "Auteur $rank",
         scoreHybride = 0.9, masqueMean = 8.0
     )
+
+    // --- Manifest category ---
+
+    @Test
+    fun `categorie Car App est IOT et non POI`() {
+        assertEquals("androidx.car.app.category.IOT", CAR_APP_CATEGORY)
+        assertFalse(
+            "La catégorie ne doit pas être POI (réservée aux apps de navigation/cartographie)",
+            CAR_APP_CATEGORY.contains("POI")
+        )
+    }
 
     // --- MainCarScreen ---
 

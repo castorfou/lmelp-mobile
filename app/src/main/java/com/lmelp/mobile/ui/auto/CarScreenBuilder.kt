@@ -6,6 +6,8 @@ import com.lmelp.mobile.data.model.RecommendationUi
 
 private const val MAX_ITEMS = 6
 
+const val CAR_APP_CATEGORY = "androidx.car.app.category.IOT"
+
 data class CarListItem(
     val title: String,
     val text: String,
