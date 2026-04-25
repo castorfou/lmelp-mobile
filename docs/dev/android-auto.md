@@ -67,8 +67,52 @@ adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
 
 L'app apparaît dans la barre d'apps de l'émulateur voiture.
 
+## Pourquoi l'app n'apparaît pas dans la voiture (APK debug)
+
+**Les APK installés via `adb` (debug) ne sont pas visibles dans le lanceur Android Auto embarqué** (Renault, etc.). C'est une restriction système — le lanceur hardware ne reconnaît que les apps certifiées depuis le Google Play Store.
+
+Pour tester en développement → utiliser l'AVD Automotive (voir ci-dessus).
+Pour apparaître dans la vraie voiture → publier sur le Play Store (voir section ci-dessous).
+
+## Catégorie Car App Library
+
+La catégorie déclarée dans `AndroidManifest.xml` est **`androidx.car.app.category.IOT`** — la catégorie correcte pour une app de contenu/templates génériques.
+
+| Catégorie | Usage |
+|-----------|-------|
+| `NAVIGATION` | Apps GPS/navigation |
+| `POI` | Apps points d'intérêt (maps) — **ne pas utiliser pour du contenu** |
+| `IOT` | Apps template générales (listes, contenu) ← **notre cas** |
+
+## Checklist manifest Android Auto
+
+```xml
+<!-- Requis pour la distribution Android Auto -->
+<uses-feature android:name="android.software.car.templates.host" android:required="false"/>
+<uses-feature android:name="android.hardware.type.automotive" android:required="false"/>
+
+<!-- Service avec la bonne catégorie -->
+<service android:name=".ui.auto.LmelpCarAppService" android:exported="true">
+    <intent-filter>
+        <action android:name="androidx.car.app.CarAppService"/>
+        <category android:name="androidx.car.app.category.IOT"/>
+    </intent-filter>
+</service>
+
+<!-- Dans <application>, pas dans <service> -->
+<meta-data android:name="androidx.car.app.minCarApiLevel" android:value="1"/>
+<meta-data android:name="com.google.android.gms.car.application" android:resource="@xml/automotive_app_desc"/>
+```
+
+## Publication Play Store (pour apparaître dans la vraie voiture)
+
+1. **Play Console → Test and release → Advanced settings → Form factors**
+   - Ajouter **Android Auto**
+   - Ajouter **Android Automotive OS** + accepter la review policy
+2. Ajouter des screenshots 1024×768 landscape pour la fiche Play Store
+3. Soumettre à l'open testing ou production → **review manuelle Google (~7-14 jours)**
+
 ## Notes
 
 - La recherche vocale n'est pas disponible dans la Car App Library (SearchTemplate = clavier uniquement, à l'arrêt)
-- Pour tester en voiture réelle : brancher le téléphone avec l'APK installé à une voiture Android Auto compatible
 - `HostValidator.ALLOW_ALL_HOSTS_VALIDATOR` est utilisé — acceptable pour usage privé hors Play Store
