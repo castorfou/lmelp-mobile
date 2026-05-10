@@ -8,7 +8,7 @@
 >
 > ![](img/favicon_whisper.png) transcription de l'épisode
 >
-> ??? info "mode d'emploi"
+> ??? info "mode d'emploi - whisper"
 >     manuellement depuis une machine **GPU avec whisper** en fournissant le `.m4a` depuis `docker-lmelp/data/audios`, et en retour copie du fichier `.txt` dans `docker-lmelp/data/audios`
 >     ```bash
 >     # exemple en utilisant le PGX
@@ -16,6 +16,12 @@
 >     ```
 >
 > ![](img/favicon_lmelp-frontoffice.png) depuis **lmelp-frontoffice**:
+>
+> ??? info "mode d'emploi - copie transcription"
+>     ```bash
+>     # exemple en utilisant le PGX
+>     scp f279814@thinkstationpgx-d7ba.local:/home/f279814/git/whisper-docker/docker/data/transcriptions/2026/14007-10.05.2026-ITEMA_24506307-2026F4007S0130-NET_MFI_8DBE1787-617F-448E-8CE2-33512DAB177D-27-45c045c235ee8b70bf0e486024ad25c4.txt git/docker-lmelp/data/audios/2026
+>     ```
 >
 > - ![](img/telecharger_transcriptions.png) charge le fichier de transcription (gestion de cache) dans le champ transcription de l'épisode (mongo/episodes)
 >
