@@ -63,6 +63,7 @@ data class LivreDetailUi(
     val calibreLu: Boolean = false,
     val calibreRating: Double? = null,
     val dateLecture: String? = null,
+    val dateDebutLecture: String? = null,
     val joursLecture: Int? = null
 )
 
@@ -187,6 +188,7 @@ data class MonPalmaresItemUi(
     val auteurNom: String?,
     val calibreRating: Double?,
     val dateLecture: String?,
+    val dateDebutLecture: String? = null,
     val livreId: String? = null,
     val urlCover: String? = null,
     val joursLecture: Int? = null

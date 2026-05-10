@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Embedded
 import androidx.room.Query
+import androidx.room.RoomWarnings
 import com.lmelp.mobile.data.model.AvisEntity
 import com.lmelp.mobile.data.model.LivreEntity
 
@@ -35,7 +36,8 @@ data class LivreAvecCalibreRow(
     @ColumnInfo(name = "calibre_in_library", defaultValue = "0") val calibreInLibrary: Int = 0,
     @ColumnInfo(name = "calibre_lu", defaultValue = "0") val calibreLu: Int = 0,
     @ColumnInfo(name = "calibre_rating") val calibreRating: Double? = null,
-    @ColumnInfo(name = "date_lecture") val dateLecture: String? = null
+    @ColumnInfo(name = "date_lecture") val dateLecture: String? = null,
+    @ColumnInfo(name = "date_debut_lecture") val dateDebutLecture: String? = null
 )
 
 @Dao
@@ -50,7 +52,8 @@ interface LivresDao {
                COALESCE(p.calibre_in_library, 0) as calibre_in_library,
                COALESCE(p.calibre_lu, 0) as calibre_lu,
                p.calibre_rating,
-               p.date_lecture
+               p.date_lecture,
+               p.date_debut_lecture
         FROM livres l
         LEFT JOIN palmares p ON p.livre_id = l.id
         WHERE l.id = :id
@@ -64,6 +67,7 @@ interface LivresDao {
     """)
     suspend fun getLivresByEmission(emissionId: String): List<LivreEntity>
 
+    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
     @Query("""
         SELECT l.id, l.titre, l.auteur_id, l.auteur_nom, l.editeur,
                l.url_babelio, l.url_cover, l.created_at, l.updated_at,
