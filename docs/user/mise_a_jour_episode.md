@@ -35,7 +35,7 @@
 > - ![](img/liaison_babelio.png) **Liaison Babelio** : pour lier les oeuvres / auteurs à leurs pages babelio respectives, ainsi que le lien vers la couverture de l'oeuvre.
 >  Note: cliquer sur **Livres sans lien Babelio** / **Auteurs sans lien Babelio** dans la zone Informations générales nous amène à cette page
 > - ![](img/emissions.png) **Emissions** : visu du resultat de l'émission structurée : toutes les oeuvres doivent aparaitre identifiées, notées
->  Note: cliquer sur **Emissions avec Problème** dans la zone Informations générales nous amène à cette page
+>  Note: cliquer sur **Episodes sans Emission** dans la zone Informations générales nous amène à cette page
 
 
 à l'issue de tout cela la base de données a été enrichie avec ce nouvel episode
