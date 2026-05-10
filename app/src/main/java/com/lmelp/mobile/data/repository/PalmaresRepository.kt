@@ -69,7 +69,9 @@ class PalmaresRepository(
             .sortedBy { it.dateLecture }
         val idx = avecDate.indexOfFirst { it.id == livreId }
         if (idx <= 0) return null  // non trouvé ou 1er livre
-        return calculerJoursEntre(avecDate[idx - 1].dateLecture!!, avecDate[idx].dateLecture!!)
+        val curr = avecDate[idx]
+        val dateDebut = curr.dateDebutLecture ?: avecDate[idx - 1].dateLecture!!
+        return calculerJoursEntre(dateDebut, curr.dateLecture!!)
     }
 
     /** Fusionne livres Masque + hors Masque et calcule la vitesse de lecture (jours entre livres consécutifs). */
@@ -87,7 +89,8 @@ class PalmaresRepository(
         for (i in 1 until avecDate.size) {
             val prev = avecDate[i - 1]
             val curr = avecDate[i]
-            val jours = calculerJoursEntre(prev.dateLecture!!, curr.dateLecture!!)
+            val dateDebut = curr.dateDebutLecture ?: prev.dateLecture!!
+            val jours = calculerJoursEntre(dateDebut, curr.dateLecture!!)
             resultat.add(curr.copy(joursLecture = jours))
         }
         return if (ascendant)
@@ -164,6 +167,7 @@ class PalmaresRepository(
         auteurNom = auteurNom,
         calibreRating = calibreRating,
         dateLecture = dateLecture,
+        dateDebutLecture = dateDebutLecture,
         livreId = livreId,
         urlCover = urlCover
     )
@@ -174,6 +178,7 @@ class PalmaresRepository(
         auteurNom = auteurNom,
         calibreRating = calibreRating,
         dateLecture = dateLecture,
+        dateDebutLecture = dateDebutLecture,
         livreId = null,
         urlCover = null
     )

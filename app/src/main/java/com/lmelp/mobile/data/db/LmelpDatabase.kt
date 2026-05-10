@@ -35,7 +35,7 @@ import com.lmelp.mobile.data.model.RecommendationEntity
         OnKindleEntity::class,
         CalibreHorsMasqueEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class LmelpDatabase : RoomDatabase() {

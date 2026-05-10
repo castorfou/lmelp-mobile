@@ -68,6 +68,16 @@ repos:
               ui/sketchs/.*\.excalidraw
           )$
 
+  - repo: local
+    hooks:
+      - id: room-version-consistency
+        name: Room version consistency (LmelpDatabase.kt ↔ export script ↔ lmelp.db)
+        entry: python -m pytest tests/test_lmelp_db_integrity.py::TestVersionConsistance -q
+        language: python
+        additional_dependencies: [pytest]
+        pass_filenames: false
+        always_run: true
+
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: 26.3.1
     hooks:

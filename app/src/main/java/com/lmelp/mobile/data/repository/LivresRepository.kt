@@ -62,6 +62,7 @@ class LivresRepository(
             calibreLu = livre.calibreLu == 1,
             calibreRating = livre.calibreRating,
             dateLecture = livre.dateLecture,
+            dateDebutLecture = livre.dateDebutLecture,
             joursLecture = joursLecture
         )
     }

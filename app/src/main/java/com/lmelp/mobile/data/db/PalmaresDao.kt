@@ -17,7 +17,8 @@ data class PalmaresFiltreAvecUrlRow(
     @ColumnInfo(name = "calibre_lu")      val calibreLu: Int = 0,
     @ColumnInfo(name = "calibre_rating")  val calibreRating: Double? = null,
     @ColumnInfo(name = "url_cover")       val urlCover: String?,
-    @ColumnInfo(name = "date_lecture")    val dateLecture: String? = null
+    @ColumnInfo(name = "date_lecture")    val dateLecture: String? = null,
+    @ColumnInfo(name = "date_debut_lecture") val dateDebutLecture: String? = null
 )
 
 data class PalmaresAvecUrlRow(
@@ -39,7 +40,8 @@ data class MonPalmaresRow(
     @ColumnInfo(name = "nb_critiques")    val nbCritiques: Int,
     @ColumnInfo(name = "calibre_rating")  val calibreRating: Double?,
     @ColumnInfo(name = "url_cover")       val urlCover: String?,
-    @ColumnInfo(name = "date_lecture")    val dateLecture: String?
+    @ColumnInfo(name = "date_lecture")    val dateLecture: String?,
+    @ColumnInfo(name = "date_debut_lecture") val dateDebutLecture: String? = null
 )
 
 @Dao
@@ -76,7 +78,7 @@ interface PalmaresDao {
     @Query("""
         SELECT p.rank, p.livre_id, p.titre, p.auteur_nom, p.note_moyenne,
                p.nb_avis, p.nb_critiques, p.calibre_in_library, p.calibre_lu, p.calibre_rating,
-               l.url_cover, p.date_lecture
+               l.url_cover, p.date_lecture, p.date_debut_lecture
         FROM palmares p
         LEFT JOIN livres l ON l.id = p.livre_id
         WHERE p.nb_avis >= 2
@@ -90,7 +92,7 @@ interface PalmaresDao {
 
     @Query("""
         SELECT p.livre_id, p.titre, p.auteur_nom, p.note_moyenne, p.nb_avis, p.nb_critiques,
-               p.calibre_rating, l.url_cover, p.date_lecture
+               p.calibre_rating, l.url_cover, p.date_lecture, p.date_debut_lecture
         FROM palmares p
         LEFT JOIN livres l ON l.id = p.livre_id
         WHERE p.calibre_lu = 1
@@ -103,7 +105,7 @@ interface PalmaresDao {
 
     @Query("""
         SELECT p.livre_id, p.titre, p.auteur_nom, p.note_moyenne, p.nb_avis, p.nb_critiques,
-               p.calibre_rating, l.url_cover, p.date_lecture
+               p.calibre_rating, l.url_cover, p.date_lecture, p.date_debut_lecture
         FROM palmares p
         LEFT JOIN livres l ON l.id = p.livre_id
         WHERE p.calibre_lu = 1

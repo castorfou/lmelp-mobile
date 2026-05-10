@@ -22,7 +22,7 @@ qui nécessitent l'option --calibre-db lors de l'export.
 
 import os
 import sqlite3
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -164,12 +164,65 @@ class TestFraicheurDB:
         latest_mongo = mongo_db.emissions.find_one({}, sort=[("date", -1)])
         assert latest_mongo is not None, "Aucune émission dans MongoDB"
 
-        export_date = datetime.fromisoformat(export_date_str[0]).replace(tzinfo=UTC)
-        latest_mongo_date = latest_mongo["date"].replace(tzinfo=UTC)
+        export_date = datetime.fromisoformat(export_date_str[0]).date()
+        latest_mongo_date = latest_mongo["date"].date()
 
         assert export_date >= latest_mongo_date, (
             f"lmelp.db périmé : export_date={export_date_str[0]} mais "
-            f"dernière émission MongoDB={latest_mongo_date.date()} "
+            f"dernière émission MongoDB={latest_mongo_date} "
             f"(id={latest_mongo['_id']}).\n"
             "Regénérer avec : python scripts/export_mongo_to_sqlite.py --force"
+        )
+
+
+class TestVersionConsistance:
+    """
+    Vérifie que PRAGMA user_version dans lmelp.db correspond à la version Room
+    déclarée dans LmelpDatabase.kt.
+
+    Cause de régression connue (issue #100) : oublier de mettre à jour
+    PRAGMA user_version dans le script d'export après avoir incrémenté version=N
+    dans LmelpDatabase.kt. Room détecte la discordance, détruit les tables via
+    fallbackToDestructiveMigration() et crée un schéma vide → app vide.
+    """
+
+    LMELP_DATABASE_KT = Path(__file__).parent.parent / (
+        "app/src/main/java/com/lmelp/mobile/data/db/LmelpDatabase.kt"
+    )
+    EXPORT_SCRIPT = Path(__file__).parent.parent / "scripts/export_mongo_to_sqlite.py"
+
+    def _room_version(self) -> int:
+        import re
+
+        text = self.LMELP_DATABASE_KT.read_text()
+        m = re.search(r"version\s*=\s*(\d+)", text)
+        assert m, f"Impossible de lire la version Room dans {self.LMELP_DATABASE_KT}"
+        return int(m.group(1))
+
+    def _script_version(self) -> int:
+        import re
+
+        text = self.EXPORT_SCRIPT.read_text()
+        m = re.search(r"^ROOM_VERSION\s*=\s*(\d+)", text, re.MULTILINE)
+        assert m, f"Impossible de lire ROOM_VERSION dans {self.EXPORT_SCRIPT}"
+        return int(m.group(1))
+
+    def test_user_version_db_egale_room_version(self, db):
+        """PRAGMA user_version de lmelp.db doit égaler version=N dans LmelpDatabase.kt."""
+        db_version = db.execute("PRAGMA user_version").fetchone()[0]
+        room_version = self._room_version()
+        assert db_version == room_version, (
+            f"lmelp.db user_version={db_version} ≠ LmelpDatabase.kt version={room_version}.\n"
+            "Room va détruire les tables (fallbackToDestructiveMigration) → app vide.\n"
+            "Regénérer avec : python scripts/export_mongo_to_sqlite.py --force"
+        )
+
+    def test_script_version_egale_room_version(self):
+        """PRAGMA user_version dans le script d'export doit égaler version=N dans LmelpDatabase.kt."""
+        script_version = self._script_version()
+        room_version = self._room_version()
+        assert script_version == room_version, (
+            f"export_mongo_to_sqlite.py PRAGMA user_version={script_version} "
+            f"≠ LmelpDatabase.kt version={room_version}.\n"
+            "Mettre à jour PRAGMA user_version dans le script et regénérer lmelp.db."
         )

@@ -35,6 +35,34 @@ logger = logging.getLogger(__name__)
 
 MONGO_DB = "masque_et_la_plume"
 
+# Doit correspondre à @Database(version=N) dans LmelpDatabase.kt.
+# v7 : ajout date_debut_lecture dans palmares et calibre_hors_masque (issue #100)
+ROOM_VERSION = 7
+
+_LMELP_DATABASE_KT = (
+    Path(__file__).parent.parent
+    / "app/src/main/java/com/lmelp/mobile/data/db/LmelpDatabase.kt"
+)
+
+
+def _check_room_version_consistency() -> None:
+    """Vérifie que ROOM_VERSION correspond à version=N dans LmelpDatabase.kt."""
+    if not _LMELP_DATABASE_KT.exists():
+        return  # hors devcontainer (CI sans Android SDK), on skip
+    text = _LMELP_DATABASE_KT.read_text()
+    m = re.search(r"version\s*=\s*(\d+)", text)
+    if not m:
+        raise SystemExit(
+            f"Impossible de lire la version Room dans {_LMELP_DATABASE_KT}"
+        )
+    kt_version = int(m.group(1))
+    if kt_version != ROOM_VERSION:
+        raise SystemExit(
+            f"ROOM_VERSION ({ROOM_VERSION}) dans le script d'export "
+            f"≠ version={kt_version} dans LmelpDatabase.kt.\n"
+            "Mettre à jour ROOM_VERSION dans ce script avant de regénérer lmelp.db."
+        )
+
 
 # ---------------------------------------------------------------------------
 # MongoDB helpers
@@ -161,7 +189,8 @@ CREATE TABLE IF NOT EXISTS palmares (
     calibre_in_library  INTEGER NOT NULL DEFAULT 0,
     calibre_lu          INTEGER NOT NULL DEFAULT 0,
     calibre_rating      REAL,
-    date_lecture        TEXT
+    date_lecture        TEXT,
+    date_debut_lecture  TEXT
 );
 
 CREATE TABLE IF NOT EXISTS recommendations (
@@ -210,7 +239,8 @@ CREATE TABLE IF NOT EXISTS calibre_hors_masque (
     titre          TEXT NOT NULL,
     auteur_nom     TEXT,
     calibre_rating REAL,
-    date_lecture   TEXT
+    date_lecture   TEXT,
+    date_debut_lecture TEXT
 );
 """
 
@@ -470,6 +500,7 @@ def compute_palmares(cur: sqlite3.Cursor) -> None:
 
 
 _DATE_LECTURE_RE = re.compile(r"\b(\d{2})/(\d{2})/(\d{4})\b")
+_DATE_KOREADER_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})")
 
 
 def extract_date_lecture(commentaire: str | None) -> str | None:
@@ -484,6 +515,30 @@ def extract_date_lecture(commentaire: str | None) -> str | None:
         day, month, year = m.group(1), m.group(2), m.group(3)
         return f"{year}-{month}-{day}"
     return None
+
+
+def extract_date_koreader(value: str | None) -> str | None:
+    """Extrait la date locale (Europe/Paris) depuis un champ datetime KOReader Calibre.
+
+    KOReader stocke les dates en UTC au format "YYYY-MM-DD HH:MM:SS+00:00".
+    Les dates arrondies à minuit heure locale sont stockées à 22h00 UTC (UTC+2 en été)
+    ou 23h00 UTC (UTC+1 en hiver) — la conversion UTC→Europe/Paris est donc nécessaire
+    pour obtenir la date correcte.
+    """
+    if not value:
+        return None
+    if not _DATE_KOREADER_RE.match(str(value)):
+        return None
+    try:
+        import zoneinfo
+        from datetime import datetime
+
+        dt = datetime.fromisoformat(str(value))
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(zoneinfo.ZoneInfo("Europe/Paris"))
+        return dt.strftime("%Y-%m-%d")
+    except Exception:
+        return None
 
 
 def _normalize_title(titre: str) -> str:
@@ -548,6 +603,23 @@ def import_calibre_data(
         else:
             logger.warning("  Colonne 'text' (Commentaire) non trouvée dans Calibre")
 
+        # Trouve les colonnes KOReader (ko_finish = date fin, ko_start = date début)
+        ko_finish_col_id: int | None = None
+        row = cal_cur.execute(
+            "SELECT id FROM custom_columns WHERE label = 'ko_finish'"
+        ).fetchone()
+        if row:
+            ko_finish_col_id = row["id"]
+            logger.info(f"  Calibre 'ko_finish' column id: {ko_finish_col_id}")
+
+        ko_start_col_id: int | None = None
+        row = cal_cur.execute(
+            "SELECT id FROM custom_columns WHERE label = 'ko_start'"
+        ).fetchone()
+        if row:
+            ko_start_col_id = row["id"]
+            logger.info(f"  Calibre 'ko_start' column id: {ko_start_col_id}")
+
         # Charge les livres Calibre (avec filtre bibliothèque virtuelle si fourni)
         if virtual_library_tag:
             cal_cur.execute(
@@ -603,9 +675,16 @@ def import_calibre_data(
             if rating_row and rating_row["rating"] is not None:
                 calibre_rating = float(rating_row["rating"])
 
-            # Date de lecture (extraite du champ Commentaire custom_column_3)
+            # Date de fin de lecture : KOReader ko_finish en priorité, sinon Commentaire
             date_lecture: str | None = None
-            if comment_col_id is not None:
+            if ko_finish_col_id is not None:
+                ko_row = cal_cur.execute(
+                    f"SELECT value FROM custom_column_{ko_finish_col_id} WHERE book = ?",
+                    (calibre_id,),
+                ).fetchone()
+                if ko_row:
+                    date_lecture = extract_date_koreader(ko_row["value"])
+            if date_lecture is None and comment_col_id is not None:
                 comment_row = cal_cur.execute(
                     f"SELECT value FROM custom_column_{comment_col_id} WHERE book = ?",
                     (calibre_id,),
@@ -613,11 +692,28 @@ def import_calibre_data(
                 if comment_row:
                     date_lecture = extract_date_lecture(comment_row["value"])
 
+            # Date de début de lecture : KOReader ko_start
+            date_debut_lecture: str | None = None
+            if ko_start_col_id is not None:
+                ko_row = cal_cur.execute(
+                    f"SELECT value FROM custom_column_{ko_start_col_id} WHERE book = ?",
+                    (calibre_id,),
+                ).fetchone()
+                if ko_row:
+                    date_debut_lecture = extract_date_koreader(ko_row["value"])
+
             cur.execute(
                 """UPDATE palmares
-                   SET calibre_in_library = 1, calibre_lu = ?, calibre_rating = ?, date_lecture = ?
+                   SET calibre_in_library = 1, calibre_lu = ?, calibre_rating = ?,
+                       date_lecture = ?, date_debut_lecture = ?
                    WHERE livre_id = ?""",
-                (calibre_lu, calibre_rating, date_lecture, livre_id),
+                (
+                    calibre_lu,
+                    calibre_rating,
+                    date_lecture,
+                    date_debut_lecture,
+                    livre_id,
+                ),
             )
             matched += 1
 
@@ -646,7 +742,7 @@ def build_calibre_hors_masque_table(
         cal_con.row_factory = sqlite3.Row
         cal_cur = cal_con.cursor()
 
-        # Trouve les colonnes personnalisées (read, text/Commentaire)
+        # Trouve les colonnes personnalisées (read, text/Commentaire, KOReader)
         read_col_id: int | None = None
         row = cal_cur.execute(
             "SELECT id FROM custom_columns WHERE label = 'read'"
@@ -660,6 +756,20 @@ def build_calibre_hors_masque_table(
         ).fetchone()
         if row:
             comment_col_id = row["id"]
+
+        ko_finish_col_id: int | None = None
+        row = cal_cur.execute(
+            "SELECT id FROM custom_columns WHERE label = 'ko_finish'"
+        ).fetchone()
+        if row:
+            ko_finish_col_id = row["id"]
+
+        ko_start_col_id: int | None = None
+        row = cal_cur.execute(
+            "SELECT id FROM custom_columns WHERE label = 'ko_start'"
+        ).fetchone()
+        if row:
+            ko_start_col_id = row["id"]
 
         # Charge les livres Calibre (avec filtre bibliothèque virtuelle si fourni)
         if virtual_library_tag:
@@ -737,9 +847,16 @@ def build_calibre_hors_masque_table(
             if rating_row and rating_row["rating"] is not None:
                 calibre_rating = float(rating_row["rating"])
 
-            # Date de lecture
+            # Date de fin de lecture : KOReader ko_finish en priorité, sinon Commentaire
             date_lecture: str | None = None
-            if comment_col_id is not None:
+            if ko_finish_col_id is not None:
+                ko_row = cal_cur.execute(
+                    f"SELECT value FROM custom_column_{ko_finish_col_id} WHERE book = ?",
+                    (cal_id,),
+                ).fetchone()
+                if ko_row:
+                    date_lecture = extract_date_koreader(ko_row["value"])
+            if date_lecture is None and comment_col_id is not None:
                 comment_row = cal_cur.execute(
                     f"SELECT value FROM custom_column_{comment_col_id} WHERE book = ?",
                     (cal_id,),
@@ -747,11 +864,28 @@ def build_calibre_hors_masque_table(
                 if comment_row:
                     date_lecture = extract_date_lecture(comment_row["value"])
 
+            # Date de début de lecture : KOReader ko_start
+            date_debut_lecture: str | None = None
+            if ko_start_col_id is not None:
+                ko_row = cal_cur.execute(
+                    f"SELECT value FROM custom_column_{ko_start_col_id} WHERE book = ?",
+                    (cal_id,),
+                ).fetchone()
+                if ko_row:
+                    date_debut_lecture = extract_date_koreader(ko_row["value"])
+
             cur.execute(
                 """INSERT OR REPLACE INTO calibre_hors_masque
-                   (id, titre, auteur_nom, calibre_rating, date_lecture)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (norm, titre, auteur_nom, calibre_rating, date_lecture),
+                   (id, titre, auteur_nom, calibre_rating, date_lecture, date_debut_lecture)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (
+                    norm,
+                    titre,
+                    auteur_nom,
+                    calibre_rating,
+                    date_lecture,
+                    date_debut_lecture,
+                ),
             )
             seen_norms.add(norm)
             inserted += 1
@@ -1224,9 +1358,7 @@ def write_metadata(cur: sqlite3.Cursor) -> None:
     ]
     cur.executemany("INSERT OR REPLACE INTO db_metadata VALUES (?,?)", metadata)
 
-    # user_version = version du schéma Room — doit correspondre à @Database(version=N) dans LmelpDatabase.kt
-    # v3 : ajout table onkindle (issue #52)
-    cur.execute("PRAGMA user_version = 6")
+    cur.execute(f"PRAGMA user_version = {ROOM_VERSION}")
 
     logger.info(
         f"  Metadata: version={version}, date={now.strftime('%Y-%m-%d')}, "
@@ -1339,6 +1471,8 @@ def main(
     if verify:
         verify_database(Path(verify))
         return
+
+    _check_room_version_consistency()
 
     output_path = Path(output)
 

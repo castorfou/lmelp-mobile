@@ -69,6 +69,8 @@ build/
 # Debug SQLite exports (sauf la DB embarquée dans l'APK)
 /tmp/
 *.db
+*.db-shm
+*.db-wal
 !app/src/main/assets/lmelp.db
 !app/src/main/assets/*.db.sha256
 
