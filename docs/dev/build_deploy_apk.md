@@ -103,6 +103,10 @@ le comportement viens de `scripts/.env` (precedemment on avait des parametres ma
 python scripts/export_mongo_to_sqlite.py --force
 ```
 
+### tests de fraîcheur de la DB (issue #102)
+
+`tests/test_lmelp_db_integrity.py` contient une classe `TestFraicheurDB` qui vérifie (si MongoDB est accessible localement) que toutes les émissions MongoDB sont présentes dans `lmelp.db` et que la date d'export est postérieure à la dernière émission MongoDB. Ces tests sont skippés automatiquement en CI si MongoDB est indisponible.
+
 ### après regénération : forcer la recopie sur le device
 
 Room copie `lmelp.db` depuis les assets une seule fois. Si la version Room n'a
@@ -112,6 +116,8 @@ pas changé, désinstaller et réinstaller pour forcer la recopie :
 adb uninstall com.lmelp.mobile
 ./gradlew installDebug
 ```
+
+> ⚠️ **`user_version` = timestamp Unix** : le script d'export écrit `PRAGMA user_version = <timestamp>` à chaque génération. Room (et le push ADB direct via `lmelp-update-mobile`) utilise cette valeur pour détecter si la DB est plus récente. Si deux exports successifs ont le même timestamp (cas rare), Room peut ignorer la mise à jour. Toujours vérifier que l'`export_date` a bien changé après un export (voir issue #102).
 
 ## cache couvertures (Coil)
 

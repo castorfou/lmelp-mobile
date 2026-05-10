@@ -146,6 +146,8 @@ Le container `lmelp-export` tourne en daemon avec la stack `docker-lmelp`. Il :
 
 Le service `lmelp-export` est défini dans le `docker-compose.yml` du repo `castorfou/docker-lmelp`.
 
+⚠️ **`user_version` = timestamp Unix** : le script d'export écrit `PRAGMA user_version = <timestamp>` à chaque génération. Room utilise cette valeur pour détecter si la DB dans les assets est plus récente que celle sur le téléphone — même lors d'un push ADB direct. Si le container pousse une DB avec un `user_version` identique à celui déjà en place, Room peut ignorer la mise à jour et conserver l'ancienne en cache (voir issue #102).
+
 ## Architecture MVVM
 
 ```
