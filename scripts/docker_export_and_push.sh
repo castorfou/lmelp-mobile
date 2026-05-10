@@ -107,6 +107,16 @@ if [[ "$IS_DEBUGGABLE" -eq 0 ]]; then
     die "L'app installée n'est pas en mode debug — run-as non disponible.\nInstallez le build debug : scripts/build.sh && scripts/deploy.sh"
 fi
 
+info "Arrêt de l'app avant le remplacement de la base..."
+$ADB shell am force-stop "$APP_PACKAGE"
+sleep 1
+
+# Room utilise le mode WAL (Write-Ahead Logging) : lmelp.db-shm et lmelp.db-wal
+# doivent être supprimés avant de remplacer lmelp.db, sinon SQLite détecte une
+# incohérence DB/WAL → erreur "no such table: search_index" → rollback (issue #101).
+info "Suppression des fichiers WAL résiduels..."
+$ADB shell run-as "$APP_PACKAGE" rm -f databases/lmelp.db-shm databases/lmelp.db-wal || true
+
 info "Copie dans le répertoire privé de l'app..."
 $ADB shell run-as "$APP_PACKAGE" cp "$TMP_REMOTE" databases/lmelp.db
 
@@ -117,8 +127,6 @@ $ADB shell rm -f "$TMP_REMOTE"
 # 6. Redémarrage de l'app
 # ---------------------------------------------------------------------------
 info "Redémarrage de l'app..."
-$ADB shell am force-stop "$APP_PACKAGE"
-sleep 1
 $ADB shell am start -n "${APP_PACKAGE}/.MainActivity" || true
 
 echo ""
