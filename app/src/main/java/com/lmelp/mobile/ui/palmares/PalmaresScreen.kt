@@ -279,6 +279,9 @@ fun MonPalmaresCard(item: MonPalmaresItemUi, onLivreClick: (String) -> Unit) {
                         color = Color(0xFF2E7D32)
                     )
                 }
+                item.noteMoyenne?.let {
+                    NoteBadge(note = it)
+                }
             }
         }
     }

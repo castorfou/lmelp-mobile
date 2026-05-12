@@ -191,7 +191,8 @@ data class MonPalmaresItemUi(
     val dateDebutLecture: String? = null,
     val livreId: String? = null,
     val urlCover: String? = null,
-    val joursLecture: Int? = null
+    val joursLecture: Int? = null,
+    val noteMoyenne: Double? = null
 )
 
 data class DbInfoUi(
