@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PushPin
@@ -169,9 +171,13 @@ fun OnKindleContent(
             uiState.error != null -> ErrorMessage(uiState.error)
             uiState.livres.isEmpty() -> EmptyState("Aucun livre sur la liseuse")
             else -> {
+                val listState = rememberLazyListState()
+                LaunchedEffect(uiState.afficherLus, uiState.afficherNonLus, uiState.triMode) {
+                    listState.scrollToItem(0)
+                }
                 val pinnedLivres = uiState.livres.filter { it.isPinned }
                 val nonPinnedLivres = uiState.livres.filter { !it.isPinned }
-                LazyColumn {
+                LazyColumn(state = listState) {
                     items(pinnedLivres, key = { it.livreId }) { item ->
                         OnKindleCard(
                             item = item,
