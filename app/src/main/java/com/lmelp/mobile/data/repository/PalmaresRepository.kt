@@ -169,7 +169,8 @@ class PalmaresRepository(
         dateLecture = dateLecture,
         dateDebutLecture = dateDebutLecture,
         livreId = livreId,
-        urlCover = urlCover
+        urlCover = urlCover,
+        noteMoyenne = noteMoyenne
     )
 
     private fun CalibreHorsMasqueEntity.toItemUi() = MonPalmaresItemUi(
