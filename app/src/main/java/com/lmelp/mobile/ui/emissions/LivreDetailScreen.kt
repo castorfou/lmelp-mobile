@@ -1,5 +1,6 @@
 package com.lmelp.mobile.ui.emissions
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -36,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -105,6 +108,7 @@ fun LivreDetailContent(
     onCritiqueClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var showCoverFullscreen by remember { mutableStateOf(false) }
 
     if (showCoverFullscreen && livre.urlCover != null) {
@@ -186,8 +190,27 @@ fun LivreDetailContent(
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    livre.noteMoyenne?.let {
-                        NoteBadge(note = it, fontSize = 32.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        livre.urlBabelio?.let { url ->
+                            IconButton(
+                                onClick = {
+                                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                        putExtra(Intent.EXTRA_TEXT, url)
+                                        type = "text/plain"
+                                    }
+                                    context.startActivity(Intent.createChooser(sendIntent, null))
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = "Partager",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                        livre.noteMoyenne?.let {
+                            NoteBadge(note = it, fontSize = 32.sp)
+                        }
                     }
                     CalibreBadge(
                         calibreInLibrary = livre.calibreInLibrary,
