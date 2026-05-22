@@ -64,6 +64,8 @@ Si le device ne s'affiche pas :
 - un `adb kill-server` peut aider, revoquer les autorisations de debogage USB, et relancer `adb devices` (une popup d'autorisation doit arriver)
 - il faut aussi que le debogage USB soit active
 
+Parfois un reboot du téléphone peut aider.
+
 
 ```bash
 # liste les telephones connectes en USB
