@@ -12,7 +12,9 @@
 >     manuellement depuis une machine **GPU avec whisper** en fournissant le `.m4a` depuis `docker-lmelp/data/audios`, et en retour copie du fichier `.txt` dans `docker-lmelp/data/audios`
 >     ```bash
 >     # exemple en utilisant le PGX
->     scp git/docker-lmelp/data/audios/2026/14007-10.05.2026-ITEMA_24506307-2026F4007S0130-NET_MFI_8DBE1787-617F-448E-8CE2-33512DAB177D-27-45c045c235ee8b70bf0e486024ad25c4.m4a f279814@thinkstationpgx-d7ba.local:/home/f279814/git/whisper-docker/docker/data/audios/2026
+>     export LAST_M4A=$(find ~/git/docker-lmelp/data/audios/ -type f -name '*.m4a' -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2-)
+>     echo "$LAST_M4A"
+>     scp "$LAST_M4A" f279814@thinkstationpgx-d7ba.local:/home/f279814/git/whisper-docker/docker/data/audios/$(basename "$(dirname "$LAST_M4A")")
 >     ```
 >
 > ![](img/favicon_lmelp-frontoffice.png) depuis **lmelp-frontoffice**:
@@ -20,7 +22,18 @@
 > ??? info "mode d'emploi - copie transcription"
 >     ```bash
 >     # exemple en utilisant le PGX
->     scp f279814@thinkstationpgx-d7ba.local:/home/f279814/git/whisper-docker/docker/data/transcriptions/2026/14007-10.05.2026-ITEMA_24506307-2026F4007S0130-NET_MFI_8DBE1787-617F-448E-8CE2-33512DAB177D-27-45c045c235ee8b70bf0e486024ad25c4.txt git/docker-lmelp/data/audios/2026
+>     BASENAME=$(basename "$LAST_M4A" .m4a)
+>     YEAR=$(basename "$(dirname "$LAST_M4A")")
+>     REMOTE_TXT="/home/f279814/git/whisper-docker/docker/data/transcriptions/$YEAR/$BASENAME.txt"
+>     LOCAL_DIR="$(dirname "$LAST_M4A")"
+>
+>     until ssh f279814@thinkstationpgx-d7ba.local "test -f '$REMOTE_TXT'"; do
+>       echo "en attente de la transcription..."
+>       sleep 10
+>     done
+>
+>     scp f279814@thinkstationpgx-d7ba.local:"$REMOTE_TXT" "$LOCAL_DIR"
+>     echo "Transcription récupérée : $LOCAL_DIR/$BASENAME.txt"
 >     ```
 >
 > - ![](img/telecharger_transcriptions.png) charge le fichier de transcription (gestion de cache) dans le champ transcription de l'épisode (mongo/episodes)
