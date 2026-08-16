@@ -6,6 +6,13 @@
 >
 > - ![](img/rafraichir.png) télécharge l'enregistrement audio dans `docker-lmelp/data/audios`
 >
+> ??? info "en cas de détection de type incorrect"
+>     il y a un mécanisme de détection automatique du type d'épisodes (film/théâtre/livre) mais parfois cela disfonctionne et un épisode film ou théâtre peut être injustement détecté comme livre
+>
+>     dans ce cas il faut "cacher" l'épisode incorrectement détecté en allant dans lmelp-backoffice - frontend, masquert les épisodes et jouer sur la visibilité de l'épisode (passer de visible à masqué)
+>
+>     et supprimer le fichier .m4a correspondant
+>
 > ![](img/favicon_whisper.png) transcription de l'épisode
 >
 > ??? info "mode d'emploi - whisper"
