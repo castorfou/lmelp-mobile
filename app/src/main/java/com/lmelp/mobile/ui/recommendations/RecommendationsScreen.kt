@@ -28,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.data.model.RecommendationUi
 import com.lmelp.mobile.data.repository.RecommendationsRepository
 import com.lmelp.mobile.ui.components.BookCoverThumbnail
+import com.lmelp.mobile.ui.components.CalibreBadge
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
@@ -105,6 +106,11 @@ fun RecommendationCard(item: RecommendationUi, displayRank: Int, onClick: () -> 
                 Text(text = item.titre, style = MaterialTheme.typography.titleSmall)
                 item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
+            CalibreBadge(
+                calibreInLibrary = item.calibreInLibrary,
+                calibreLu = item.calibreLu,
+                calibreRating = item.calibreRating
+            )
             item.masqueMean?.let { NoteBadge(note = it) }
         }
     }
