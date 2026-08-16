@@ -12,7 +12,13 @@
 >     manuellement depuis une machine **GPU avec whisper** en fournissant le `.m4a` depuis `docker-lmelp/data/audios`, et en retour copie du fichier `.txt` dans `docker-lmelp/data/audios`
 >     ```bash
 >     # exemple en utilisant le PGX
->     export LAST_M4A=$(find ~/git/docker-lmelp/data/audios/ -type f -name '*.m4a' -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2-)
+>     # tri par la date DD.MM.YYYY présente dans le nom de fichier (et non par mtime,
+>     # qui peut être trompeur si un ancien fichier a été retouché/re-téléchargé récemment)
+>     export LAST_M4A=$(find ~/git/docker-lmelp/data/audios/ -type f -name '*.m4a' | \
+>       while read -r f; do
+>         d=$(basename "$f" | grep -oE '[0-9]{2}\.[0-9]{2}\.[0-9]{4}')
+>         echo "${d:6:4}${d:3:2}${d:0:2} $f"
+>       done | sort -n | tail -1 | cut -d' ' -f2-)
 >     echo "$LAST_M4A"
 >     scp "$LAST_M4A" f279814@thinkstationpgx-d7ba.local:/home/f279814/git/whisper-docker/docker/data/audios/$(basename "$(dirname "$LAST_M4A")")
 >     ```
