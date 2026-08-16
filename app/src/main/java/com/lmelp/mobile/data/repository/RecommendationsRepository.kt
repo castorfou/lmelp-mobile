@@ -16,7 +16,10 @@ class RecommendationsRepository(
                 auteurNom = it.auteurNom,
                 scoreHybride = it.scoreHybride,
                 masqueMean = it.masqueMean,
-                urlCover = it.urlCover
+                urlCover = it.urlCover,
+                calibreInLibrary = it.calibreInLibrary == 1,
+                calibreLu = it.calibreLu == 1,
+                calibreRating = null
             )
         }
     }

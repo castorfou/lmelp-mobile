@@ -114,7 +114,10 @@ data class RecommendationUi(
     val auteurNom: String?,
     val scoreHybride: Double,
     val masqueMean: Double?,
-    val urlCover: String? = null
+    val urlCover: String? = null,
+    val calibreInLibrary: Boolean = false,
+    val calibreLu: Boolean = false,
+    val calibreRating: Double? = null
 )
 
 data class SearchResultUi(
