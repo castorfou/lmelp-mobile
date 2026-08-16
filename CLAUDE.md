@@ -128,6 +128,16 @@ adb uninstall com.lmelp.mobile
 ./gradlew installDebug
 ```
 
+⚠️ **`scripts/deploy.sh` ne suffit pas seul** : il fait `adb install -r` (mise
+à jour d'une app déjà installée), qui **ne déclenche pas** la recopie de
+l'asset `lmelp.db` par Room. Après une régénération de `lmelp.db` sans
+changement de version Room, toujours désinstaller d'abord (voir issue #112) :
+
+```bash
+adb uninstall com.lmelp.mobile
+scripts/build.sh && scripts/deploy.sh
+```
+
 ### Mise à jour DB sur le téléphone sans recompiler l'APK (issue #81)
 
 Pour pousser une nouvelle base directement sur le téléphone (sans rebuild APK) :

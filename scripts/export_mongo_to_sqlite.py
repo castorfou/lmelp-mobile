@@ -476,7 +476,7 @@ def export_avis_critiques(
 
 
 def compute_palmares(cur: sqlite3.Cursor) -> None:
-    logger.info("Computing palmares (nb_avis >= 2)...")
+    logger.info("Computing palmares (tous livres avec au moins 1 avis noté)...")
     cur.execute("""
         INSERT INTO palmares (rank, livre_id, titre, auteur_nom,
                               note_moyenne, nb_avis, nb_critiques)
@@ -492,7 +492,6 @@ def compute_palmares(cur: sqlite3.Cursor) -> None:
         JOIN livres l ON l.id = a.livre_id
         WHERE a.note IS NOT NULL
         GROUP BY l.id
-        HAVING COUNT(a.id) >= 2
         ORDER BY AVG(a.note) DESC
     """)
     count = cur.execute("SELECT COUNT(*) FROM palmares").fetchone()[0]
