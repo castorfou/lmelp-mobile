@@ -67,7 +67,7 @@ fun LmelpNavHost(
         }
 
         composable(Routes.ABOUT) {
-            AboutScreen()
+            AboutScreen(repository = app.metadataRepository)
         }
 
         composable(

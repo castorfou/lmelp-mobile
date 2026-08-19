@@ -41,6 +41,8 @@ docker exec lmelp-export export-and-push
 
 L'image `ghcr.io/castorfou/lmelp-mobile-export` est publiée automatiquement depuis ce repo (CI/CD sur `Dockerfile.export`). Le service `lmelp-export` est configuré dans le repo `castorfou/docker-lmelp` ([issue #41](https://github.com/castorfou/docker-lmelp/issues/41)).
 
+> ⚠️ **Ce mécanisme ADB reste valable pour le déploiement APK en dev/debug**, mais n'est plus la cible pour la seule mise à jour des données : voir l'ADR [0001 — Séparer mise à jour appli / mise à jour données](adr/0001-separation-maj-appli-donnees.md) ([issue #116](https://github.com/castorfou/lmelp-mobile/issues/116)), qui décrit le passage à une publication `lmelp.db` en GitHub Release téléchargeable en HTTP, sans ADB.
+
 ## build apk depuis vscode
 
 ```bash
@@ -63,8 +65,7 @@ Si le device ne s'affiche pas :
 
 - un `adb kill-server` peut aider, revoquer les autorisations de debogage USB, et relancer `adb devices` (une popup d'autorisation doit arriver)
 - il faut aussi que le debogage USB soit active
-
-Parfois un reboot du téléphone peut aider.
+- **si `lsusb`/le gestionnaire de périphériques voit bien le téléphone mais que `adb devices` reste vide malgré `adb kill-server && adb -a start-server`** : redémarrer le téléphone résout souvent le problème (vécu régulièrement, cause exacte non identifiée côté adb/udev) — à essayer avant de creuser plus loin.
 
 
 ```bash

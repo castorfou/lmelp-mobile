@@ -1,5 +1,8 @@
 ## Ajouter l'épisode à la base de données LMELP
 
+!!! info "Évolution en cours"
+    La procédure ADB décrite plus bas pour mettre à jour la base sur le téléphone est en cours de remplacement par un téléchargement HTTP direct depuis l'application, sans branchement USB — voir l'[ADR 0001](../dev/adr/0001-separation-maj-appli-donnees.md) et l'[issue #116](https://github.com/castorfou/lmelp-mobile/issues/116). Cette page reste la procédure de référence tant que l'implémentation côté app n'est pas livrée ([issue #118](https://github.com/castorfou/lmelp-mobile/issues/118)).
+
 à la diffusion d'un nouvel épisode de l'émission, j'ai pas mal de boulot :
 
 > ![](img/favicon_lmelp-frontoffice.png) depuis **lmelp-frontoffice** :
@@ -146,5 +149,6 @@ Si `adb devices` ne voit pas le téléphone :
 - Vérifier que le mode USB est sur **Transfert de fichiers**
 - Valider la popup "Autoriser le débogage USB" sur le téléphone
 - En dernier recours : `adb kill-server && adb -a start-server`
+- En tout dernier recours : redémarre le téléphone, ça a solutionné plusieurs fois le problème
 
 Voir aussi [docs/dev/build_deploy_apk.md](../dev/build_deploy_apk.md) pour le diagnostic complet.

@@ -1,0 +1,76 @@
+name: Publish Data Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      db_path:
+        description: "Chemin d'un lmelp.db déjà généré à publier (laisser vide pour regénérer depuis MONGO_URI)"
+        required: false
+        default: ""
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install pymongo numpy scipy click
+
+      - name: Export MongoDB to SQLite
+        if: ${{ inputs.db_path == '' }}
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+        run: |
+          python scripts/export_mongo_to_sqlite.py \
+            --mongo-uri "$MONGO_URI" \
+            --output /tmp/lmelp.db \
+            --force
+
+      - name: Resolve db path
+        id: db
+        run: |
+          if [ -n "${{ inputs.db_path }}" ]; then
+            echo "path=${{ inputs.db_path }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=/tmp/lmelp.db" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify SQLite database
+        run: |
+          python scripts/export_mongo_to_sqlite.py --verify "${{ steps.db.outputs.path }}"
+
+      - name: Stage release asset as lmelp.db
+        run: cp "${{ steps.db.outputs.path }}" /tmp/lmelp-release.db
+
+      - name: Generate metadata.json
+        run: |
+          python scripts/generate_data_release_metadata.py \
+            --db /tmp/lmelp-release.db \
+            --output /tmp/metadata.json
+
+      - name: Rename release asset to lmelp.db
+        run: mv /tmp/lmelp-release.db /tmp/lmelp.db
+
+      - name: Publish data release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: data-latest
+          name: "lmelp-mobile — données"
+          body: |
+            ## Base de données lmelp
+
+            Publiée automatiquement (workflow `publish-data-release.yml`).
+            Voir `metadata.json` pour la date d'export, le nombre d'émissions/livres/avis et le SHA-256.
+          files: |
+            /tmp/lmelp.db
+            /tmp/metadata.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

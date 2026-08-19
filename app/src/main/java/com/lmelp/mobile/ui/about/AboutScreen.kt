@@ -12,13 +12,24 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.BuildConfig
+import com.lmelp.mobile.data.model.DbInfoUi
+import com.lmelp.mobile.data.repository.MetadataRepository
+import com.lmelp.mobile.viewmodel.AboutViewModel
 
 data class ChangelogEntry(val hash: String, val message: String, val date: String)
+
+/** Résumé lisible des infos DB pour AboutScreen (issue #116). */
+fun formatDbInfoSummary(dbInfo: DbInfoUi): String =
+    "Export du ${dbInfo.exportDate} — " +
+        "${dbInfo.nbEmissions} émissions, ${dbInfo.nbLivres} livres, ${dbInfo.nbAvis} avis"
 
 fun parseChangelog(raw: String): List<ChangelogEntry> {
     if (raw.isBlank()) return emptyList()
@@ -32,11 +43,14 @@ fun parseChangelog(raw: String): List<ChangelogEntry> {
 }
 
 @Composable
-fun AboutScreen(modifier: Modifier = Modifier) {
+fun AboutScreen(repository: MetadataRepository, modifier: Modifier = Modifier) {
+    val viewModel: AboutViewModel = viewModel(factory = AboutViewModel.Factory(repository))
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     AboutContent(
         gitCommit = BuildConfig.GIT_COMMIT,
         buildDate = BuildConfig.BUILD_DATE,
         changelog = BuildConfig.CHANGELOG,
+        dbInfo = uiState.dbInfo,
         modifier = modifier
     )
 }
@@ -46,6 +60,7 @@ fun AboutContent(
     gitCommit: String,
     buildDate: String,
     changelog: String,
+    dbInfo: DbInfoUi? = null,
     modifier: Modifier = Modifier
 ) {
     val entries = remember(changelog) { parseChangelog(changelog) }
@@ -72,6 +87,23 @@ fun AboutContent(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+
+        if (dbInfo != null) {
+            item {
+                Text(
+                    text = "Données",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = formatDbInfoSummary(dbInfo),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                HorizontalDivider(modifier = Modifier.padding(bottom = 16.dp))
             }
         }
 
