@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # docker_export_and_publish_release.sh — Exporte lmelp.db et le publie en asset
-# de la GitHub Release "data-latest" (issue #116).
+# de la GitHub Release data-latest (issue #116).
 #
 # Ce script tourne DANS le container lmelp-export (voir Dockerfile.export),
 # invoqué manuellement (docker exec lmelp-export export-and-publish-release)
@@ -19,6 +19,9 @@
 #                                       sur castorfou/lmelp-mobile (voir
 #                                       docker-lmelp#56 pour le provisioning)
 #   GH_REPO                          — repo cible (défaut: castorfou/lmelp-mobile)
+#   RELEASE_TAG                      — tag de la release à publier (défaut:
+#                                       data-latest ; utile pour tester sur un
+#                                       tag jetable sans toucher data-latest)
 
 set -euo pipefail
 
@@ -37,8 +40,9 @@ die()     { echo -e "${RED}[ERR]${NC}  $*" >&2; exit 1; }
 DB_OUTPUT="/tmp/lmelp.db"
 METADATA_OUTPUT="/tmp/metadata.json"
 GH_REPO="${GH_REPO:-castorfou/lmelp-mobile}"
+RELEASE_TAG="${RELEASE_TAG:-data-latest}"
 
-echo -e "\n${BOLD}=== lmelp-mobile : Export et publication de la Release data-latest ===${NC}\n"
+echo -e "\n${BOLD}=== lmelp-mobile : Export et publication de la Release ${RELEASE_TAG} ===${NC}\n"
 
 # ---------------------------------------------------------------------------
 # 1. Vérifier les pré-requis
@@ -94,19 +98,19 @@ python /app/scripts/generate_data_release_metadata.py \
 success "Métadonnées générées : $METADATA_OUTPUT"
 
 # ---------------------------------------------------------------------------
-# 6. Publication sur GitHub Release "data-latest"
+# 6. Publication sur GitHub Release
 # ---------------------------------------------------------------------------
-info "Publication sur ${GH_REPO} (release data-latest)..."
+info "Publication sur ${GH_REPO} (release ${RELEASE_TAG})..."
 
-if ! gh release view data-latest --repo "$GH_REPO" >/dev/null 2>&1; then
-    info "Release data-latest absente, création..."
-    gh release create data-latest \
+if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+    info "Release ${RELEASE_TAG} absente, création..."
+    gh release create "$RELEASE_TAG" \
         --repo "$GH_REPO" \
         --title "lmelp-mobile — données" \
         --notes "Base de données lmelp, publiée automatiquement. Voir metadata.json pour la date d'export et le SHA-256."
 fi
 
-gh release upload data-latest "$DB_OUTPUT" "$METADATA_OUTPUT" \
+gh release upload "$RELEASE_TAG" "$DB_OUTPUT" "$METADATA_OUTPUT" \
     --repo "$GH_REPO" \
     --clobber
 
