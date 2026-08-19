@@ -6,3 +6,6 @@ nav:
   - État local utilisateur (DataStore): local-state-datastore.md
   - Android Auto: android-auto.md
   - Héritage PyFoundry: pyfoundry.md
+  - ADR:
+    - adr/README.md
+    - adr/0001-separation-maj-appli-donnees.md

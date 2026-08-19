@@ -156,7 +156,13 @@ Le container `lmelp-export` tourne en daemon avec la stack `docker-lmelp`. Il :
 
 Le service `lmelp-export` est défini dans le `docker-compose.yml` du repo `castorfou/docker-lmelp`.
 
-⚠️ **`user_version` = timestamp Unix** : le script d'export écrit `PRAGMA user_version = <timestamp>` à chaque génération. Room utilise cette valeur pour détecter si la DB dans les assets est plus récente que celle sur le téléphone — même lors d'un push ADB direct. Si le container pousse une DB avec un `user_version` identique à celui déjà en place, Room peut ignorer la mise à jour et conserver l'ancienne en cache (voir issue #102).
+⚠️ **`PRAGMA user_version` ≠ timestamp** : `PRAGMA user_version` est un entier **fixe** égal au numéro de schéma Room (`ROOM_VERSION` dans le script d'export, synchronisé avec `version = N` dans `LmelpDatabase.kt`) — il ne change qu'en cas de migration de schéma, pas à chaque export. Le **timestamp Unix de l'export** est stocké séparément dans la table `db_metadata` (clé `version`), avec `export_date`/`export_datetime`. Room utilise `PRAGMA user_version` pour détecter une incompatibilité de schéma (déclenchant `fallbackToDestructiveMigration()`), pas pour détecter une DB « plus récente » au sens fraîcheur des données — c'est `db_metadata.export_date`/`version` qu'il faut comparer pour ça (voir issue #102, et l'ADR [0001](docs/dev/adr/0001-separation-maj-appli-donnees.md) pour le futur mécanisme de détection de mise à jour côté app).
+
+### Mise à jour DB sans ADB (cible, issue #116)
+
+Le mécanisme ADB ci-dessus (USB + laptop + build debug) devient impraticable avec la migration de `docker-lmelp` vers un NAS ([docker-lmelp#47](https://github.com/castorfou/docker-lmelp/issues/47)) — plus de laptop branché en USB en usage courant. La cible retenue : publier `lmelp.db` comme asset d'une **GitHub Release dédiée** (`data-latest`), téléchargeable en HTTP par l'app elle-même, sans dépendance ADB/USB/build debug.
+
+Voir l'ADR complet : [docs/dev/adr/0001-separation-maj-appli-donnees.md](docs/dev/adr/0001-separation-maj-appli-donnees.md). Le mécanisme ADB ci-dessus reste documenté et fonctionnel comme solution **legacy/dev-only** tant que l'implémentation Kotlin du téléchargement (issue de suivi [#118](https://github.com/castorfou/lmelp-mobile/issues/118)) n'est pas livrée.
 
 ## Architecture MVVM
 

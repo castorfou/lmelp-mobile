@@ -1,10 +1,21 @@
 FROM python:3.11-slim
 
-# Install ADB and system dependencies
+# Install ADB, anacron, gh CLI and system dependencies.
+# anacron : publication automatique de la Release data-latest (issue #116),
+# suit le même pattern que mongodb.Dockerfile (repo docker-lmelp) — robuste
+# aux coupures/redémarrages du NAS, contrairement à un cron classique.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     android-tools-adb \
+    anacron \
+    curl \
     gcc \
+    gpg \
     python3-dev \
+    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -15,12 +26,42 @@ COPY pyproject.toml README.md ./
 # Stub src/ pour que pip install -e . réussisse sans le code source complet
 RUN mkdir -p src && pip install --no-cache-dir -e .
 
-# Copy export script
+# Copy export scripts
 COPY scripts/export_mongo_to_sqlite.py scripts/
+COPY scripts/generate_data_release_metadata.py scripts/
 
-# Entrypoint script
+# Entrypoint scripts
 COPY scripts/docker_export_and_push.sh /usr/local/bin/export-and-push
 RUN chmod +x /usr/local/bin/export-and-push
+COPY scripts/docker_export_and_publish_release.sh /usr/local/bin/export-and-publish-release
+RUN chmod +x /usr/local/bin/export-and-publish-release
 
-# En mode daemon : le container reste actif, on appelle export-and-push via docker exec
+# ---------------------------------------------------------------------------
+# anacron : publication quotidienne automatique de data-latest (non bloquant
+# si GH_TOKEN absent — export-and-publish-release échoue proprement dans ce
+# cas, voir docker-lmelp#56 pour le provisioning du secret).
+# ---------------------------------------------------------------------------
+RUN mkdir -p /etc/anacron.daily && \
+    echo '#!/bin/bash' > /etc/anacron.daily/publish-data-release && \
+    echo 'export-and-publish-release >> /var/log/publish-data-release.log 2>&1' \
+        >> /etc/anacron.daily/publish-data-release && \
+    chmod +x /etc/anacron.daily/publish-data-release && \
+    echo '1 10 publish-data-release /etc/anacron.daily/publish-data-release' \
+        >> /etc/anacrontab
+
+# Entrypoint custom : lance la boucle anacron en arrière-plan, puis garde le
+# container actif (pas de process principal de longue durée à exec ici,
+# contrairement à mongodb.Dockerfile).
+RUN echo '#!/bin/bash' > /docker-entrypoint-anacron.sh && \
+    echo 'set -e' >> /docker-entrypoint-anacron.sh && \
+    echo 'mkdir -p /var/spool/anacron /var/log' >> /docker-entrypoint-anacron.sh && \
+    echo '(while true; do anacron -d; sleep "${ANACRON_LOOP_INTERVAL:-3600}"; done) &' \
+        >> /docker-entrypoint-anacron.sh && \
+    echo 'exec "$@"' >> /docker-entrypoint-anacron.sh && \
+    chmod +x /docker-entrypoint-anacron.sh
+
+ENTRYPOINT ["/docker-entrypoint-anacron.sh"]
+
+# En mode daemon : le container reste actif, on appelle export-and-push /
+# export-and-publish-release via docker exec (en plus du job anacron ci-dessus)
 CMD ["sleep", "infinity"]
