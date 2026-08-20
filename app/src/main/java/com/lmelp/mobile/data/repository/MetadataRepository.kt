@@ -17,4 +17,7 @@ class MetadataRepository(
             nbAvis = all["nb_avis"] ?: "—"
         )
     }
+
+    /** Timestamp Unix local (db_metadata.version) — à comparer à RemoteMetadata.exportVersion, jamais PRAGMA user_version (issue #102). */
+    suspend fun getLocalVersion(): String? = metadataDao.getValue("version")
 }

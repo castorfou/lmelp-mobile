@@ -1,7 +1,7 @@
 ## Ajouter l'épisode à la base de données LMELP
 
-!!! info "Évolution en cours"
-    La procédure ADB décrite plus bas pour mettre à jour la base sur le téléphone est en cours de remplacement par un téléchargement HTTP direct depuis l'application, sans branchement USB — voir l'[ADR 0001](../dev/adr/0001-separation-maj-appli-donnees.md) et l'[issue #116](https://github.com/castorfou/lmelp-mobile/issues/116). Cette page reste la procédure de référence tant que l'implémentation côté app n'est pas livrée ([issue #118](https://github.com/castorfou/lmelp-mobile/issues/118)).
+!!! tip "Mise à jour de la base sans USB"
+    Depuis l'implémentation de l'[issue #118](https://github.com/castorfou/lmelp-mobile/issues/118), l'application peut télécharger elle-même la dernière base de données publiée, sans branchement USB ni laptop — voir la section [Mettre à jour la base depuis l'application](#mettre-a-jour-la-base-depuis-lapplication) plus bas. La procédure ADB décrite ensuite reste utile en développement local (build debug, test avant publication de la release).
 
 à la diffusion d'un nouvel épisode de l'émission, j'ai pas mal de boulot :
 
@@ -69,9 +69,21 @@
 
 à l'issue de tout cela la base de données a été enrichie avec ce nouvel episode
 
-## Intégrer la nouvelle base de données LMELP à l'application mobile
+## Mettre à jour la base depuis l'application
 
-Le logiciel lmelp-mobile ne change pas, seule la base de données évolue.
+Une fois la base de données enrichie côté serveur (section précédente) et publiée automatiquement sur la GitHub Release `data-latest` (voir [ADR 0001](../dev/adr/0001-separation-maj-appli-donnees.md)), l'application mobile peut récupérer la nouvelle version elle-même :
+
+1. Ouvrir l'écran **À propos** (icône ⚙️ en haut à droite de l'accueil — un point vert y apparaît automatiquement si une mise à jour a été détectée au lancement de l'app).
+2. Appuyer sur **Vérifier les mises à jour** (ou directement sur **Mettre à jour** si le point vert était déjà présent).
+3. L'app télécharge la base (~5 Mo), vérifie son intégrité, puis l'installe.
+4. Un message **"Mise à jour appliquée ! Veuillez rouvrir l'application."** s'affiche puis l'app se ferme.
+5. Rouvrir l'app depuis l'écran d'accueil du téléphone — les nouvelles données sont disponibles.
+
+Le téléchargement nécessite une connexion internet mais reste **entièrement optionnel** : sans réseau, l'app continue de fonctionner normalement avec les données déjà en local (principe offline-first).
+
+## Intégrer la nouvelle base de données LMELP à l'application mobile (legacy, dev-only)
+
+Le logiciel lmelp-mobile ne change pas, seule la base de données évolue. Cette procédure ADB reste utile en développement local (test d'un build debug) mais n'est plus nécessaire en usage courant depuis la section précédente.
 
 ### Pré-requis
 

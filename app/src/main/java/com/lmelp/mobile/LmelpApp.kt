@@ -7,8 +7,10 @@ import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.lmelp.mobile.data.db.LmelpDatabase
+import com.lmelp.mobile.data.remote.OkHttpGitHubReleaseApi
 import com.lmelp.mobile.data.repository.AuteursRepository
 import com.lmelp.mobile.data.repository.CritiquesRepository
+import com.lmelp.mobile.data.repository.DataUpdateRepository
 import com.lmelp.mobile.data.repository.EmissionsRepository
 import com.lmelp.mobile.data.repository.HomeRepository
 import com.lmelp.mobile.data.repository.LivresRepository
@@ -18,12 +20,25 @@ import com.lmelp.mobile.data.repository.PalmaresRepository
 import com.lmelp.mobile.data.repository.RecommendationsRepository
 import com.lmelp.mobile.data.repository.SearchRepository
 import com.lmelp.mobile.data.repository.UserPreferencesRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okio.Path.Companion.toOkioPath
 
 class LmelpApp : Application() {
 
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onCreate() {
         super.onCreate()
+
+        // Check silencieux de MAJ des données au lancement (issue #118) : best-effort,
+        // ne télécharge jamais automatiquement, résultat mis en cache dans
+        // dataUpdateRepository.lastCheckResult, aucune UI en cas d'échec (offline-first).
+        applicationScope.launch {
+            dataUpdateRepository.checkForUpdateAndCache()
+        }
         // Cache des images dans getExternalFilesDir() → /sdcard/Android/data/com.lmelp.mobile/files/
         // Ce répertoire est effacé par Android 11+ lors d'une désinstallation (protection vie privée).
         // La sauvegarde via Android Backup (backup_rules.xml / data_extraction_rules.xml) permet de
@@ -77,5 +92,8 @@ class LmelpApp : Application() {
             database.recommendationsDao(),
             database.onKindleDao()
         )
+    }
+    val dataUpdateRepository by lazy {
+        DataUpdateRepository(OkHttpGitHubReleaseApi(), metadataRepository)
     }
 }
