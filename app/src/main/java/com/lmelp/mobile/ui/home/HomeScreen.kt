@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -64,6 +65,7 @@ import coil3.compose.AsyncImage
 import com.lmelp.mobile.R
 import com.lmelp.mobile.data.model.DerniereEmissionUi
 import com.lmelp.mobile.data.model.SlideItem
+import com.lmelp.mobile.data.repository.DataUpdateRepository
 import com.lmelp.mobile.data.repository.HomeRepository
 import com.lmelp.mobile.ui.components.NoteBadge
 import com.lmelp.mobile.ui.theme.LmelpBleu
@@ -79,9 +81,12 @@ fun HomeScreen(
     repository: HomeRepository,
     onNavigate: (String) -> Unit,
     onSettingsClick: () -> Unit,
+    dataUpdateRepository: DataUpdateRepository? = null,
     modifier: Modifier = Modifier
 ) {
-    val viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(repository))
+    val viewModel: HomeViewModel = viewModel(
+        factory = HomeViewModel.Factory(repository, dataUpdateRepository)
+    )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     HomeContent(
         uiState = uiState,
@@ -159,15 +164,23 @@ fun HeroSection(
                 .statusBarsPadding()
                 .padding(16.dp)
         ) {
-            IconButton(
-                onClick = onSettingsClick,
-                modifier = Modifier.align(Alignment.TopEnd)
-            ) {
-                Icon(
-                    Icons.Default.Settings,
-                    contentDescription = "Paramètres",
-                    tint = Color.White.copy(alpha = 0.8f)
-                )
+            Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                IconButton(onClick = onSettingsClick) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = "Paramètres",
+                        tint = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+                if (uiState.hasUpdateAvailable) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 8.dp, end = 8.dp)
+                            .size(10.dp)
+                            .background(LmelpVert, shape = CircleShape)
+                    )
+                }
             }
 
             Row(

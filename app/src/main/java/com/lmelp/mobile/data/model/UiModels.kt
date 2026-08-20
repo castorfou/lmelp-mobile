@@ -205,3 +205,23 @@ data class DbInfoUi(
     val nbLivres: String,
     val nbAvis: String
 )
+
+/** Résultat de la comparaison version locale (db_metadata.version) vs distante (metadata.json), issue #118. */
+sealed class UpdateCheckResult {
+    data object UpToDate : UpdateCheckResult()
+    data class UpdateAvailable(val remote: com.lmelp.mobile.data.remote.RemoteMetadata) : UpdateCheckResult()
+    data class Error(val message: String) : UpdateCheckResult()
+}
+
+/** État du processus de mise à jour des données (téléchargement/vérification/remplacement), issue #118. */
+sealed class DataUpdateState {
+    data object Idle : DataUpdateState()
+    data object Checking : DataUpdateState()
+    data class UpdateAvailable(val remote: com.lmelp.mobile.data.remote.RemoteMetadata) : DataUpdateState()
+    data object Downloading : DataUpdateState()
+    data object Verifying : DataUpdateState()
+    data object Replacing : DataUpdateState()
+    data object Restarting : DataUpdateState()
+    data object Success : DataUpdateState()
+    data class Error(val message: String) : DataUpdateState()
+}

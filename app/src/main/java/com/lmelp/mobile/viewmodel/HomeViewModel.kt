@@ -5,12 +5,15 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.lmelp.mobile.data.model.DerniereEmissionUi
 import com.lmelp.mobile.data.model.SlideItem
+import com.lmelp.mobile.data.model.UpdateCheckResult
+import com.lmelp.mobile.data.repository.DataUpdateRepository
 import com.lmelp.mobile.data.repository.HomeRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -24,6 +27,10 @@ internal fun prevSlideIndex(currentIndex: Int, size: Int): Int =
 /** Retourne un index initial aléatoire dans [0, size-1], ou 0 si vide/singleton. */
 internal fun randomInitialIndex(size: Int): Int =
     if (size <= 1) 0 else (0 until size).random()
+
+/** Dérive l'affichage du badge "mise à jour disponible" sur l'icône réglages (issue #118). */
+internal fun hasUpdateAvailable(result: UpdateCheckResult): Boolean =
+    result is UpdateCheckResult.UpdateAvailable
 
 /**
  * Tire un délai selon une distribution normale N(meanMs, stdDevMs), tronquée à minMs.
@@ -52,10 +59,14 @@ data class HomeUiState(
     val palmaresIndex: Int = 0,
     val conseilsIndex: Int = 0,
     val onkindleIndex: Int = 0,
+    val hasUpdateAvailable: Boolean = false,
     val error: String? = null
 )
 
-class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
+class HomeViewModel(
+    private val repository: HomeRepository,
+    private val dataUpdateRepository: DataUpdateRepository? = null
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -63,6 +74,17 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
     init {
         viewModelScope.launch { loadStats() }
         startTicker()
+        observeUpdateAvailability()
+    }
+
+    /** Badge sur l'icône réglages (issue #118) : reflète le check silencieux fait au démarrage. */
+    private fun observeUpdateAvailability() {
+        val repo = dataUpdateRepository ?: return
+        viewModelScope.launch {
+            repo.lastCheckResult.collect { result ->
+                _uiState.update { it.copy(hasUpdateAvailable = hasUpdateAvailable(result)) }
+            }
+        }
     }
 
     private suspend fun loadStats() {
@@ -175,10 +197,13 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel() {
         _uiState.update { it.copy(onkindleIndex = prevSlideIndex(it.onkindleIndex, it.onkindleSlides.size)) }
     }
 
-    class Factory(private val repository: HomeRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repository: HomeRepository,
+        private val dataUpdateRepository: DataUpdateRepository? = null
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return HomeViewModel(repository) as T
+            return HomeViewModel(repository, dataUpdateRepository) as T
         }
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,9 +21,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.BuildConfig
+import com.lmelp.mobile.data.model.DataUpdateState
 import com.lmelp.mobile.data.model.DbInfoUi
+import com.lmelp.mobile.data.repository.DataUpdateRepository
 import com.lmelp.mobile.data.repository.MetadataRepository
 import com.lmelp.mobile.viewmodel.AboutViewModel
+import java.io.File
 
 data class ChangelogEntry(val hash: String, val message: String, val date: String)
 
@@ -30,6 +34,20 @@ data class ChangelogEntry(val hash: String, val message: String, val date: Strin
 fun formatDbInfoSummary(dbInfo: DbInfoUi): String =
     "Export du ${dbInfo.exportDate} — " +
         "${dbInfo.nbEmissions} émissions, ${dbInfo.nbLivres} livres, ${dbInfo.nbAvis} avis"
+
+/** Libellé du bouton/état de mise à jour des données (issue #118). */
+fun formatUpdateStateLabel(state: DataUpdateState): String = when (state) {
+    is DataUpdateState.Idle -> "Vérifier les mises à jour"
+    is DataUpdateState.Checking -> "Vérification en cours…"
+    is DataUpdateState.UpdateAvailable ->
+        "Mise à jour disponible (export du ${state.remote.exportDate}) — Mettre à jour"
+    is DataUpdateState.Downloading -> "Téléchargement en cours…"
+    is DataUpdateState.Verifying -> "Vérification du fichier téléchargé…"
+    is DataUpdateState.Replacing -> "Mise à jour de la base…"
+    is DataUpdateState.Restarting -> "Mise à jour appliquée ! Veuillez rouvrir l'application."
+    is DataUpdateState.Success -> "Base à jour"
+    is DataUpdateState.Error -> "Erreur : ${state.message}"
+}
 
 fun parseChangelog(raw: String): List<ChangelogEntry> {
     if (raw.isBlank()) return emptyList()
@@ -43,14 +61,29 @@ fun parseChangelog(raw: String): List<ChangelogEntry> {
 }
 
 @Composable
-fun AboutScreen(repository: MetadataRepository, modifier: Modifier = Modifier) {
-    val viewModel: AboutViewModel = viewModel(factory = AboutViewModel.Factory(repository))
+fun AboutScreen(
+    repository: MetadataRepository,
+    dataUpdateRepository: DataUpdateRepository,
+    targetDbFile: File,
+    tempDir: File,
+    onRestartRequired: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val viewModel: AboutViewModel = viewModel(
+        factory = AboutViewModel.Factory(repository, dataUpdateRepository)
+    )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val dataUpdateState by viewModel.dataUpdateState.collectAsStateWithLifecycle()
     AboutContent(
         gitCommit = BuildConfig.GIT_COMMIT,
         buildDate = BuildConfig.BUILD_DATE,
         changelog = BuildConfig.CHANGELOG,
         dbInfo = uiState.dbInfo,
+        dataUpdateState = dataUpdateState,
+        onCheckForUpdate = { viewModel.checkForUpdateManually() },
+        onApplyUpdate = {
+            viewModel.applyUpdate(targetDbFile, tempDir, onSuccess = onRestartRequired)
+        },
         modifier = modifier
     )
 }
@@ -61,6 +94,9 @@ fun AboutContent(
     buildDate: String,
     changelog: String,
     dbInfo: DbInfoUi? = null,
+    dataUpdateState: DataUpdateState = DataUpdateState.Idle,
+    onCheckForUpdate: () -> Unit = {},
+    onApplyUpdate: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val entries = remember(changelog) { parseChangelog(changelog) }
@@ -105,6 +141,24 @@ fun AboutContent(
                 )
                 HorizontalDivider(modifier = Modifier.padding(bottom = 16.dp))
             }
+        }
+
+        item {
+            val label = formatUpdateStateLabel(dataUpdateState)
+            val onClick = when (dataUpdateState) {
+                is DataUpdateState.UpdateAvailable -> onApplyUpdate
+                is DataUpdateState.Checking, is DataUpdateState.Downloading,
+                is DataUpdateState.Verifying, is DataUpdateState.Replacing -> ({})
+                else -> onCheckForUpdate
+            }
+            val enabled = dataUpdateState !is DataUpdateState.Checking &&
+                dataUpdateState !is DataUpdateState.Downloading &&
+                dataUpdateState !is DataUpdateState.Verifying &&
+                dataUpdateState !is DataUpdateState.Replacing
+            Button(onClick = onClick, enabled = enabled) {
+                Text(label)
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
         }
 
         if (entries.isNotEmpty()) {

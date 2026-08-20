@@ -162,6 +162,37 @@ GitHub Actions (sur tag) :
 4. Publish GitHub Release
 ```
 
+### Flux découplé données/app (V3, issues #116 + #118)
+
+Sépare la mise à jour des données (fréquente, ~1x/semaine) de la mise à jour de l'app (rare). Voir l'ADR complet : [docs/dev/adr/0001-separation-maj-appli-donnees.md](dev/adr/0001-separation-maj-appli-donnees.md).
+
+```
+Côté serveur (NAS, container lmelp-export en daemon + anacron) :
+1. scripts/docker_export_and_publish_release.sh
+   ├── Export MongoDB → SQLite (avec données Calibre)
+   ├── scripts/generate_data_release_metadata.py → metadata.json
+   │     (export_date, export_version=timestamp, sha256, compteurs)
+   └── gh release upload data-latest lmelp.db metadata.json --clobber
+        (GitHub Release dédiée, distincte de la release APK vX.Y.Z)
+
+Côté app Android :
+2. Check silencieux au lancement (LmelpApp.onCreate) + bouton manuel
+   dans l'écran À propos — DataUpdateRepository.checkForUpdate()
+   compare db_metadata.version (local) à metadata.json.export_version
+   (distant), jamais PRAGMA user_version (voir CLAUDE.md)
+3. Sur action utilisateur ("Mettre à jour") :
+   OkHttpGitHubReleaseApi télécharge lmelp.db (~5 Mo)
+   → Sha256Verifier vérifie l'intégrité contre metadata.json.sha256
+   → DatabaseFileReplacer supprime lmelp.db-shm/-wal résiduels puis
+     remplace lmelp.db (bug WAL connu, issue #101)
+   → ProcessRestarter ferme l'app (état Room garanti propre) ;
+     l'utilisateur la rouvre lui-même (pas de relance automatique
+     possible sur Android 12+, restrictions de lancement d'activité
+     en arrière-plan)
+```
+
+Réseau strictement optionnel et best-effort : un échec (pas de connexion, timeout, erreur HTTP) ne bloque jamais l'usage normal de l'app en offline. Voir `app/src/main/java/com/lmelp/mobile/data/repository/DataUpdateRepository.kt`.
+
 ## Précalcul côté export
 
 Pour éviter des calculs lourds sur mobile, le script Python précalcule :

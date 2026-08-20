@@ -9,6 +9,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.lmelp.mobile.data.update.ProcessRestarter
 import com.lmelp.mobile.ui.about.AboutScreen
 import com.lmelp.mobile.ui.auteurs.AuteurDetailScreen
 import com.lmelp.mobile.ui.critiques.CritiqueDetailScreen
@@ -62,12 +63,19 @@ fun LmelpNavHost(
             HomeScreen(
                 repository = app.homeRepository,
                 onNavigate = { route -> navController.navigate(route) },
-                onSettingsClick = { navController.navigate(Routes.ABOUT) }
+                onSettingsClick = { navController.navigate(Routes.ABOUT) },
+                dataUpdateRepository = app.dataUpdateRepository
             )
         }
 
         composable(Routes.ABOUT) {
-            AboutScreen(repository = app.metadataRepository)
+            AboutScreen(
+                repository = app.metadataRepository,
+                dataUpdateRepository = app.dataUpdateRepository,
+                targetDbFile = app.getDatabasePath("lmelp.db"),
+                tempDir = app.cacheDir,
+                onRestartRequired = { ProcessRestarter.closeApp() }
+            )
         }
 
         composable(
