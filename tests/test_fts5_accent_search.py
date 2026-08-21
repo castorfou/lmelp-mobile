@@ -35,6 +35,9 @@ def strip_accents(text: str) -> str:
     return "".join(c for c in nfd if unicodedata.category(c) != "Mn")
 
 
+NB_EMISSIONS_MIN_DB_COMPLETE = 10
+
+
 @pytest.fixture(scope="module")
 def db():
     """Connexion à lmelp.db embarqué (lecture seule)."""
@@ -44,6 +47,25 @@ def db():
     con.row_factory = sqlite3.Row
     yield con
     con.close()
+
+
+@pytest.fixture(scope="module")
+def db_complete(db):
+    """Variante de `db` qui skip si la DB est un extrait minimal (ADR 0002).
+
+    Réservée aux tests qui dépendent du volume/contenu réel (ex: recherche
+    d'un mot-clé présent seulement dans une émission spécifique) — le
+    mécanisme FTS4/accents lui-même est déjà couvert avec des données
+    synthétiques par TestFts4NormalizedBehavior.
+    """
+    nb_emissions = db.execute("SELECT COUNT(*) FROM emissions").fetchone()[0]
+    if nb_emissions < NB_EMISSIONS_MIN_DB_COMPLETE:
+        pytest.skip(
+            f"lmelp.db ne contient que {nb_emissions} émission(s) — extrait minimal "
+            "(ADR 0002), pas une DB complète. Positionner LMELP_DB_PATH vers une "
+            "vraie DB complète pour exécuter ce test."
+        )
+    return db
 
 
 @pytest.fixture(scope="module")
@@ -133,10 +155,10 @@ class TestProductionDbAccentSearch:
                 "Regénérer lmelp.db avec : python scripts/export_mongo_to_sqlite.py --force"
             )
 
-    def test_accent_insensitive_search_in_production_db(self, db):
+    def test_accent_insensitive_search_in_production_db(self, db_complete):
         """Rechercher 'Aliene' (sans accent, comme Android le ferait) doit retourner des résultats."""
         query = strip_accents("Aliene") + "*"
-        results = db.execute(
+        results = db_complete.execute(
             "SELECT COUNT(*) FROM search_index WHERE search_index MATCH ?",
             (query,),
         ).fetchone()[0]
@@ -145,10 +167,10 @@ class TestProductionDbAccentSearch:
             "Regénérer lmelp.db avec : python scripts/export_mongo_to_sqlite.py --force"
         )
 
-    def test_accent_search_works_via_normalization(self, db):
+    def test_accent_search_works_via_normalization(self, db_complete):
         """Rechercher 'Aliène' (avec accent, normalisé en query) doit aussi retourner des résultats."""
         query = strip_accents("Aliène") + "*"
-        results = db.execute(
+        results = db_complete.execute(
             "SELECT COUNT(*) FROM search_index WHERE search_index MATCH ?",
             (query,),
         ).fetchone()[0]

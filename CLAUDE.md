@@ -304,6 +304,22 @@ cur.execute("PRAGMA user_version = 2")  # même valeur
 
 Puis regénérer `lmelp.db` via le script d'export. `fallbackToDestructiveMigration()` gère la migration automatiquement (données readonly = OK).
 
+### `lmelp.db` embarquée = extrait minimal, pas la base complète (ADR 0002, issue #119)
+
+Depuis l'ADR [0002](docs/dev/adr/0002-distribution-app-mini-db-embarquee.md), `app/src/main/assets/lmelp.db` committée dans le repo est volontairement un **extrait réel minimal** (3 émissions, les plus anciennes), pas la base complète — la vraie base est téléchargée par l'app au lancement (issue #118, voir plus haut). La garder minimale rend visible immédiatement toute régression du mécanisme de téléchargement, au lieu de la masquer silencieusement.
+
+Pour régénérer cet extrait à partir d'une base complète déjà exportée :
+
+```bash
+python scripts/build_mini_db.py --source lmelp_complete.db --output app/src/main/assets/lmelp.db --nb-emissions 3
+```
+
+⚠️ **Ne jamais régénérer cet asset avec `export_mongo_to_sqlite.py --force` directement** — il produirait une base complète et à jour, ce qui va à l'encontre de l'ADR 0002 (et fait échouer `TestTailleMinimale` dans `tests/test_lmelp_db_integrity.py`). Toujours passer par `scripts/build_mini_db.py`.
+
+⚠️ **Piège de version déjà rencontré** : `db_metadata.version` de la mini-DB ne doit **jamais** être daté du moment de sa génération — sinon elle paraît toujours plus « fraîche » que n'importe quelle release GitHub déjà publiée, et `DataUpdateRepository.checkForUpdate()` affiche à tort « Base à jour » (confirmé en test device). `build_mini_db.py` date `version` sur la dernière émission réellement contenue dans l'extrait (une date ancienne), pas sur `time.time()`.
+
+Pour tester des fonctionnalités qui nécessitent du volume réel (recherche full-text sur un mot-clé spécifique, pipeline SVD des recommandations), pointer `LMELP_DB_PATH` vers une vraie base complète locale — sinon les tests concernés (`tests/test_fts5_accent_search.py::TestProductionDbAccentSearch`, `tests/test_svd_recommendations.py::TestSvdRealData`) skip automatiquement.
+
 ## Schéma SQLite
 
 Voir [docs/data-schema.md](docs/data-schema.md) pour le schéma complet.
