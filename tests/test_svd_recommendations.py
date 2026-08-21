@@ -8,6 +8,8 @@ scores SVD dans la mauvaise échelle (~1-5 au lieu de ~7-9).
 Fix : centrer par la moyenne des notes non-nulles uniquement.
 """
 
+import os
+
 import numpy as np
 import pytest
 from scipy.sparse import csr_matrix
@@ -86,16 +88,32 @@ class TestSvdRealData:
     des scores dans la bonne échelle et en quantité suffisante.
     Les tests ne se fixent pas sur un livre spécifique qui pourrait entrer dans
     Calibre à tout moment (ce qui l'exclurait légitimement des candidats).
+
+    Nécessite une lmelp.db complète (LMELP_DB_PATH) — depuis l'ADR 0002
+    (docs/dev/adr/0002-distribution-app-mini-db-embarquee.md),
+    app/src/main/assets/lmelp.db n'est plus qu'un extrait minimal, insuffisant
+    pour ce test de volume. Skip si absente.
     """
 
-    DB_PATH = "app/src/main/assets/lmelp.db"
+    DB_PATH = os.environ.get("LMELP_DB_PATH", "app/src/main/assets/lmelp.db")
+    NB_EMISSIONS_MIN_DB_COMPLETE = 10
 
     @pytest.fixture(autouse=True)
     def skip_if_no_db(self):
-        import os
+        import sqlite3
 
         if not os.path.exists(self.DB_PATH):
-            pytest.skip("lmelp.db absent")
+            pytest.skip(f"lmelp.db complète absente : {self.DB_PATH}")
+
+        con = sqlite3.connect(self.DB_PATH)
+        nb_emissions = con.execute("SELECT COUNT(*) FROM emissions").fetchone()[0]
+        con.close()
+        if nb_emissions < self.NB_EMISSIONS_MIN_DB_COMPLETE:
+            pytest.skip(
+                f"lmelp.db ne contient que {nb_emissions} émission(s) — extrait "
+                "minimal (ADR 0002), insuffisant pour le pipeline SVD. Positionner "
+                "LMELP_DB_PATH vers une vraie DB complète pour exécuter ce test."
+            )
 
     def _compute_svd_surprise(self) -> dict:
         """Calcule les scores SVD avec surprise.SVD + injection notes Calibre."""

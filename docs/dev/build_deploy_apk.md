@@ -93,34 +93,41 @@ deploy.sh
 
 `app/src/main/assets/lmelp.db`
 
+⚠️ **Depuis l'ADR [0002](adr/0002-distribution-app-mini-db-embarquee.md) (issue #119), cet asset committé est volontairement un extrait minimal (3 émissions), pas la base complète.** La vraie base est téléchargée par l'app elle-même au lancement (voir plus haut, issue #118). Ne jamais committer une base complète ici — voir plus bas.
+
+### régénérer une base complète locale (pour dev/debug, PAS pour l'asset committé)
+
 le comportement viens de `scripts/.env` (precedemment on avait des parametres mais maintenant je detecte dans le fichier env les parametre a passer comme calibre-db)
 
 > ⚠️ **Toujours inclure `--calibre-db`** lors de l'export. Sans cette option,
 > `calibre_in_library = 0` et `calibre_lu = 0` pour tous les livres → filtre
-> "Lus" vide dans l'app, aucun ✓ affiché. Un test CI bloque le commit si
-> la base est commité sans données Calibre (voir `tests/test_lmelp_db_integrity.py`).
-
-### commande complète (à utiliser systématiquement)
+> "Lus" vide dans l'app, aucun ✓ affiché.
 
 ```bash
-python scripts/export_mongo_to_sqlite.py --force
+python scripts/export_mongo_to_sqlite.py --force --output /tmp/lmelp_complete.db
 ```
 
-### tests de fraîcheur de la DB (issue #102)
+Pour faire tourner l'app localement contre cette base complète (recherche full-text sur du vrai contenu, recommandations SVD, etc.) sans la committer, remplacer manuellement le fichier sur le device après install (voir "Mise à jour DB sur le téléphone" dans `CLAUDE.md`), ou pointer les tests Python dessus via `LMELP_DB_PATH=/tmp/lmelp_complete.db pytest`.
 
-`tests/test_lmelp_db_integrity.py` contient une classe `TestFraicheurDB` qui vérifie (si MongoDB est accessible localement) que toutes les émissions MongoDB sont présentes dans `lmelp.db` et que la date d'export est postérieure à la dernière émission MongoDB. Ces tests sont skippés automatiquement en CI si MongoDB est indisponible.
+### régénérer l'extrait minimal committé (`app/src/main/assets/lmelp.db`)
+
+```bash
+python scripts/build_mini_db.py --source /tmp/lmelp_complete.db --output app/src/main/assets/lmelp.db --nb-emissions 3
+```
+
+⚠️ **Ne jamais faire `python scripts/export_mongo_to_sqlite.py --force --output app/src/main/assets/lmelp.db` directement** — ça produirait une base complète et casserait `TestTailleMinimale` dans `tests/test_lmelp_db_integrity.py`. Toujours passer par `build_mini_db.py`.
 
 ### après regénération : forcer la recopie sur le device
 
 Room copie `lmelp.db` depuis les assets une seule fois. Si la version Room n'a
-pas changé, désinstaller et réinstaller pour forcer la recopie :
+pas changé, désinstaller et réinstaller pour forcer la recopie — `deploy.sh`
+seul (qui fait `adb install -r`) **ne suffit pas**, il faut désinstaller
+d'abord (voir issue #112 dans `CLAUDE.md`) :
 
 ```bash
 adb uninstall com.lmelp.mobile
 ./gradlew installDebug
 ```
-
-> ⚠️ **`user_version` = timestamp Unix** : le script d'export écrit `PRAGMA user_version = <timestamp>` à chaque génération. Room (et le push ADB direct via `lmelp-update-mobile`) utilise cette valeur pour détecter si la DB est plus récente. Si deux exports successifs ont le même timestamp (cas rare), Room peut ignorer la mise à jour. Toujours vérifier que l'`export_date` a bien changé après un export (voir issue #102).
 
 ## cache couvertures (Coil)
 

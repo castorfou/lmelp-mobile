@@ -34,7 +34,11 @@ Remplacer la `lmelp.db` complète actuellement committée dans `app/src/main/ass
 - Effet recherché : rendre visible immédiatement toute régression du mécanisme de téléchargement (`DataUpdateRepository`, `DatabaseFileReplacer`, issue #118) — avec une base volumineuse mais périmée, une régression du téléchargement au lancement passerait inaperçue puisque l'app resterait pleinement fonctionnelle avec les anciennes données ; avec une base minimale, l'absence de mise à jour se voit tout de suite (peu d'émissions listées).
 - Effet secondaire positif : réduit la taille de l'APK et évite de re-committer ~4.4 Mo de données à chaque changement purement logiciel du dépôt.
 
-Implémentation technique (script d'export, génération de l'extrait figé, tests de non-régression) renvoyée à une **issue de suivi dédiée** — hors scope de cet ADR qui documente la décision, pas le détail d'implémentation.
+**Implémentation** (réalisée dans le cadre de cette même issue) : `scripts/build_mini_db.py` dérive la mini-DB depuis une `lmelp.db` complète déjà exportée (pas de nouvelle connexion MongoDB), en réutilisant les fonctions de calcul du script d'export (`compute_palmares`, `build_search_index`, `update_critique_stats`) sur le sous-ensemble filtré. `tests/test_build_mini_db.py` couvre le filtrage par clé étrangère et le recalcul. `app/src/main/assets/lmelp.db` régénérée (4.4 Mo → ~208 Ko, 3 émissions).
+
+⚠️ **Piège découvert en test device** : `db_metadata.version` ne doit **pas** être daté du moment de génération du fichier mini-DB (ce que fait `export_mongo_to_sqlite.write_metadata()` par défaut, avec `int(time.time())`) — sinon la mini-DB, régénérée aujourd'hui, paraît toujours plus « fraîche » que n'importe quelle release GitHub déjà publiée aux yeux de `DataUpdateRepository.checkForUpdate()`, et l'app affiche à tort « Base à jour ». `build_mini_db.py` date `version` sur le timestamp de la **dernière émission réellement contenue** dans l'extrait (donc une date ancienne, ex. 2015 pour les 3 plus anciennes émissions), garantissant que la comparaison `remoteVersion > localVersion` déclenche toujours une mise à jour. Confirmé en conditions réelles sur device après correction.
+
+Conséquence sur les tests existants : `tests/test_lmelp_db_integrity.py` supposait que l'asset committé était la base complète et à jour (`TestFraicheurDB` comparait à MongoDB, `TestDonneesCalibr` vérifiait un ratio Calibre minimal) — ces deux classes sont supprimées, remplacées par `TestTailleMinimale` (garde-fou : nombre d'émissions ≤ seuil). De même, `tests/test_fts5_accent_search.py`/`tests/test_svd_recommendations.py` contenaient des tests dépendant du volume/contenu réel (recherche d'un mot-clé absent du mini-échantillon, pipeline SVD nécessitant beaucoup de notes) — ils skip désormais automatiquement quand la DB pointée contient moins de 10 émissions.
 
 ## Contenu diffusé par l'app — état des lieux (non tranché)
 
@@ -65,5 +69,4 @@ L'app n'embarque ni audio ni texte intégral protégé : `docs/dev/data-schema.m
 
 ## Suivi
 
-- Issue de suivi à créer : implémentation technique de la mini-DB embarquée (génération de l'extrait figé dans `scripts/export_mongo_to_sqlite.py` ou script dédié, mise à jour de `app/src/main/assets/lmelp.db`, test de non-régression vérifiant sa petite taille).
 - Clarification des droits de contenu par l'auteur : prérequis bloquant avant toute démarche Play Store, hors scope technique.
