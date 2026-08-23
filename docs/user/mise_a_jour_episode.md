@@ -16,43 +16,21 @@
 >
 >     et supprimer le fichier .m4a correspondant
 >
-> ![](img/favicon_whisper.png) transcription de l'épisode
+> - ![](img/telecharger_transcriptions.png) déclenche la transcription PGX automatisée
 >
-> ??? info "mode d'emploi - whisper"
->     manuellement depuis une machine **GPU avec whisper** en fournissant le `.m4a` depuis `docker-lmelp/data/audios`, et en retour copie du fichier `.txt` dans `docker-lmelp/data/audios`
->     ```bash
->     # exemple en utilisant le PGX
->     # tri par la date DD.MM.YYYY présente dans le nom de fichier (et non par mtime,
->     # qui peut être trompeur si un ancien fichier a été retouché/re-téléchargé récemment)
->     export LAST_M4A=$(find ~/git/docker-lmelp/data/audios/ -type f -name '*.m4a' | \
->       while read -r f; do
->         d=$(basename "$f" | grep -oE '[0-9]{2}\.[0-9]{2}\.[0-9]{4}')
->         echo "${d:6:4}${d:3:2}${d:0:2} $f"
->       done | sort -n | tail -1 | cut -d' ' -f2-)
->     echo "$LAST_M4A"
->     scp "$LAST_M4A" f279814@thinkstationpgx-d7ba.local:/home/f279814/git/whisper-docker/docker/data/audios/$(basename "$(dirname "$LAST_M4A")")
->     ```
+> ??? info "mode d'emploi - transcription PGX (automatisée)"
+>     Le pipeline de transcription (envoi de l'audio, attente, rapatriement de la
+>     transcription, intégration en base) est **entièrement automatisé** — plus besoin de
+>     commandes `scp`/`ssh` manuelles.
 >
-> ![](img/favicon_lmelp-frontoffice.png) depuis **lmelp-frontoffice**:
+>     1. Allumer PGX **manuellement** (pas de réveil à distance automatisé — Wi-Fi
+>        uniquement, veille système désactivée pour la stabilité GPU).
+>     2. *(Optionnel)* Depuis l'interface Streamlit lmelp, page **PGX**, vérifier la
+>        disponibilité de la station (checklist : joignabilité, authentification SSH,
+>        répertoires distants) avant de lancer une transcription.
 >
-> ??? info "mode d'emploi - copie transcription"
->     ```bash
->     # exemple en utilisant le PGX
->     BASENAME=$(basename "$LAST_M4A" .m4a)
->     YEAR=$(basename "$(dirname "$LAST_M4A")")
->     REMOTE_TXT="/home/f279814/git/whisper-docker/docker/data/transcriptions/$YEAR/$BASENAME.txt"
->     LOCAL_DIR="$(dirname "$LAST_M4A")"
->
->     until ssh f279814@thinkstationpgx-d7ba.local "test -f '$REMOTE_TXT'"; do
->       echo "en attente de la transcription..."
->       sleep 10
->     done
->
->     scp f279814@thinkstationpgx-d7ba.local:"$REMOTE_TXT" "$LOCAL_DIR"
->     echo "Transcription récupérée : $LOCAL_DIR/$BASENAME.txt"
->     ```
->
-> - ![](img/telecharger_transcriptions.png) charge le fichier de transcription (gestion de cache) dans le champ transcription de l'épisode (mongo/episodes)
+>     Voir la [doc de référence du pipeline PGX](https://castorfou.github.io/lmelp/user/transcription-pgx/)
+>     (repo `castorfou/lmelp`) pour le détail complet.
 >
 > ![](img/favicon_lmelp-backoffice.png) depuis **lmelp-backoffice** - frontend :
 >
