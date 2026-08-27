@@ -67,7 +67,27 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Export MongoDB → SQLite
+# 3. Récupérer les métadonnées de la dernière release publiée (issue #128)
+# ---------------------------------------------------------------------------
+# Permet à export_mongo_to_sqlite.py de réutiliser `version` si le contenu
+# exporté est identique à celui déjà publié, au lieu d'avancer un nouveau
+# timestamp à chaque run anacron même sans nouvelle donnée.
+PREVIOUS_METADATA="/tmp/previous_metadata.json"
+PREVIOUS_ARGS=""
+if gh release download "$RELEASE_TAG" --repo "$GH_REPO" \
+        --pattern metadata.json --output "$PREVIOUS_METADATA" --clobber 2>/dev/null; then
+    PREVIOUS_CONTENT_HASH=$(python3 -c "import json; print(json.load(open('$PREVIOUS_METADATA')).get('content_hash') or '')")
+    PREVIOUS_VERSION=$(python3 -c "import json; print(json.load(open('$PREVIOUS_METADATA')).get('export_version') or '')")
+    if [[ -n "$PREVIOUS_CONTENT_HASH" && -n "$PREVIOUS_VERSION" ]]; then
+        info "Métadonnées précédentes récupérées (version=${PREVIOUS_VERSION})"
+        PREVIOUS_ARGS="--previous-content-hash ${PREVIOUS_CONTENT_HASH} --previous-version ${PREVIOUS_VERSION}"
+    fi
+else
+    info "Pas de release ${RELEASE_TAG} existante (premier export) ou metadata.json indisponible"
+fi
+
+# ---------------------------------------------------------------------------
+# 4. Export MongoDB → SQLite
 # ---------------------------------------------------------------------------
 info "Export MongoDB → SQLite..."
 MONGO_URI="${LMELP_MONGO_URI:-mongodb://mongo:27017}"
@@ -76,20 +96,21 @@ python /app/scripts/export_mongo_to_sqlite.py \
     --mongo-uri "$MONGO_URI" \
     --output "$DB_OUTPUT" \
     --force \
-    $CALIBRE_ARGS
+    $CALIBRE_ARGS \
+    $PREVIOUS_ARGS
 
 DB_SIZE=$(du -h "$DB_OUTPUT" | cut -f1)
 success "Base générée : $DB_OUTPUT ($DB_SIZE)"
 
 # ---------------------------------------------------------------------------
-# 4. Vérification d'intégrité
+# 5. Vérification d'intégrité
 # ---------------------------------------------------------------------------
 info "Vérification de l'intégrité..."
 python /app/scripts/export_mongo_to_sqlite.py --verify "$DB_OUTPUT"
 success "Vérification OK"
 
 # ---------------------------------------------------------------------------
-# 5. Génération des métadonnées
+# 6. Génération des métadonnées
 # ---------------------------------------------------------------------------
 info "Génération de metadata.json..."
 python /app/scripts/generate_data_release_metadata.py \
@@ -98,21 +119,27 @@ python /app/scripts/generate_data_release_metadata.py \
 success "Métadonnées générées : $METADATA_OUTPUT"
 
 # ---------------------------------------------------------------------------
-# 6. Publication sur GitHub Release
+# 7. Publication sur GitHub Release (skip si contenu inchangé, issue #128)
 # ---------------------------------------------------------------------------
-info "Publication sur ${GH_REPO} (release ${RELEASE_TAG})..."
+NEW_VERSION=$(python3 -c "import json; print(json.load(open('$METADATA_OUTPUT'))['export_version'])")
 
-if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-    info "Release ${RELEASE_TAG} absente, création..."
-    gh release create "$RELEASE_TAG" \
+if [[ -n "${PREVIOUS_VERSION:-}" && "$NEW_VERSION" == "$PREVIOUS_VERSION" ]]; then
+    info "Contenu inchangé depuis le dernier export (version=${NEW_VERSION}), publication ignorée"
+else
+    info "Publication sur ${GH_REPO} (release ${RELEASE_TAG})..."
+
+    if ! gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+        info "Release ${RELEASE_TAG} absente, création..."
+        gh release create "$RELEASE_TAG" \
+            --repo "$GH_REPO" \
+            --title "lmelp-mobile — données" \
+            --notes "Base de données lmelp, publiée automatiquement. Voir metadata.json pour la date d'export et le SHA-256."
+    fi
+
+    gh release upload "$RELEASE_TAG" "$DB_OUTPUT" "$METADATA_OUTPUT" \
         --repo "$GH_REPO" \
-        --title "lmelp-mobile — données" \
-        --notes "Base de données lmelp, publiée automatiquement. Voir metadata.json pour la date d'export et le SHA-256."
+        --clobber
+
+    success "=== Publication terminée avec succès ==="
 fi
-
-gh release upload "$RELEASE_TAG" "$DB_OUTPUT" "$METADATA_OUTPUT" \
-    --repo "$GH_REPO" \
-    --clobber
-
-success "=== Publication terminée avec succès ==="
 echo ""

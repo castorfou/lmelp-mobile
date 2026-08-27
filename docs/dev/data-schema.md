@@ -283,13 +283,16 @@ CREATE TABLE db_metadata (
 );
 
 -- Valeurs insérées à l'export :
--- ('version', '42')               -- PRAGMA user_version (timestamp Unix)
+-- ('version', '1755600000')       -- timestamp Unix, PAS PRAGMA user_version (voir CLAUDE.md)
+-- ('content_hash', 'a3f5...')     -- empreinte SHA-256 du contenu métier (issue #128)
 -- ('export_date', '2026-03-05')   -- Date lisible
 -- ('source_db', 'masque_et_la_plume')
 -- ('nb_emissions', '173')
 -- ('nb_livres', '1615')
 -- ('nb_avis', '4100')
 ```
+
+⚠️ `content_hash` (issue #128) ne change que si le contenu métier exporté diffère réellement du dernier export publié — `version` n'avance que dans ce cas, pour éviter que l'app ne détecte une "mise à jour disponible" à chaque republication d'anacron même sans nouvelle donnée. Voir `compute_content_hash()` dans `scripts/export_mongo_to_sqlite.py`.
 
 ## Index
 
