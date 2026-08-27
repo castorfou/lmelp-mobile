@@ -363,12 +363,26 @@ def export_avis(
     episode_to_emission: dict[str, str],
     critique_noms: dict[str, str],
 ) -> None:
+    """Exporte les avis.
+
+    Ignore (avec un log WARNING) les avis dont emission_oid/livre_oid/critique_oid
+    ne référence aucun document existant dans emissions/livres/critiques — ce genre
+    d'incohérence survient côté back-office lors de fusions de doublons de livres
+    qui laissent des avis orphelins (voir castorfou/back-office-lmelp#271). Sans ce
+    filtrage, une seule ligne invalide fait échouer tout le batch via la contrainte
+    FOREIGN KEY et bloque la publication de lmelp.db (issue #127).
+    """
     logger.info("Exporting avis...")
     avis_list = list(mongo_db.avis.find({}))
+
+    valid_emission_ids = {row[0] for row in cur.execute("SELECT id FROM emissions")}
+    valid_livre_ids = {row[0] for row in cur.execute("SELECT id FROM livres")}
+    valid_critique_ids = {row[0] for row in cur.execute("SELECT id FROM critiques")}
 
     # avis.emission_oid is a String in MongoDB (not ObjectId)
     rows = []
     emission_livres_pairs: set[tuple[str, str]] = set()
+    skipped = 0
 
     for a in avis_list:
         aid = str_id(a["_id"])
@@ -378,6 +392,18 @@ def export_avis(
 
         # emission_oid in avis is a String = str(ObjectId)
         emission_id = emission_oid  # already a string
+
+        if (
+            emission_id not in valid_emission_ids
+            or livre_oid not in valid_livre_ids
+            or critique_oid not in valid_critique_ids
+        ):
+            logger.warning(
+                f"  Avis orphelin ignoré (id={aid}): emission_oid={emission_oid!r}, "
+                f"livre_oid={livre_oid!r}, critique_oid={critique_oid!r}"
+            )
+            skipped += 1
+            continue
 
         if emission_id and livre_oid:
             emission_livres_pairs.add((emission_id, livre_oid))
@@ -406,6 +432,8 @@ def export_avis(
     cur.executemany(
         "INSERT OR REPLACE INTO avis VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", rows
     )
+    if skipped:
+        logger.warning(f"  → {skipped} avis orphelins ignorés")
 
     # Populate emission_livres junction table
     cur.executemany(

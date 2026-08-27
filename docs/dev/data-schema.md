@@ -113,6 +113,8 @@ CREATE TABLE avis (
 );
 ```
 
+⚠️ **Avis orphelins ignorés à l'export** (issue #127) : un `avis` MongoDB dont `emission_oid`/`livre_oid`/`critique_oid` ne référence plus aucun document existant (ex: après une fusion de doublons de livres côté back-office-lmelp) est exclu de l'export avec un log `WARNING`, plutôt que de faire échouer tout l'export via `FOREIGN KEY constraint failed`.
+
 ### `emission_livres`
 
 Table de jointure émission ↔ livres discutés.

@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "MongoDB": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mongodb-mcp-server",
+        "--connectionString",
+        "mongodb://nas923:27018/masque_et_la_plume",
+        "--readOnly"
+      ]
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--headless"
+      ]
+    }
+  }
+}

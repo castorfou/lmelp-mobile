@@ -92,6 +92,8 @@ ruff check scripts/
 ruff format scripts/
 ```
 
+⚠️ **Le `ruff` du venv peut diverger de celui du hook pre-commit** : `.pre-commit-config.yaml` pingue une version précise de `ruff-pre-commit`, exécutée dans son propre environnement isolé (`~/.cache/pre-commit/`), indépendant de celui installé dans le venv de travail. Un `ruff check` lancé depuis le venv peut donc être plus permissif (ou plus strict) que ce que `git commit` appliquera réellement — en cas de doute, ou avant de committer, valider avec le binaire du hook : `~/.cache/pre-commit/repo*/py_env-python3.11/bin/ruff check ...` (ou plus simplement `pre-commit run ruff --all-files`). Voir aussi la note ci-dessous sur `extend-select` vs `select` (ruff 0.16+).
+
 ### Configuration via scripts/.env
 
 Les paramètres d'environnement local sont stockés dans `scripts/.env` (ignoré par git).
@@ -414,10 +416,14 @@ Le script `scripts/export_mongo_to_sqlite.py` :
 - Construit l'index FTS5 pour la recherche
 - Écrit `PRAGMA user_version` avec timestamp Unix
 
+⚠️ **`export_avis` ignore les avis orphelins** (issue #127) : un `avis` MongoDB dont `emission_oid`/`livre_oid`/`critique_oid` ne référence plus aucun document existant (typiquement après une fusion de doublons de livres côté back-office-lmelp qui n'a pas repointé les avis liés) est loggé en `WARNING` et exclu de l'export, plutôt que de faire échouer tout le batch via `sqlite3.IntegrityError: FOREIGN KEY constraint failed`. Sans ce filtrage, quelques documents incohérents en amont suffisent à bloquer toute publication de `lmelp.db` — observé en prod : anacron en échec silencieux pendant 4 jours d'affilée.
+
 **Linting Python :**
 - Ruff (format + check)
 - MyPy pour le type checking
 - Configuration dans `pyproject.toml`
+
+⚠️ **`pyproject.toml` utilise `select` (pas `extend-select`)** pour les règles ruff : depuis ruff 0.16, le jeu de règles par défaut est passé de 59 à 413, donc `extend-select` ajoutait silencieusement des centaines de règles non voulues (`BLE001`, `DTZ*`, `TRY*`, `ASYNC*`, `S*`, ...) en plus de celles listées, faisant échouer le hook pre-commit sur du code préexistant sans rapport avec les changements en cours. Même piège déjà rencontré dans `back-office-lmelp` et dans le template `PyFoundry` (voir [castorfou/PyFoundry#57](https://github.com/castorfou/PyFoundry/issues/57)) — si un nouveau projet généré par ce template réintroduit `extend-select`, appliquer le même correctif.
 
 ## CI/CD — GitHub Actions
 
