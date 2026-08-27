@@ -414,6 +414,8 @@ Le script `scripts/export_mongo_to_sqlite.py` :
 - Construit l'index FTS5 pour la recherche
 - Écrit `PRAGMA user_version` avec timestamp Unix
 
+⚠️ **`export_avis` ignore les avis orphelins** (issue #127) : un `avis` MongoDB dont `emission_oid`/`livre_oid`/`critique_oid` ne référence plus aucun document existant (typiquement après une fusion de doublons de livres côté back-office-lmelp qui n'a pas repointé les avis liés) est loggé en `WARNING` et exclu de l'export, plutôt que de faire échouer tout le batch via `sqlite3.IntegrityError: FOREIGN KEY constraint failed`. Sans ce filtrage, quelques documents incohérents en amont suffisent à bloquer toute publication de `lmelp.db` — observé en prod : anacron en échec silencieux pendant 4 jours d'affilée.
+
 **Linting Python :**
 - Ruff (format + check)
 - MyPy pour le type checking
