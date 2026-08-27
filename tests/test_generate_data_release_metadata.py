@@ -41,6 +41,7 @@ def db_path(tmp_path):
             "export_date": "2026-08-19",
             "export_datetime": "2026-08-19T10:00:00",
             "version": "1755600000",
+            "content_hash": "abc123def456",  # pragma: allowlist secret
             "nb_emissions": "42",
             "nb_livres": "123",
             "nb_avis": "456",
@@ -57,6 +58,7 @@ class TestBuildMetadata:
         assert metadata["export_date"] == "2026-08-19"
         assert metadata["export_datetime"] == "2026-08-19T10:00:00"
         assert metadata["export_version"] == "1755600000"
+        assert metadata["content_hash"] == "abc123def456"  # pragma: allowlist secret
         assert metadata["nb_emissions"] == 42
         assert metadata["nb_livres"] == 123
         assert metadata["nb_avis"] == 456

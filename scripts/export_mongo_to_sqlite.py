@@ -10,6 +10,7 @@ Usage:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
@@ -1366,16 +1367,77 @@ def update_critique_stats(cur: sqlite3.Cursor) -> None:
 # Metadata
 # ---------------------------------------------------------------------------
 
+# Tables de contenu métier incluses dans compute_content_hash. Exclut
+# db_metadata (contient des timestamps qui varient à chaque export) et
+# search_index (table virtuelle FTS4 dérivée, non pertinente à re-hasher).
+_CONTENT_HASH_TABLES = [
+    "episodes",
+    "emissions",
+    "auteurs",
+    "livres",
+    "critiques",
+    "avis",
+    "emission_livres",
+    "avis_critiques",
+    "palmares",
+    "recommendations",
+    "onkindle",
+    "calibre_hors_masque",
+]
 
-def write_metadata(cur: sqlite3.Cursor) -> None:
+
+def compute_content_hash(cur: sqlite3.Cursor) -> str:
+    """Calcule une empreinte SHA-256 du contenu métier exporté.
+
+    Indépendante de l'heure d'exécution et de l'ordre d'insertion des lignes
+    (chaque table est triée avant hashage) — permet de détecter si le contenu
+    réellement exporté a changé d'un run à l'autre, voir write_metadata.
+    """
+    digest = hashlib.sha256()
+    for table in _CONTENT_HASH_TABLES:
+        columns = [
+            row[1] for row in cur.execute(f"PRAGMA table_info({table})").fetchall()
+        ]
+        order_by = ", ".join(columns)
+        rows = cur.execute(f"SELECT * FROM {table} ORDER BY {order_by}").fetchall()
+        digest.update(f"--{table}--".encode())
+        for row in rows:
+            digest.update(repr(row).encode())
+    return digest.hexdigest()
+
+
+def write_metadata(
+    cur: sqlite3.Cursor,
+    previous_content_hash: str | None = None,
+    previous_version: str | None = None,
+) -> None:
+    """Écrit les métadonnées d'export dans db_metadata.
+
+    `version` (timestamp Unix) n'est régénérée que si le contenu métier a
+    changé depuis le run précédent — sinon `previous_version` est réutilisée
+    telle quelle. Sans quoi l'anacron du NAS republiait un nouveau timestamp
+    chaque jour même à contenu identique, faisant croire à l'app mobile
+    qu'une mise à jour était disponible quotidiennement (issue #128).
+    """
     now = datetime.now()
-    version = int(time.time())
+    content_hash = compute_content_hash(cur)
+
+    if (
+        previous_content_hash is not None
+        and content_hash == previous_content_hash
+        and previous_version
+    ):
+        version_str = previous_version
+    else:
+        version_str = str(int(time.time()))
+
     nb_emissions = cur.execute("SELECT COUNT(*) FROM emissions").fetchone()[0]
     nb_livres = cur.execute("SELECT COUNT(*) FROM livres").fetchone()[0]
     nb_avis = cur.execute("SELECT COUNT(*) FROM avis").fetchone()[0]
 
     metadata = [
-        ("version", str(version)),
+        ("version", version_str),
+        ("content_hash", content_hash),
         ("export_date", now.strftime("%Y-%m-%d")),
         ("export_datetime", now.isoformat()),
         ("source_db", MONGO_DB),
@@ -1387,9 +1449,10 @@ def write_metadata(cur: sqlite3.Cursor) -> None:
 
     cur.execute(f"PRAGMA user_version = {ROOM_VERSION}")
 
+    reused = version_str == previous_version and content_hash == previous_content_hash
     logger.info(
-        f"  Metadata: version={version}, date={now.strftime('%Y-%m-%d')}, "
-        f"emissions={nb_emissions}, livres={nb_livres}, avis={nb_avis}"
+        f"  Metadata: version={version_str} ({'réutilisée, contenu inchangé' if reused else 'nouvelle'}), "
+        f"date={now.strftime('%Y-%m-%d')}, emissions={nb_emissions}, livres={nb_livres}, avis={nb_avis}"
     )
 
 
@@ -1484,6 +1547,19 @@ def verify_database(db_path: Path) -> None:
     envvar="LMELP_CALIBRE_VIRTUAL_LIBRARY",
     help="Calibre virtual library tag to filter books (e.g. 'guillaume')",
 )
+@click.option(
+    "--previous-content-hash",
+    default=None,
+    help="content_hash of the previously published export (issue #128) — "
+    "if it matches the new export's content, --previous-version is reused "
+    "instead of generating a new version timestamp",
+)
+@click.option(
+    "--previous-version",
+    default=None,
+    help="version of the previously published export, reused when "
+    "--previous-content-hash matches (issue #128)",
+)
 def main(
     mongo_uri: str,
     output: str,
@@ -1492,6 +1568,8 @@ def main(
     svd_factors: int,
     calibre_db: str | None,
     calibre_virtual_library: str | None,
+    previous_content_hash: str | None,
+    previous_version: str | None,
 ) -> None:
     """Export MongoDB masque_et_la_plume to SQLite for lmelp-mobile."""
 
@@ -1542,7 +1620,11 @@ def main(
     compute_recommendations(cur, n_factors=svd_factors, calibre_db_path=calibre_db)
     build_search_index(cur)
     update_critique_stats(cur)
-    write_metadata(cur)
+    write_metadata(
+        cur,
+        previous_content_hash=previous_content_hash,
+        previous_version=previous_version,
+    )
 
     con.commit()
     con.close()

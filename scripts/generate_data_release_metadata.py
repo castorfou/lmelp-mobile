@@ -52,6 +52,7 @@ def build_metadata(db_path: Path) -> dict:
         "export_date": db_meta.get("export_date"),
         "export_datetime": db_meta.get("export_datetime"),
         "export_version": db_meta.get("version"),
+        "content_hash": db_meta.get("content_hash"),
         "nb_emissions": int(db_meta.get("nb_emissions", 0)),
         "nb_livres": int(db_meta.get("nb_livres", 0)),
         "nb_avis": int(db_meta.get("nb_avis", 0)),
