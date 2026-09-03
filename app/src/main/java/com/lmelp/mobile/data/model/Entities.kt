@@ -172,7 +172,8 @@ data class OnKindleEntity(
     @ColumnInfo(name = "calibre_lu", defaultValue = "0") val calibreLu: Int = 0,
     @ColumnInfo(name = "calibre_rating") val calibreRating: Double? = null,
     @ColumnInfo(name = "note_moyenne") val noteMoyenne: Double? = null,
-    @ColumnInfo(name = "nb_avis", defaultValue = "0") val nbAvis: Int = 0
+    @ColumnInfo(name = "nb_avis", defaultValue = "0") val nbAvis: Int = 0,
+    @ColumnInfo(name = "en_cours_lecture", defaultValue = "0") val enCoursLecture: Int = 0
 )
 
 @Entity(tableName = "calibre_hors_masque")

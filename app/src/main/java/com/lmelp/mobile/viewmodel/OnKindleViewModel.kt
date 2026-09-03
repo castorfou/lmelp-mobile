@@ -59,7 +59,17 @@ class OnKindleViewModel(
 
     fun togglePin(livreId: String) {
         viewModelScope.launch {
-            pinnedStorage?.togglePinnedReading(livreId)
+            val state = _uiState.value
+            val manuallyPinned = livreId in state.pinnedBookIds
+            val autoPinnedOnly = !manuallyPinned && state.livres.any { it.livreId == livreId && it.enCoursLecture }
+            if (autoPinnedOnly) {
+                // Livre actuellement épinglé uniquement via l'auto-pin (progression en cours) :
+                // le retrait est une décision explicite et durable de l'utilisateur (issue #131)
+                pinnedStorage?.dismissAutoPin(livreId)
+            } else {
+                // Épingle manuelle (ajout ou retrait classique, issue #75)
+                pinnedStorage?.togglePinnedReading(livreId)
+            }
             val pinned = pinnedStorage?.pinnedReading?.first() ?: emptySet()
             _uiState.update { it.copy(pinnedBookIds = pinned) }
             loadOnKindle()
@@ -85,13 +95,29 @@ class OnKindleViewModel(
                     pinnedIds.remove(livre.livreId)
                 }
 
+                // Nettoyage des refus d'auto-pin devenus obsolètes : le livre n'est plus en
+                // cours de lecture côté Calibre, ou a été terminé (issue #131)
+                val dismissedIds = (pinnedStorage?.autoPinDismissed?.first() ?: emptySet()).toMutableSet()
+                livres.filter { (!it.enCoursLecture || it.calibreLu) && it.livreId in dismissedIds }
+                    .forEach { livre ->
+                        pinnedStorage?.clearAutoPinDismissed(livre.livreId)
+                        dismissedIds.remove(livre.livreId)
+                    }
+
+                // Ensemble effectif des épinglés : manuel ∪ (auto-pin non refusé)
+                val effectivePinnedIds = pinnedIds + livres
+                    .filter { it.enCoursLecture && it.livreId !in dismissedIds }
+                    .map { it.livreId }
+
                 // Annoter chaque livre avec son statut épinglé
-                val annotated = livres.map { it.copy(isPinned = it.livreId in pinnedIds) }
+                val annotated = livres.map { it.copy(isPinned = it.livreId in effectivePinnedIds) }
 
                 // Livres épinglés en tête (dans leur ordre de tri), puis les autres
                 val sorted = annotated.filter { it.isPinned } + annotated.filter { !it.isPinned }
 
-                _uiState.update { it.copy(isLoading = false, livres = sorted, error = null, pinnedBookIds = pinnedIds) }
+                _uiState.update {
+                    it.copy(isLoading = false, livres = sorted, error = null, pinnedBookIds = pinnedIds)
+                }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 _uiState.update { it.copy(isLoading = false, error = e.message) }

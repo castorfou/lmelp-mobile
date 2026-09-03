@@ -38,24 +38,28 @@ def _make_main_db() -> sqlite3.Connection:
             livre_titre TEXT
         );
         CREATE TABLE IF NOT EXISTS onkindle (
-            livre_id       TEXT NOT NULL PRIMARY KEY,
-            titre          TEXT NOT NULL,
-            auteur_nom     TEXT,
-            url_babelio    TEXT,
-            url_cover      TEXT,
-            calibre_lu     INTEGER NOT NULL DEFAULT 0,
-            calibre_rating REAL,
-            note_moyenne   REAL,
-            nb_avis        INTEGER NOT NULL DEFAULT 0
+            livre_id        TEXT NOT NULL PRIMARY KEY,
+            titre           TEXT NOT NULL,
+            auteur_nom      TEXT,
+            url_babelio     TEXT,
+            url_cover       TEXT,
+            calibre_lu      INTEGER NOT NULL DEFAULT 0,
+            calibre_rating  REAL,
+            note_moyenne    REAL,
+            nb_avis         INTEGER NOT NULL DEFAULT 0,
+            en_cours_lecture INTEGER NOT NULL DEFAULT 0
         );
     """)
     return con
 
 
-def _make_calibre_db(books: list[tuple]) -> sqlite3.Connection:
+def _make_calibre_db(
+    books: list[tuple], ko_progfloat_by_id: dict[int, float | None] | None = None
+) -> sqlite3.Connection:
     """Crée une base Calibre en mémoire avec les livres donnés.
 
     books: list of (calibre_id, title, extra_tags) où extra_tags est une liste de str optionnelle
+    ko_progfloat_by_id: valeurs optionnelles de la colonne custom 'ko_progfloat' par calibre_id
     """
     con = sqlite3.connect(":memory:")
     con.row_factory = sqlite3.Row
@@ -88,6 +92,18 @@ def _make_calibre_db(books: list[tuple]) -> sqlite3.Connection:
                 "INSERT INTO books_tags_link VALUES (?, ?)",
                 (calibre_id, tag_id_map[tag]),
             )
+
+    if ko_progfloat_by_id:
+        cur.execute("INSERT INTO custom_columns VALUES (4, 'ko_progfloat')")
+        cur.execute(
+            "CREATE TABLE custom_column_4 (id INTEGER PRIMARY KEY, book INTEGER, value REAL)"
+        )
+        for i, (calibre_id, value) in enumerate(ko_progfloat_by_id.items()):
+            if value is not None:
+                cur.execute(
+                    "INSERT INTO custom_column_4 VALUES (?, ?, ?)",
+                    (i + 1, calibre_id, value),
+                )
     con.commit()
     return con
 
@@ -267,3 +283,83 @@ class TestBuildOnkindleVirtualLibrary:
         titres = [r["titre"] for r in rows]
         assert "Livre A" in titres
         assert "Livre sans tags" not in titres
+
+
+class TestBuildOnkindleEnCoursLecture:
+    """Vérifie le calcul de en_cours_lecture depuis la colonne custom ko_progfloat (issue #131).
+
+    en_cours_lecture = 1 ssi 0 < ko_progfloat < 1 (exclut jamais-ouvert et terminé).
+    """
+
+    def test_progression_partielle_marque_en_cours(self):
+        """ko_progfloat=0.5062 (Read=false) → en_cours_lecture=1."""
+        main_con = _make_main_db()
+        calibre_con = _make_calibre_db(
+            [(101, "L'Inconnue du quai de Javel")],
+            ko_progfloat_by_id={101: 0.5062},
+        )
+        _run_build(main_con, calibre_con)
+
+        row = main_con.execute(
+            "SELECT * FROM onkindle WHERE titre = ?", ("L'Inconnue du quai de Javel",)
+        ).fetchone()
+        assert row is not None
+        assert row["en_cours_lecture"] == 1
+
+    def test_progression_absente_non_en_cours(self):
+        """ko_progfloat=None (jamais ouvert) → en_cours_lecture=0."""
+        main_con = _make_main_db()
+        calibre_con = _make_calibre_db(
+            [(102, "Livre jamais ouvert")],
+            ko_progfloat_by_id={102: None},
+        )
+        _run_build(main_con, calibre_con)
+
+        row = main_con.execute(
+            "SELECT * FROM onkindle WHERE titre = ?", ("Livre jamais ouvert",)
+        ).fetchone()
+        assert row is not None
+        assert row["en_cours_lecture"] == 0
+
+    def test_progression_zero_non_en_cours(self):
+        """ko_progfloat=0.0 (pas commencé) → en_cours_lecture=0."""
+        main_con = _make_main_db()
+        calibre_con = _make_calibre_db(
+            [(103, "Livre pas commence")],
+            ko_progfloat_by_id={103: 0.0},
+        )
+        _run_build(main_con, calibre_con)
+
+        row = main_con.execute(
+            "SELECT * FROM onkindle WHERE titre = ?", ("Livre pas commence",)
+        ).fetchone()
+        assert row is not None
+        assert row["en_cours_lecture"] == 0
+
+    def test_progression_complete_non_en_cours(self):
+        """ko_progfloat=1.0 (terminé) → en_cours_lecture=0."""
+        main_con = _make_main_db()
+        calibre_con = _make_calibre_db(
+            [(104, "Livre termine")],
+            ko_progfloat_by_id={104: 1.0},
+        )
+        _run_build(main_con, calibre_con)
+
+        row = main_con.execute(
+            "SELECT * FROM onkindle WHERE titre = ?", ("Livre termine",)
+        ).fetchone()
+        assert row is not None
+        assert row["en_cours_lecture"] == 0
+
+    def test_pas_de_colonne_ko_progfloat_non_en_cours(self):
+        """Colonne custom ko_progfloat absente de Calibre → en_cours_lecture=0 (pas de crash)."""
+        main_con = _make_main_db()
+        calibre_con = _make_calibre_db([(105, "Livre sans colonne ko_progfloat")])
+        _run_build(main_con, calibre_con)
+
+        row = main_con.execute(
+            "SELECT * FROM onkindle WHERE titre = ?",
+            ("Livre sans colonne ko_progfloat",),
+        ).fetchone()
+        assert row is not None
+        assert row["en_cours_lecture"] == 0
