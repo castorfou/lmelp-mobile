@@ -1555,6 +1555,17 @@ def verify_database(db_path: Path) -> None:
     help="Verify existing SQLite file and exit",
 )
 @click.option(
+    "--print-room-version",
+    "print_room_version",
+    is_flag=True,
+    default=False,
+    help=(
+        "Print ROOM_VERSION and exit (no MongoDB/Calibre connection needed) — "
+        "used by docker_export_and_publish_release.sh to resolve the data-v{N} "
+        "release tag (issue #132)"
+    ),
+)
+@click.option(
     "--svd-factors",
     default=20,
     show_default=True,
@@ -1591,6 +1602,7 @@ def main(
     output: str,
     force: bool,
     verify: str | None,
+    print_room_version: bool,
     svd_factors: int,
     calibre_db: str | None,
     calibre_virtual_library: str | None,
@@ -1598,6 +1610,10 @@ def main(
     previous_version: str | None,
 ) -> None:
     """Export MongoDB masque_et_la_plume to SQLite for lmelp-mobile."""
+
+    if print_room_version:
+        click.echo(ROOM_VERSION)
+        return
 
     if verify:
         verify_database(Path(verify))

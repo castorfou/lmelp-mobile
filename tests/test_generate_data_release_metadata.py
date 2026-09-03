@@ -2,10 +2,10 @@
 Tests du script scripts/generate_data_release_metadata.py.
 
 Ce script génère metadata.json à partir d'un lmelp.db, pour publication comme
-asset secondaire de la GitHub Release data-latest (voir issue #116 / ADR
-docs/dev/adr/0001-separation-maj-appli-donnees.md). metadata.json permet à une
-future implémentation app de vérifier si une mise à jour est disponible sans
-télécharger tout le fichier lmelp.db (~4-5 Mo).
+asset secondaire de la GitHub Release data-v{N} (voir issue #116 / #132 / ADR
+docs/dev/adr/0001-separation-maj-appli-donnees.md). metadata.json permet à
+l'app de vérifier si une mise à jour est disponible sans télécharger tout le
+fichier lmelp.db (~4-5 Mo).
 """
 
 import hashlib

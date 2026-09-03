@@ -19,7 +19,7 @@ ADB n'est en réalité nécessaire que pour le premier cas. De plus, le mécanis
 
 ### Flux de données (`lmelp.db`) — sujet principal, traité maintenant
 
-Publier `lmelp.db` comme **asset d'une GitHub Release dédiée aux données** (tag `data-latest`), distincte de la release APK (`vX.Y.Z`) :
+Publier `lmelp.db` comme **asset d'une GitHub Release dédiée aux données** (tag `data-v{N}`, où `N` est le `PRAGMA user_version`/schéma Room courant — voir mise à jour ci-dessous, issue #132), distincte de la release APK (`vX.Y.Z`) :
 
 - Réutilise l'infrastructure CI existante — `release.yml` publie déjà l'APK de la même manière.
 - Zéro nouvelle infrastructure serveur à ce stade.
@@ -34,6 +34,17 @@ Publier `lmelp.db` comme **asset d'une GitHub Release dédiée aux données** (t
 **Contrainte non négociable** : l'app reste strictement **offline-first**. Le réseau est optionnel et best-effort — son absence ou son échec ne doit jamais bloquer ou dégrader l'usage normal de l'app (consultation des données déjà en local). La permission `INTERNET` est déjà présente dans le manifest (utilisée aujourd'hui pour les couvertures de livres via Coil) ; aucun changement de permission n'est nécessaire pour ce mécanisme.
 
 **Page technique version app/DB** (ajoutée par cette issue) : l'écran À propos (`AboutScreen.kt`), qui affiche déjà la version de l'app (commit Git, date de build) et un historique des commits, affiche désormais aussi les informations de la base locale (date d'export, nombre d'émissions/livres/avis) via `MetadataRepository.getDbInfo()` — déjà implémenté mais jusqu'ici jamais branché à l'UI. Combiné à une future vue côté serveur (voir Suivi), cela permet de comparer "ce que mon téléphone a" vs "ce qui est publié".
+
+### Mise à jour du mécanisme : compatibilité de schéma par tag (issue #132)
+
+Constat après implémentation (issue #131) : le flux initial ci-dessus comparait uniquement `db_metadata.version` (fraîcheur des données), jamais `PRAGMA user_version` (schéma Room). Si l'app tournait sur un ancien schéma pendant que le pipeline republiait déjà au nouveau schéma sous le tag unique `data-latest`, le fichier téléchargé remplaçait la base locale sans vérification — au redémarrage, Room ouvrait un fichier au schéma inattendu et `fallbackToDestructiveMigration()` s'activait **silencieusement**, détruisant toutes les tables.
+
+**Décision** : au lieu d'un tag fixe `data-latest` partagé par toutes les versions de l'app, publier vers un tag dérivé du schéma courant, `data-v{ROOM_VERSION}` :
+
+- Le pipeline (`scripts/docker_export_and_publish_release.sh`) résout `ROOM_VERSION` via `export_mongo_to_sqlite.py --print-room-version` et publie toujours vers `data-v{N}` — sans historique conservé : le jour où l'export tourne en `ROOM_VERSION=8`, il publie vers `data-v8` et ne republie plus jamais vers `data-v7`.
+- Côté app, `OkHttpGitHubReleaseApi` résout dynamiquement le tag `data-v{N}` à partir de son propre `PRAGMA user_version` local, lu directement dans le header binaire du fichier `lmelp.db` (`SqliteSchemaVersion`, octets 60-63 du fichier — pas de dépendance `SQLiteDatabase`/JDBC, testable en JVM pur).
+
+Une app restée sur un ancien schéma après que le pipeline soit passé au tag suivant ne trouve simplement plus de release à son tag (404 GitHub) → pas de mise à jour de données proposée, jusqu'à ce que l'app elle-même soit mise à jour vers un build attendant le nouveau schéma. Aucune perte de données silencieuse possible : le fichier téléchargé est *par construction* toujours au même schéma que l'app qui le demande — contrairement à un garde-fou qui détecterait l'incompatibilité *après* téléchargement, cette approche élimine le risque en amont.
 
 ### Flux application (APK) — point périphérique, hors scope technique ici
 
@@ -74,7 +85,7 @@ Ce futur backend nécessitera authentification, profils utilisateurs, et très p
 
 - GitHub Release asset n'a pas de mécanisme de delta/diff : chaque mise à jour télécharge le fichier complet (~4-5 Mo aujourd'hui). Acceptable au volume actuel ; à surveiller si la base grossit significativement.
 - Dépendance à la disponibilité de GitHub côté téléchargement — cohérent avec le caractère offline-first (l'app fonctionne sans, le téléchargement est un best-effort).
-- Le tag `data-latest` republié en continu ne conserve pas d'historique des versions de données dans les Releases GitHub — acceptable car `db_metadata`/`metadata.json` conservent `export_date`, et Git ne versionnait pas non plus les anciennes DB jusqu'ici.
+- Le tag `data-v{N}` (un seul tag maintenu à la fois par schéma, republié en continu) ne conserve pas d'historique des versions de données dans les Releases GitHub — acceptable car `db_metadata`/`metadata.json` conservent `export_date`, et Git ne versionnait pas non plus les anciennes DB jusqu'ici.
 - Le déclenchement automatique dépend d'un token GitHub (`GH_TOKEN`, scope `contents:write`) provisionné côté NAS — nouveau secret à créer et sécuriser (voir issue de suivi `docker-lmelp`).
 
 ## Suivi

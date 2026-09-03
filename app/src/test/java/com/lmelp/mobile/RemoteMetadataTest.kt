@@ -7,7 +7,7 @@ import org.junit.Test
 
 /**
  * Tests unitaires pour RemoteMetadata.parse (issue #118).
- * Format confirmé en conditions réelles contre la release data-latest.
+ * Format confirmé en conditions réelles contre une release data-v{N}.
  */
 class RemoteMetadataTest {
 

@@ -2,9 +2,9 @@
 """Génère metadata.json pour une GitHub Release de données lmelp (issue #116).
 
 Le fichier metadata.json est publié comme asset secondaire à côté de lmelp.db
-sur la Release "data-latest". Il permet à une future implémentation app de
-vérifier si une mise à jour est disponible (via export_date/sha256) sans
-télécharger tout le fichier lmelp.db.
+sur la Release "data-v{N}" (N = ROOM_VERSION, voir issue #132). Il permet à
+l'app de vérifier si une mise à jour est disponible (via export_date/sha256)
+sans télécharger tout le fichier lmelp.db.
 
 Usage:
     python scripts/generate_data_release_metadata.py --db lmelp.db --output metadata.json

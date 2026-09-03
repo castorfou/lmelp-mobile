@@ -15,11 +15,14 @@ import java.io.File
 
 /**
  * Orchestre la vérification/téléchargement des mises à jour de données
- * depuis la GitHub Release data-latest (issue #118).
+ * depuis la GitHub Release data-v{N} (issue #118).
  *
  * Compare toujours db_metadata.version (timestamp Unix local) à
  * RemoteMetadata.exportVersion (même timestamp côté distant) — jamais
  * PRAGMA user_version, qui est un numéro de schéma Room fixe (issue #102).
+ * La compatibilité de schéma est garantie en amont par le tag data-v{N} lui-même
+ * (résolu dynamiquement par GitHubReleaseApi selon le schéma Room local, issue #132),
+ * pas par une comparaison ici.
  */
 class DataUpdateRepository(
     private val api: GitHubReleaseApi,

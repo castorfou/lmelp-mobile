@@ -20,8 +20,10 @@
 #                                       docker-lmelp#56 pour le provisioning)
 #   GH_REPO                          — repo cible (défaut: castorfou/lmelp-mobile)
 #   RELEASE_TAG                      — tag de la release à publier (défaut:
-#                                       data-latest ; utile pour tester sur un
-#                                       tag jetable sans toucher data-latest)
+#                                       data-v{ROOM_VERSION}, dérivé du schéma Room
+#                                       courant du script d'export — issue #132 ;
+#                                       utile pour tester sur un tag jetable sans
+#                                       toucher data-v{N})
 
 set -euo pipefail
 
@@ -40,7 +42,12 @@ die()     { echo -e "${RED}[ERR]${NC}  $*" >&2; exit 1; }
 DB_OUTPUT="/tmp/lmelp.db"
 METADATA_OUTPUT="/tmp/metadata.json"
 GH_REPO="${GH_REPO:-castorfou/lmelp-mobile}"
-RELEASE_TAG="${RELEASE_TAG:-data-latest}"
+
+# Tag dérivé du schéma Room courant (issue #132) : chaque app télécharge toujours
+# le tag correspondant à son propre PRAGMA user_version, jamais un tag fixe partagé
+# entre schémas incompatibles.
+ROOM_VERSION=$(python3 /app/scripts/export_mongo_to_sqlite.py --print-room-version)
+RELEASE_TAG="${RELEASE_TAG:-data-v${ROOM_VERSION}}"
 
 echo -e "\n${BOLD}=== lmelp-mobile : Export et publication de la Release ${RELEASE_TAG} ===${NC}\n"
 

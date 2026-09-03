@@ -94,6 +94,6 @@ class LmelpApp : Application() {
         )
     }
     val dataUpdateRepository by lazy {
-        DataUpdateRepository(OkHttpGitHubReleaseApi(), metadataRepository)
+        DataUpdateRepository(OkHttpGitHubReleaseApi(localDbFile = getDatabasePath("lmelp.db")), metadataRepository)
     }
 }

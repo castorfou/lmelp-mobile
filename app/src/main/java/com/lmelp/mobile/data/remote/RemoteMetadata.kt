@@ -4,7 +4,7 @@ import org.json.JSONException
 import org.json.JSONObject
 
 /**
- * Miroir Kotlin de metadata.json publié sur la GitHub Release data-latest
+ * Miroir Kotlin de metadata.json publié sur la GitHub Release data-v{N}
  * (voir scripts/generate_data_release_metadata.py, issue #118).
  */
 data class RemoteMetadata(

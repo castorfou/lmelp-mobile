@@ -172,8 +172,9 @@ Côté serveur (NAS, container lmelp-export en daemon + anacron) :
    ├── Export MongoDB → SQLite (avec données Calibre)
    ├── scripts/generate_data_release_metadata.py → metadata.json
    │     (export_date, export_version=timestamp, sha256, compteurs)
-   └── gh release upload data-latest lmelp.db metadata.json --clobber
-        (GitHub Release dédiée, distincte de la release APK vX.Y.Z)
+   └── gh release upload data-v{ROOM_VERSION} lmelp.db metadata.json --clobber
+        (GitHub Release dédiée, distincte de la release APK vX.Y.Z ;
+         tag dérivé du schéma Room, pas data-latest fixe — issue #132)
 
 Côté app Android :
 2. Check silencieux au lancement (LmelpApp.onCreate) + bouton manuel
