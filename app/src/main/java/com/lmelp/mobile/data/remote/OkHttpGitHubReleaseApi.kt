@@ -1,5 +1,6 @@
 package com.lmelp.mobile.data.remote
 
+import com.lmelp.mobile.data.update.SqliteSchemaVersion
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -9,19 +10,28 @@ import java.util.concurrent.TimeUnit
 /**
  * Implémentation OkHttp de GitHubReleaseApi (issue #118).
  * Consomme l'API GitHub Releases pour résoudre les download URLs des assets
- * publiés sur la release data-latest (lmelp.db + metadata.json).
+ * publiés sur la release data-v{N}, où N est le PRAGMA user_version du fichier
+ * DB local (lmelp.db + metadata.json). Le tag est résolu dynamiquement à partir
+ * du schéma Room local, jamais un tag fixe : ainsi le fichier téléchargé est
+ * toujours au même schéma que l'app qui le demande (issue #132).
  */
 class OkHttpGitHubReleaseApi(
-    private val releaseApiBaseUrl: String =
-        "https://api.github.com/repos/castorfou/lmelp-mobile/releases/tags/data-latest",
+    private val localDbFile: File,
+    private val apiBaseUrl: String =
+        "https://api.github.com/repos/castorfou/lmelp-mobile/releases/tags",
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 ) : GitHubReleaseApi {
 
+    private fun releaseApiUrl(): String {
+        val schemaVersion = SqliteSchemaVersion.read(localDbFile)
+        return "$apiBaseUrl/data-v$schemaVersion"
+    }
+
     private fun fetchAssetUrls(): Map<String, String> {
-        val request = Request.Builder().url(releaseApiBaseUrl).build()
+        val request = Request.Builder().url(releaseApiUrl()).build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 throw IOException("Échec de la requête GitHub Releases : HTTP ${response.code}")

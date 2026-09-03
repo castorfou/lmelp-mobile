@@ -49,7 +49,7 @@
 
 ## Mettre à jour la base depuis l'application
 
-Une fois la base de données enrichie côté serveur (section précédente) et publiée automatiquement sur la GitHub Release `data-latest` (voir [ADR 0001](../dev/adr/0001-separation-maj-appli-donnees.md)), l'application mobile peut récupérer la nouvelle version elle-même :
+Une fois la base de données enrichie côté serveur (section précédente) et publiée automatiquement sur la GitHub Release dédiée aux données (tag `data-v{N}`, voir [ADR 0001](../dev/adr/0001-separation-maj-appli-donnees.md)), l'application mobile peut récupérer la nouvelle version elle-même :
 
 1. Ouvrir l'écran **À propos** (icône ⚙️ en haut à droite de l'accueil — un point vert y apparaît automatiquement si une mise à jour a été détectée au lancement de l'app).
 2. Appuyer sur **Vérifier les mises à jour** (ou directement sur **Mettre à jour** si le point vert était déjà présent).
