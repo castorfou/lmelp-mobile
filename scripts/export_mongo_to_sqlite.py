@@ -38,7 +38,8 @@ MONGO_DB = "masque_et_la_plume"
 
 # Doit correspondre à @Database(version=N) dans LmelpDatabase.kt.
 # v7 : ajout date_debut_lecture dans palmares et calibre_hors_masque (issue #100)
-ROOM_VERSION = 7
+# v8 : ajout en_cours_lecture dans onkindle (issue #131)
+ROOM_VERSION = 8
 
 _LMELP_DATABASE_KT = (
     Path(__file__).parent.parent
@@ -224,15 +225,16 @@ CREATE TABLE IF NOT EXISTS db_metadata (
 CREATE INDEX IF NOT EXISTS index_emission_livres_livre_id ON emission_livres(livre_id);
 
 CREATE TABLE IF NOT EXISTS onkindle (
-    livre_id       TEXT NOT NULL PRIMARY KEY,
-    titre          TEXT NOT NULL,
-    auteur_nom     TEXT,
-    url_babelio    TEXT,
-    url_cover      TEXT,
-    calibre_lu     INTEGER NOT NULL DEFAULT 0,
-    calibre_rating REAL,
-    note_moyenne   REAL,
-    nb_avis        INTEGER NOT NULL DEFAULT 0
+    livre_id        TEXT NOT NULL PRIMARY KEY,
+    titre           TEXT NOT NULL,
+    auteur_nom      TEXT,
+    url_babelio     TEXT,
+    url_cover       TEXT,
+    calibre_lu      INTEGER NOT NULL DEFAULT 0,
+    calibre_rating  REAL,
+    note_moyenne    REAL,
+    nb_avis         INTEGER NOT NULL DEFAULT 0,
+    en_cours_lecture INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS calibre_hors_masque (
@@ -955,6 +957,14 @@ def build_onkindle_table(
         if row:
             read_col_id = row["id"]
 
+        # Trouve l'id de la colonne personnalisée 'ko_progfloat' (progression KOReader précise)
+        ko_progfloat_col_id: int | None = None
+        row = cal_cur.execute(
+            "SELECT id FROM custom_columns WHERE label = 'ko_progfloat'"
+        ).fetchone()
+        if row:
+            ko_progfloat_col_id = row["id"]
+
         # Charge les livres avec le tag 'onkindle' + auteur Calibre (premier auteur)
         # Si virtual_library_tag fourni : filtre onkindle AND virtual_library_tag
         if virtual_library_tag:
@@ -1038,6 +1048,21 @@ def build_onkindle_table(
                 if lu_row and lu_row["value"]:
                     calibre_lu = 1
 
+            # En cours de lecture : progression KOReader strictement entre 0 et 1
+            # (exclut jamais-ouvert et terminé), voir issue #131
+            en_cours_lecture = 0
+            if ko_progfloat_col_id is not None:
+                prog_row = cal_cur.execute(
+                    f"SELECT value FROM custom_column_{ko_progfloat_col_id} WHERE book = ?",
+                    (calibre_id,),
+                ).fetchone()
+                if (
+                    prog_row
+                    and prog_row["value"] is not None
+                    and 0 < prog_row["value"] < 1
+                ):
+                    en_cours_lecture = 1
+
             # Rating
             calibre_rating: float | None = None
             rating_row = cal_cur.execute(
@@ -1084,8 +1109,8 @@ def build_onkindle_table(
 
             cur.execute(
                 """INSERT OR REPLACE INTO onkindle
-                   (livre_id, titre, auteur_nom, url_babelio, url_cover, calibre_lu, calibre_rating, note_moyenne, nb_avis)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (livre_id, titre, auteur_nom, url_babelio, url_cover, calibre_lu, calibre_rating, note_moyenne, nb_avis, en_cours_lecture)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     final_livre_id,
                     calibre_titre,
@@ -1096,6 +1121,7 @@ def build_onkindle_table(
                     calibre_rating,
                     note_moyenne,
                     nb_avis,
+                    en_cours_lecture,
                 ),
             )
             inserted += 1

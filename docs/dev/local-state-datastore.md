@@ -17,7 +17,8 @@ Dépôt unique pour toutes les préférences utilisateur locales. Il implémente
 | Clé | Type | Usage |
 |-----|------|-------|
 | `show_hors_masque` | `Boolean` | Afficher/masquer les livres hors Masque dans Mon Palmarès |
-| `pinned_reading` | `Set<String>` | IDs des livres épinglés "en cours de lecture" dans Sur ma liseuse |
+| `pinned_reading` | `Set<String>` | IDs des livres épinglés manuellement "en cours de lecture" dans Sur ma liseuse |
+| `auto_pin_dismissed` | `Set<String>` | IDs des livres dont l'épinglage automatique (`onkindle.en_cours_lecture`) a été explicitement refusé par l'utilisateur (issue #131) |
 
 ### Ajouter une nouvelle préférence
 
@@ -90,7 +91,31 @@ La fonctionnalité d'épinglage (issue #75) illustre le pattern complet :
 3. **Auto-nettoyage** : au chargement, les livres épinglés dont `calibre_lu = true` sont automatiquement désépinglés via `removePinned()` — cela couvre la mise à jour DB via `lmelp-update-mobile`
 4. **Ordre** : les épinglés sont placés en tête dans `loadOnKindle()` après annotation `isPinned`
 
+## Cas d'usage : auto-épinglage "en cours de lecture" (issue #131)
+
+Extension du pattern ci-dessus pour épingler automatiquement un livre selon les données
+Calibre/KOReader (`onkindle.en_cours_lecture`, voir [data-schema.md](data-schema.md)), sans
+action de l'utilisateur, tout en gardant le contrôle manuel :
+
+1. **Ensemble effectif des épinglés** calculé dans `loadOnKindle()` :
+   `pinnedIds (manuel) ∪ { livres avec enCoursLecture=true et non présents dans autoPinDismissed }`
+2. **Retrait d'un livre auto-épinglé** : `togglePin(livreId)` distingue deux cas — si le livre
+   est dans `pinnedBookIds` (épingle manuelle), toggle classique via `togglePinnedReading()` ;
+   sinon, s'il est épinglé uniquement via l'auto-pin (`enCoursLecture=true`), l'appel route vers
+   `dismissAutoPin(livreId)` (ajout à `auto_pin_dismissed`, pas un toggle réversible en un clic —
+   c'est une confirmation de retrait durable).
+3. **Nettoyage de `auto_pin_dismissed`** : au chargement, un livre dismissed dont
+   `enCoursLecture` est redevenu `false` ou dont `calibreLu` est passé à `true` est retiré de
+   `auto_pin_dismissed` via `clearAutoPinDismissed()` — le refus n'a plus lieu d'être une fois
+   la condition source disparue.
+4. **Non-régression** : l'épinglage manuel d'un livre sans `enCoursLecture` continue de
+   fonctionner à l'identique (issue #75), et les deux catégories d'épinglés restent groupées en
+   tête de liste.
+
+Voir `app/src/test/java/com/lmelp/mobile/OnKindleAutoPinTest.kt` pour les cas de test complets.
+
 ## Référence
 
 - [Jetpack DataStore Preferences](https://developer.android.com/topic/libraries/architecture/datastore)
 - `app/src/test/java/com/lmelp/mobile/OnKindlePinTest.kt` — exemple complet de tests avec fake
+- `app/src/test/java/com/lmelp/mobile/OnKindleAutoPinTest.kt` — tests de l'auto-épinglage (issue #131)

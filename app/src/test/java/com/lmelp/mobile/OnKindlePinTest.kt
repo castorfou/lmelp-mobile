@@ -32,6 +32,9 @@ class FakeUserPreferencesRepository : UserPreferencesRepository.PinnedReadingSto
     private val _pinned = MutableStateFlow<Set<String>>(emptySet())
     override val pinnedReading: Flow<Set<String>> = _pinned
 
+    private val _autoPinDismissed = MutableStateFlow<Set<String>>(emptySet())
+    override val autoPinDismissed: Flow<Set<String>> = _autoPinDismissed
+
     override suspend fun togglePinnedReading(livreId: String) {
         val current = _pinned.value
         _pinned.value = if (livreId in current) current - livreId else current + livreId
@@ -40,6 +43,16 @@ class FakeUserPreferencesRepository : UserPreferencesRepository.PinnedReadingSto
     override suspend fun removePinned(livreId: String) {
         _pinned.value = _pinned.value - livreId
     }
+
+    override suspend fun dismissAutoPin(livreId: String) {
+        _autoPinDismissed.value = _autoPinDismissed.value + livreId
+    }
+
+    override suspend fun clearAutoPinDismissed(livreId: String) {
+        _autoPinDismissed.value = _autoPinDismissed.value - livreId
+    }
+
+    fun autoPinDismissedSnapshot(): Set<String> = _autoPinDismissed.value
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

@@ -227,15 +227,16 @@ WHERE si.search_index MATCH ?  -- ❌ invalide (search_index est le nom de la ta
 
 ```sql
 CREATE TABLE onkindle (
-    livre_id       TEXT NOT NULL PRIMARY KEY,  -- Correspondance avec livres.id si discuté au Masque
-    titre          TEXT NOT NULL,
-    auteur_nom     TEXT,                        -- Depuis livres.auteur_nom ou Calibre (fallback)
-    url_babelio    TEXT,                        -- NULL si non discuté au Masque
-    url_cover      TEXT,                        -- URL directe de l'image de couverture
-    calibre_lu     INTEGER NOT NULL DEFAULT 0, -- Lu sur Kindle (0/1), depuis Calibre custom column
-    calibre_rating REAL,                        -- Note personnelle Calibre (1-10, nullable)
-    note_moyenne   REAL,                        -- Note Masque et la Plume (NULL si non discuté)
-    nb_avis        INTEGER NOT NULL DEFAULT 0  -- Nombre d'avis Masque (0 si non discuté)
+    livre_id        TEXT NOT NULL PRIMARY KEY,  -- Correspondance avec livres.id si discuté au Masque
+    titre           TEXT NOT NULL,
+    auteur_nom      TEXT,                        -- Depuis livres.auteur_nom ou Calibre (fallback)
+    url_babelio     TEXT,                        -- NULL si non discuté au Masque
+    url_cover       TEXT,                        -- URL directe de l'image de couverture
+    calibre_lu      INTEGER NOT NULL DEFAULT 0, -- Lu sur Kindle (0/1), depuis Calibre custom column
+    calibre_rating  REAL,                        -- Note personnelle Calibre (1-10, nullable)
+    note_moyenne    REAL,                        -- Note Masque et la Plume (NULL si non discuté)
+    nb_avis         INTEGER NOT NULL DEFAULT 0, -- Nombre d'avis Masque (0 si non discuté)
+    en_cours_lecture INTEGER NOT NULL DEFAULT 0 -- Progression KOReader en cours (0/1), voir ci-dessous
 );
 ```
 
@@ -245,6 +246,15 @@ CREATE TABLE onkindle (
 3. Si le livre n'est pas dans `palmares` : fallback sur `avis` (moyenne + count)
 4. Croise avec `livres` pour `url_babelio`, `url_cover` et `auteur_nom`
 5. Si `auteur_nom` est NULL après croisement : utilise l'auteur depuis Calibre
+
+> **`en_cours_lecture` (issue #131)** : calculé depuis la colonne custom Calibre `ko_progfloat`
+> (progression KOReader précise, 0.0 à 1.0) — `en_cours_lecture = 1` ssi `0 < ko_progfloat < 1`
+> (exclut jamais-ouvert `NULL`/`0.0` et terminé `1.0`). Distinct de `calibre_lu` : un livre
+> peut avoir `Read = false` dans Calibre (case à cocher standard, non mise à jour tant que la
+> lecture n'est pas terminée) tout en ayant une progression KOReader en cours. Côté app, un
+> livre avec `en_cours_lecture = 1` est épinglé automatiquement sur l'écran "Sur ma liseuse"
+> (voir `OnKindleViewModel.loadOnKindle()`), désépinglable manuellement de façon durable via
+> `UserPreferencesRepository.autoPinDismissed` (DataStore).
 
 **Tri dans l'app :** le tri alphabétique est effectué en Kotlin via `java.text.Collator(Locale.FRENCH, PRIMARY)` (SQLite ne gère pas les accents correctement pour le français).
 
