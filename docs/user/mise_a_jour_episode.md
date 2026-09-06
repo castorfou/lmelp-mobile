@@ -3,18 +3,26 @@
 !!! tip "Mise à jour de la base sans USB"
     Depuis l'implémentation de l'[issue #118](https://github.com/castorfou/lmelp-mobile/issues/118), l'application peut télécharger elle-même la dernière base de données publiée, sans branchement USB ni laptop — voir la section [Mettre à jour la base depuis l'application](#mettre-a-jour-la-base-depuis-lapplication) plus bas. La procédure ADB décrite ensuite reste utile en développement local (build debug, test avant publication de la release).
 
-à la diffusion d'un nouvel épisode de l'émission, j'ai pas mal de boulot :
+à la diffusion d'un nouvel épisode de l'émission, le début est automatisé :
 
-> ![](img/favicon_lmelp-frontoffice.png) depuis **lmelp-frontoffice** :
+> ![](img/favicon_automatisch.png) dans **automatisch** :
 >
-> - ![](img/rafraichir.png) télécharge l'enregistrement audio dans `docker-lmelp/data/audios`
+> - à la publication d'une nouvelle émission, le flux 'le masque et la plume se lance'
+> - notifie l'utilisateur via **ntfy.sh**
+> - et pour les épisodes de plus de 15 minutes, active l'api rest `/api/rss/sync` de backoffice-backend
+>
+> ![](img/favicon_lmelp-backoffice.png) dans **lmelp-backoffice** - backend `/api/rss/sync` :
+> - download l'audio
+> - notifie l'utilisateur via **ntfy.sh**
 >
 > ??? info "en cas de détection de type incorrect"
 >     il y a un mécanisme de détection automatique du type d'épisodes (film/théâtre/livre) mais parfois cela disfonctionne et un épisode film ou théâtre peut être injustement détecté comme livre
 >
->     dans ce cas il faut "cacher" l'épisode incorrectement détecté en allant dans lmelp-backoffice - frontend, masquert les épisodes et jouer sur la visibilité de l'épisode (passer de visible à masqué)
->
->     et supprimer le fichier .m4a correspondant
+>     dans ce cas il faut "cacher" l'épisode incorrectement détecté en allant dans lmelp-backoffice - frontend, masquer les épisodes et jouer sur la visibilité de l'épisode (passer de visible à masqué)
+
+la suite est manuelle :
+
+> ![](img/favicon_lmelp-frontoffice.png) depuis **lmelp-frontoffice** :
 >
 > - ![](img/telecharger_transcriptions.png) déclenche la transcription PGX automatisée
 >
