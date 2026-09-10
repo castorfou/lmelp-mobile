@@ -7,11 +7,13 @@
 
 > ![](img/favicon_automatisch.png) dans **automatisch** :
 >
-> - à la publication d'une nouvelle émission, le flux 'le masque et la plume se lance'
+> à la publication d'une nouvelle émission, le flux *le masque et la plume* se lance, et pour les épisodes de plus de 15 minutes,
+>
 > - notifie l'utilisateur via **ntfy.sh**
-> - et pour les épisodes de plus de 15 minutes, active l'api rest `/api/rss/sync` de backoffice-backend
+> - active l'api rest `/api/rss/sync` de backoffice-backend
 >
 > ![](img/favicon_lmelp-backoffice.png) dans **lmelp-backoffice** - backend `/api/rss/sync` :
+>
 > - download l'audio
 > - notifie l'utilisateur via **ntfy.sh**
 >
@@ -44,8 +46,12 @@ la suite est manuelle :
 >
 > - ![](img/generation_avis_critiques.png) page **Génération Avis Critiques (LLM)** : crée un summary depuis la transcription d'un épisode.
 > Note: cliquer sur **Episodes sans Avis Critiques** dans la zone Informations générales dans la zone Informations générales nous améne à cette page
-> - ![](img/livres_et_auteurs.png) page **Livres et Auteurs** : extrait les livres/auteurs de l'épisode sur la base du summary et se base sur les metadonnées babelio (il faut au préalable lancer un VPN système (pas browser), et valider le captcha d'accès [babelio](https://www.babelio.com/)) pour corriger les titres/auteurs/éditeurs.
+> - ![](img/livres_et_auteurs.png) page **Livres et Auteurs** : extrait les livres/auteurs de l'épisode sur la base du summary et se base sur les metadonnées babelio pour corriger les titres/auteurs/éditeurs.
 > Note: cliquer sur **Avis Critiques sans Analyse** dans la zone Informations générales nous amène à cette page
+>
+> ??? warning "en cas de blocage IP par Babelio"
+>     une procédure est disponible dans [doc blocage ip](https://castorfou.github.io/back-office-lmelp/dev/blocage_ip/). Il s'agit de faire tourner l'application sur un PC connecté en VPN
+>
 > - ![](img/identification_des_critiques.png) **Identification des Critiques** : nécessaire si un critique participe pour la 1ère fois à l'émission
 > - ![](img/liaison_babelio.png) **Liaison Babelio** : pour lier les oeuvres / auteurs à leurs pages babelio respectives, ainsi que le lien vers la couverture de l'oeuvre.
 >  Note: cliquer sur **Livres sans lien Babelio** / **Auteurs sans lien Babelio** dans la zone Informations générales nous amène à cette page
