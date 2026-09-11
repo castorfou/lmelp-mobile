@@ -24,28 +24,26 @@
 
 la suite est manuelle :
 
-> ![](img/favicon_lmelp-frontoffice.png) depuis **lmelp-frontoffice** :
+> ![](img/favicon_lmelp-backoffice.png) depuis **lmelp-backoffice** - frontend :
 >
-> - ![](img/telecharger_transcriptions.png) déclenche la transcription PGX automatisée
+> - 🖥️ page **Transcriptions PGX** : crée la transcription de l'épisode via le PGX. Note: cliquer sur **Episodes sans Transcriptions** dans la zone Informations générales nous améne à cette page
 >
-> ??? info "mode d'emploi - transcription PGX (automatisée)"
+> ??? info "transcription PGX (automatisée), démarrage PGX nécessaire"
 >     Le pipeline de transcription (envoi de l'audio, attente, rapatriement de la
 >     transcription, intégration en base) est **entièrement automatisé** — plus besoin de
 >     commandes `scp`/`ssh` manuelles.
 >
 >     1. Allumer PGX **manuellement** (pas de réveil à distance automatisé — Wi-Fi
 >        uniquement, veille système désactivée pour la stabilité GPU).
->     2. *(Optionnel)* Depuis l'interface Streamlit lmelp, page **PGX**, vérifier la
+>     2. Depuis la page **Transcriptions PGX**, vérifier la
 >        disponibilité de la station (checklist : joignabilité, authentification SSH,
 >        répertoires distants) avant de lancer une transcription.
 >
->     Voir la [doc de référence du pipeline PGX](https://castorfou.github.io/lmelp/user/transcription-pgx/)
+>     Voir la [doc de référence du pipeline PGX](https://castorfou.github.io/back-office-lmelp/user/transcription-pgx/)
 >     (repo `castorfou/lmelp`) pour le détail complet.
 >
-> ![](img/favicon_lmelp-backoffice.png) depuis **lmelp-backoffice** - frontend :
->
 > - ![](img/generation_avis_critiques.png) page **Génération Avis Critiques (LLM)** : crée un summary depuis la transcription d'un épisode.
-> Note: cliquer sur **Episodes sans Avis Critiques** dans la zone Informations générales dans la zone Informations générales nous améne à cette page
+> Note: cliquer sur **Episodes sans Avis Critiques** dans la zone Informations générales nous améne à cette page
 > - ![](img/livres_et_auteurs.png) page **Livres et Auteurs** : extrait les livres/auteurs de l'épisode sur la base du summary et se base sur les metadonnées babelio pour corriger les titres/auteurs/éditeurs.
 > Note: cliquer sur **Avis Critiques sans Analyse** dans la zone Informations générales nous amène à cette page
 >
