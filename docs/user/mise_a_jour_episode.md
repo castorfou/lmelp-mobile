@@ -10,37 +10,28 @@
 > à la publication d'une nouvelle émission, le flux *le masque et la plume* se lance, et pour les épisodes de plus de 15 minutes,
 >
 > - notifie l'utilisateur via **ntfy.sh**
-> - active l'api rest `/api/rss/sync` de backoffice-backend
+> - active l'api rest `/api/rss/sync` de backoffice-backend pour télécharger l'audio
+> - active l'api rest `/api/pgx/transcription/start` de backoffice-backend pour transcrire l'audio
 >
-> ![](img/favicon_lmelp-backoffice.png) dans **lmelp-backoffice** - backend `/api/rss/sync` :
+> ![](img/favicon_lmelp-backoffice.png) dans **lmelp-backoffice** :
 >
-> - download l'audio
-> - notifie l'utilisateur via **ntfy.sh**
+> - backend `/api/rss/sync` :
+>     - download l'audio
+>     - notifie l'utilisateur via **ntfy.sh**
 >
-> ??? info "en cas de détection de type incorrect"
->     il y a un mécanisme de détection automatique du type d'épisodes (film/théâtre/livre) mais parfois cela disfonctionne et un épisode film ou théâtre peut être injustement détecté comme livre
+>     ??? info "en cas de détection de type incorrect"
+>         il y a un mécanisme de détection automatique du type d'épisodes (film/théâtre/livre) mais parfois cela disfonctionne et un épisode film ou théâtre peut être injustement détecté comme livre
 >
->     dans ce cas il faut "cacher" l'épisode incorrectement détecté en allant dans lmelp-backoffice - frontend, masquer les épisodes et jouer sur la visibilité de l'épisode (passer de visible à masqué)
+>         dans ce cas il faut "cacher" l'épisode incorrectement détecté en allant dans lmelp-backoffice - frontend, masquer les épisodes et jouer sur la visibilité de l'épisode (passer de visible à masqué)
+>
+> - backend `/api/pgx/transcription/start` :
+>     - vérifie la dispo de PGX, sinon notifie l'utilisateur via **ntfy.sh** et réessaie toutes les heures
+>     - envoie l'audio, attend, rapatrie la transcription, intégre en base
+>     - notifie l'utilisateur via **ntfy.sh**
 
 la suite est manuelle :
 
 > ![](img/favicon_lmelp-backoffice.png) depuis **lmelp-backoffice** - frontend :
->
-> - 🖥️ page **Transcriptions PGX** : crée la transcription de l'épisode via le PGX. Note: cliquer sur **Episodes sans Transcriptions** dans la zone Informations générales nous améne à cette page
->
-> ??? info "transcription PGX (automatisée), démarrage PGX nécessaire"
->     Le pipeline de transcription (envoi de l'audio, attente, rapatriement de la
->     transcription, intégration en base) est **entièrement automatisé** — plus besoin de
->     commandes `scp`/`ssh` manuelles.
->
->     1. Allumer PGX **manuellement** (pas de réveil à distance automatisé — Wi-Fi
->        uniquement, veille système désactivée pour la stabilité GPU).
->     2. Depuis la page **Transcriptions PGX**, vérifier la
->        disponibilité de la station (checklist : joignabilité, authentification SSH,
->        répertoires distants) avant de lancer une transcription.
->
->     Voir la [doc de référence du pipeline PGX](https://castorfou.github.io/back-office-lmelp/user/transcription-pgx/)
->     (repo `castorfou/lmelp`) pour le détail complet.
 >
 > - ![](img/generation_avis_critiques.png) page **Génération Avis Critiques (LLM)** : crée un summary depuis la transcription d'un épisode.
 > Note: cliquer sur **Episodes sans Avis Critiques** dans la zone Informations générales nous améne à cette page
