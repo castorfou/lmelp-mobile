@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
@@ -24,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -31,12 +33,16 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.lmelp.mobile.ui.theme.LmelpBleuVif
+import com.lmelp.mobile.ui.theme.LmelpBordeauxVif
 import com.lmelp.mobile.ui.theme.LmelpTheme
+import com.lmelp.mobile.ui.theme.LmelpVertVif
 
 data class BottomNavItem(
     val label: String,
     val route: String,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val indicatorColor: Color? = null
 )
 
 class MainActivity : ComponentActivity() {
@@ -56,10 +62,10 @@ class MainActivity : ComponentActivity() {
 
                 val bottomNavItems = listOf(
                     BottomNavItem("Accueil", Routes.HOME, Icons.Default.Home),
-                    BottomNavItem("Émissions", Routes.EMISSIONS, Icons.AutoMirrored.Filled.List),
-                    BottomNavItem("Palmarès", Routes.PALMARES, Icons.Default.Star),
-                    BottomNavItem("Conseils", Routes.RECOMMENDATIONS, Icons.Default.Person),
-                    BottomNavItem("Recherche", Routes.SEARCH, Icons.Default.Search),
+                    BottomNavItem("Émissions", Routes.EMISSIONS, Icons.AutoMirrored.Filled.List, LmelpBleuVif),
+                    BottomNavItem("Palmarès", Routes.PALMARES, Icons.Default.Star, LmelpVertVif),
+                    BottomNavItem("Conseils", Routes.RECOMMENDATIONS, Icons.Default.Person, LmelpBordeauxVif),
+                    BottomNavItem("Recherche", Routes.SEARCH, Icons.Default.Search, LmelpVertVif),
                 )
 
                 // Ordre circulaire pour la navigation par swipe (inclut Home)
@@ -119,7 +125,12 @@ class MainActivity : ComponentActivity() {
                                         icon = { Icon(item.icon, contentDescription = item.label) },
                                         label = if (shouldShowLabel(isLandscape)) {
                                             { Text(item.label) }
-                                        } else null
+                                        } else null,
+                                        colors = if (item.indicatorColor != null) {
+                                            NavigationBarItemDefaults.colors(indicatorColor = item.indicatorColor)
+                                        } else {
+                                            NavigationBarItemDefaults.colors()
+                                        }
                                     )
                                 }
                             }

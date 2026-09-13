@@ -1,5 +1,6 @@
 package com.lmelp.mobile.ui.search
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -19,8 +20,10 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.lmelp.mobile.ui.theme.LmelpVert
+import com.lmelp.mobile.ui.theme.LmelpVertVif
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -53,8 +56,11 @@ fun SearchScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Recherche", color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = LmelpVert),
-                windowInsets = WindowInsets.statusBars
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                windowInsets = WindowInsets.statusBars,
+                modifier = Modifier.background(
+                    Brush.verticalGradient(colors = listOf(LmelpVert, LmelpVertVif))
+                )
             )
         }
     ) { padding ->

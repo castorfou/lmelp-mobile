@@ -1,5 +1,6 @@
 package com.lmelp.mobile.ui.critiques
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,8 +19,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.lmelp.mobile.ui.theme.LmelpBordeaux
+import com.lmelp.mobile.ui.theme.LmelpBordeauxVif
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -49,8 +52,11 @@ fun CritiquesScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Critiques", color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = LmelpBordeaux),
-                windowInsets = WindowInsets.statusBars
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                windowInsets = WindowInsets.statusBars,
+                modifier = Modifier.background(
+                    Brush.verticalGradient(colors = listOf(LmelpBordeaux, LmelpBordeauxVif))
+                )
             )
         }
     ) { padding ->
