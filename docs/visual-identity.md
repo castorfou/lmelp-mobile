@@ -29,6 +29,18 @@ Trois couleurs issues de l'image officielle du podcast :
 | Bordeaux | `#A10127` | Carré France Inter | Conseils, Critiques |
 | Vert | `#00897B` | Fond derrière Rebecca Manzoni | Palmarès, Recherche |
 
+### Teintes « vives » (dégradés de bandeau, issue #138)
+
+Chaque couleur dominante a une variante plus claire/vive, utilisée en fin de dégradé sur la TopAppBar de l'écran correspondant, et réutilisée telle quelle comme couleur de l'indicateur de sélection de l'onglet correspondant dans la barre de navigation du bas :
+
+| Nom | Hex | Couleur dominante associée |
+|-----|-----|------------------------------|
+| `LmelpBleuVif` | `#1E88E5` | Bleu (`LmelpBleu`) |
+| `LmelpBordeauxVif` | `#D32F4B` | Bordeaux (`LmelpBordeaux`) |
+| `LmelpVertVif` | `#26A69A` | Vert (`LmelpVert`) |
+
+Définies dans `app/src/main/java/com/lmelp/mobile/ui/theme/Theme.kt`.
+
 ### Règle d'adjacence des tuiles
 
 Deux tuiles adjacentes ne doivent jamais avoir la même couleur (théorème des 4 couleurs — 3 suffisent ici).
@@ -54,8 +66,9 @@ Disposition actuelle validée :
 |------|---------|
 | HomeScreen — hero (status bar incluse) | Dégradé `#12192C` → `#1E2D4A` |
 | HomeScreen — grille de navigation | Blanc (`Color.White`) |
-| Autres screens — TopAppBar + status bar | Couleur de la tuile correspondante |
+| Autres screens — TopAppBar + status bar | Dégradé vertical, couleur de la tuile → variante « vive » (issue #138) |
 | Autres screens — contenu sous le bandeau | Blanc (`Color.White`) |
+| Bottom nav — indicateur de l'onglet sélectionné | Couleur « vive » de l'écran correspondant (Accueil non concerné) |
 
 ## Implémentation Compose — status bar colorée par écran
 
@@ -63,14 +76,18 @@ Disposition actuelle validée :
 
 Le `Scaffold` racine dans `MainActivity` doit avoir `contentWindowInsets = WindowInsets(0)` pour ne pas consommer les insets avant les screens imbriqués.
 
-Chaque screen secondaire utilise :
+Chaque screen secondaire utilise un dégradé vertical (couleur dominante → variante « vive », issue #138) plutôt qu'une couleur unie :
 ```kotlin
 Scaffold(
     contentWindowInsets = WindowInsets(0),
     topBar = {
         TopAppBar(
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = LmelpXxx),
-            windowInsets = WindowInsets.statusBars  // colore la status bar
+            title = { Text("Titre", color = Color.White) },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+            windowInsets = WindowInsets.statusBars,  // colore la status bar
+            modifier = Modifier.background(
+                Brush.verticalGradient(colors = listOf(LmelpXxx, LmelpXxxVif))
+            )
         )
     }
 )
