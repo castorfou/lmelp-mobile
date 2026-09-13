@@ -18,15 +18,20 @@ class EmissionsRepository(
 
     suspend fun getAllEmissions(): List<EmissionUi> {
         val emissions = emissionsDao.getAllEmissions()
+        val topLivres = emissionsDao.getTopLivreParEmission(emissions.size * 2)
+            .associateBy { it.emissionId }
         return emissions.map { emission ->
             val episode = episodesDao.getEpisodeById(emission.episodeId)
+            val topLivre = topLivres[emission.id]
             EmissionUi(
                 id = emission.id,
                 titre = episode?.titre ?: emission.id,
                 date = emission.date,
                 duree = emission.duree,
                 nbAvis = emission.nbAvis,
-                hasSummary = emission.hasSummary == 1
+                hasSummary = emission.hasSummary == 1,
+                urlCover = topLivre?.urlCover,
+                noteMoyenne = topLivre?.noteMoyenne
             )
         }
     }

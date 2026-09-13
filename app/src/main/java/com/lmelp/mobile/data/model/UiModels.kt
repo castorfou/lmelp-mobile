@@ -6,7 +6,9 @@ data class EmissionUi(
     val date: String,
     val duree: Int?,
     val nbAvis: Int,
-    val hasSummary: Boolean
+    val hasSummary: Boolean,
+    val urlCover: String? = null,
+    val noteMoyenne: Double? = null
 )
 
 data class EmissionDetailUi(
