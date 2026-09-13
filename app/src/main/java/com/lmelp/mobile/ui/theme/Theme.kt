@@ -18,6 +18,29 @@ val LmelpBleu = Color(0xFF1565C0)       // Émissions
 val LmelpBordeaux = Color(0xFFA10127)   // Critiques, Conseils
 val LmelpVert = Color(0xFF00897B)       // Palmarès, Recherche
 
+// Dégradés des bandeaux (issue #138) — chaque écran garde sa couleur dominante,
+// dégradé vertical vers une teinte plus claire/vive ; cette teinte vive est
+// réutilisée comme couleur d'indicateur de l'onglet correspondant dans la
+// barre de navigation du bas
+val LmelpBleuVif = Color(0xFF1E88E5)
+val LmelpBordeauxVif = Color(0xFFD32F4B)
+val LmelpVertVif = Color(0xFF26A69A)
+
+// Variation subtile bleu clair/foncé par année d'émission (issue #138)
+private val AnneeBleuFonce = Color(0xFF0D47A1)
+private val AnneeBleuClair = Color(0xFF42A5F5)
+
+/**
+ * Couleur bleue modulée selon l'année d'émission, pour varier subtilement
+ * le fond de fallback / overlay des cartes Émissions (mosaïque de la liste
+ * plutôt qu'une teinte figée). Alterne entre AnneeBleuFonce et AnneeBleuClair
+ * selon la parité de l'année ; retombe sur LmelpBleu si la date est invalide.
+ */
+fun couleurAnnee(date: String): Color {
+    val annee = date.take(4).toIntOrNull() ?: return LmelpBleu
+    return if (annee % 2 == 0) AnneeBleuFonce else AnneeBleuClair
+}
+
 // Codes couleur pour les notes (identiques au back-office)
 val NoteExcellent = Color(0xFF00C851)   // >= 9  : vert vif
 val NoteBien      = Color(0xFF8BC34A)   // >= 7  : vert clair

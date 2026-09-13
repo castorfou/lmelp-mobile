@@ -22,11 +22,14 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -44,9 +47,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -58,12 +64,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.compose.AsyncImage
 import com.lmelp.mobile.data.model.EmissionUi
 import com.lmelp.mobile.data.repository.EmissionsRepository
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
 import com.lmelp.mobile.ui.theme.LmelpBleu
+import com.lmelp.mobile.ui.theme.LmelpBleuVif
+import com.lmelp.mobile.ui.theme.couleurAnnee
 import com.lmelp.mobile.viewmodel.EmissionsUiState
 import com.lmelp.mobile.viewmodel.EmissionsViewModel
 import kotlinx.coroutines.delay
@@ -95,8 +104,11 @@ fun EmissionsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Émissions", color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = LmelpBleu),
-                windowInsets = WindowInsets.statusBars
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                windowInsets = WindowInsets.statusBars,
+                modifier = Modifier.background(
+                    Brush.verticalGradient(colors = listOf(LmelpBleu, LmelpBleuVif))
+                )
             )
         }
     ) { padding ->
@@ -144,6 +156,10 @@ fun EmissionsListWithFastScroll(
             else
                 null
         }
+    }
+    // Indices d'émission marquant le début d'un nouveau mois, pour afficher un séparateur dans la liste
+    val monthStartIndices: Set<Int> = remember(monthIndices) {
+        monthIndices.map { it.second }.toSet()
     }
 
     // Fraction de scroll réelle (0..1) : 0 = tout en haut, 1 = tout en bas
@@ -233,8 +249,19 @@ fun EmissionsListWithFastScroll(
                 .fillMaxSize()
                 .padding(end = 20.dp)
         ) {
-            items(emissions, key = { it.id }) { emission ->
-                EmissionCard(emission = emission, onClick = { onEmissionClick(emission.id) })
+            itemsIndexed(emissions, key = { _, emission -> emission.id }) { index, emission ->
+                Column {
+                    if (index in monthStartIndices) {
+                        Text(
+                            text = formatYearMonth(emission.date.take(7)),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = LmelpBleuVif,
+                            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp)
+                        )
+                    }
+                    EmissionCard(emission = emission, onClick = { onEmissionClick(emission.id) })
+                }
             }
         }
 
@@ -299,7 +326,7 @@ fun EmissionsListWithFastScroll(
                     .width(8.dp)
                     .height(28.dp)
                     .clip(RoundedCornerShape(4.dp))
-                    .background(LmelpBleu)
+                    .background(Brush.verticalGradient(colors = listOf(LmelpBleu, LmelpBleuVif)))
             )
         }
 
@@ -332,7 +359,7 @@ fun EmissionsListWithFastScroll(
                         )
                     }
                     .clip(RoundedCornerShape(8.dp))
-                    .background(LmelpBleu)
+                    .background(LmelpBleuVif)
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
@@ -347,28 +374,114 @@ fun EmissionsListWithFastScroll(
 
 @Composable
 fun EmissionCard(emission: EmissionUi, onClick: () -> Unit) {
+    val anneeAccent = couleurAnnee(emission.date)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .height(120.dp)
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(text = emission.titre, style = MaterialTheme.typography.titleMedium)
-            val dateText = buildAnnotatedString {
-                val formatted = formatDateLong(emission.date)
-                val yearStart = formatted.lastIndexOf(' ') + 1
-                append(formatted.substring(0, yearStart))
-                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                    append(formatted.substring(yearStart))
+        Row(modifier = Modifier.fillMaxSize()) {
+            // Vignette portrait : la couverture remplit tout le cadre (ratio préservé, léger recadrage gauche/droite)
+            if (emission.urlCover != null) {
+                AsyncImage(
+                    model = emission.urlCover,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(0.2f)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(0.2f)
+                        .background(anneeAccent)
+                )
+            }
+
+            // Zone principale : fond zoomé/flouté de la couverture + titre/date
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(0.8f)
+            ) {
+                if (emission.urlCover != null) {
+                    AsyncImage(
+                        model = emission.urlCover,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(16.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.25f),
+                                        Color.Black.copy(alpha = 0.8f)
+                                    )
+                                )
+                            )
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(anneeAccent.copy(alpha = 0.12f))
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Brush.verticalGradient(colors = listOf(anneeAccent, LmelpBleu)))
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.List,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.18f),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .width(64.dp)
+                            .height(64.dp)
+                    )
+                }
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = emission.titre,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        maxLines = 2
+                    )
+                    val dateText = buildAnnotatedString {
+                        val formatted = formatDateLong(emission.date)
+                        val yearStart = formatted.lastIndexOf(' ') + 1
+                        append(formatted.substring(0, yearStart))
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(formatted.substring(yearStart))
+                        }
+                    }
+                    Text(
+                        text = dateText,
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        textAlign = TextAlign.End,
+                        color = Color.White.copy(alpha = 0.9f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
-            Text(
-                text = dateText,
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall
-            )
         }
     }
 }
