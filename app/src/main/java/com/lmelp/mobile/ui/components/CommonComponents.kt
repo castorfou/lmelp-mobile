@@ -105,6 +105,8 @@ object BookListCardDefaults {
 /**
  * Carte d'une liste d'œuvres : couverture pleine hauteur collée au bord gauche
  * (clippée par les coins de la carte, comme la carte Émission), puis [content] centré verticalement.
+ * La couverture vient de [urlCover] (livres du Masque) ou, à défaut, de [coverData]
+ * (vignette Calibre embarquée des livres hors Masque, issue #145).
  * Sans couverture, un bloc neutre de même taille garde les textes alignés d'une carte à l'autre.
  *
  * Le padding externe et le clic sont fournis par l'appelant via [modifier].
@@ -113,13 +115,15 @@ object BookListCardDefaults {
 fun BookListCard(
     urlCover: String?,
     modifier: Modifier = Modifier,
+    coverData: ByteArray? = null,
     content: @Composable RowScope.() -> Unit
 ) {
+    val coverModel: Any? = urlCover ?: coverData
     Card(modifier = modifier.fillMaxWidth().height(BookListCardDefaults.CardHeight)) {
         Row(modifier = Modifier.fillMaxSize()) {
-            if (urlCover != null) {
+            if (coverModel != null) {
                 AsyncImage(
-                    model = urlCover,
+                    model = coverModel,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

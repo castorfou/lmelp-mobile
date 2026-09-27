@@ -176,7 +176,9 @@ data class OnKindleUi(
     val urlCover: String? = null,
     val scoreHybride: Double? = null,
     val isPinned: Boolean = false,
-    val enCoursLecture: Boolean = false
+    val enCoursLecture: Boolean = false,
+    /** Vignette Calibre des livres sans couverture Babelio (issue #145). */
+    val coverData: ByteArray? = null
 )
 
 data class CalibreHorsMasqueUi(
@@ -184,12 +186,15 @@ data class CalibreHorsMasqueUi(
     val titre: String,
     val auteurNom: String?,
     val calibreRating: Double?,
-    val dateLecture: String?
+    val dateLecture: String?,
+    /** Vignette JPEG de la couverture Calibre (issue #145). */
+    val cover: ByteArray? = null
 )
 
 /**
- * Item unifié pour Mon Palmarès : peut être un livre du Masque (livreId != null, cliquable)
- * ou un livre hors Masque (livreId == null, non cliquable, sans couverture).
+ * Item unifié pour Mon Palmarès : peut être un livre du Masque (livreId != null, cliquable,
+ * couverture [urlCover]) ou un livre hors Masque (livreId == null, non cliquable,
+ * vignette Calibre [coverData]).
  */
 data class MonPalmaresItemUi(
     val id: String,
@@ -201,7 +206,8 @@ data class MonPalmaresItemUi(
     val livreId: String? = null,
     val urlCover: String? = null,
     val joursLecture: Int? = null,
-    val noteMoyenne: Double? = null
+    val noteMoyenne: Double? = null,
+    val coverData: ByteArray? = null
 )
 
 data class DbInfoUi(

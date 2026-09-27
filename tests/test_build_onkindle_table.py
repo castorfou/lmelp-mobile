@@ -47,7 +47,8 @@ def _make_main_db() -> sqlite3.Connection:
             calibre_rating  REAL,
             note_moyenne    REAL,
             nb_avis         INTEGER NOT NULL DEFAULT 0,
-            en_cours_lecture INTEGER NOT NULL DEFAULT 0
+            en_cours_lecture INTEGER NOT NULL DEFAULT 0,
+            cover           BLOB
         );
     """)
     return con
@@ -65,7 +66,7 @@ def _make_calibre_db(
     con.row_factory = sqlite3.Row
     cur = con.cursor()
     cur.executescript("""
-        CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT);
+        CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT, path TEXT);
         CREATE TABLE tags (id INTEGER PRIMARY KEY, name TEXT);
         CREATE TABLE books_tags_link (book INTEGER, tag INTEGER);
         CREATE TABLE ratings (id INTEGER PRIMARY KEY, rating REAL);
@@ -81,7 +82,7 @@ def _make_calibre_db(
     for book_tuple in books:
         calibre_id, title = book_tuple[0], book_tuple[1]
         extra_tags: list[str] = book_tuple[2] if len(book_tuple) > 2 else []
-        cur.execute("INSERT INTO books VALUES (?, ?)", (calibre_id, title))
+        cur.execute("INSERT INTO books (id, title) VALUES (?, ?)", (calibre_id, title))
         cur.execute("INSERT INTO books_tags_link VALUES (?, 1)", (calibre_id,))
         for tag in extra_tags:
             if tag not in tag_id_map:
@@ -274,7 +275,7 @@ class TestBuildOnkindleVirtualLibrary:
         calibre_con = _make_calibre_db([(101, "Livre A", ["guillaume"])])
         # On insère manuellement un livre sans tag onkindle dans Calibre
         cal_cur = calibre_con.cursor()
-        cal_cur.execute("INSERT INTO books VALUES (999, 'Livre sans tags')")
+        cal_cur.execute("INSERT INTO books (id, title) VALUES (999, 'Livre sans tags')")
         calibre_con.commit()
 
         _run_build_with_vlib(main_con, calibre_con, virtual_library_tag="guillaume")

@@ -181,7 +181,8 @@ class PalmaresRepository(
         dateLecture = dateLecture,
         dateDebutLecture = dateDebutLecture,
         livreId = null,
-        urlCover = null
+        urlCover = null,
+        coverData = cover
     )
 
     private fun CalibreHorsMasqueEntity.toCalibreUi() = CalibreHorsMasqueUi(
@@ -189,6 +190,7 @@ class PalmaresRepository(
         titre = titre,
         auteurNom = auteurNom,
         calibreRating = calibreRating,
-        dateLecture = dateLecture
+        dateLecture = dateLecture,
+        cover = cover
     )
 }

@@ -16,7 +16,8 @@ data class OnKindleAvecConseilRow(
     @ColumnInfo(name = "note_moyenne")  val noteMoyenne: Double?,
     @ColumnInfo(name = "nb_avis")       val nbAvis: Int,
     @ColumnInfo(name = "score_hybride") val scoreHybride: Double?,
-    @ColumnInfo(name = "en_cours_lecture") val enCoursLecture: Int = 0
+    @ColumnInfo(name = "en_cours_lecture") val enCoursLecture: Int = 0,
+    val cover: ByteArray? = null
 )
 
 @Dao
@@ -25,7 +26,7 @@ interface OnKindleDao {
     @Query("""
         SELECT ok.livre_id, ok.titre, ok.auteur_nom, ok.url_babelio, ok.url_cover,
                ok.calibre_lu, ok.calibre_rating, ok.note_moyenne, ok.nb_avis,
-               r.score_hybride, ok.en_cours_lecture
+               r.score_hybride, ok.en_cours_lecture, ok.cover
         FROM onkindle ok
         LEFT JOIN recommendations r ON r.livre_id = ok.livre_id
         WHERE (:afficherLus = 1 AND ok.calibre_lu = 1) OR (:afficherNonLus = 1 AND ok.calibre_lu = 0)

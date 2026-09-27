@@ -282,6 +282,10 @@ BookListCard(
 
 ⚠️ Dériver une teinte claire/foncée avec `Color.hsl(...)`, **pas** `lerp(accent, White/Black, x)` : `lerp` interpole en Oklab et désature (pastille grise, icône quasi noire sur device). ⚠️ `Icons.Outlined.Mic` est dessiné **plein** (le creux est `Outlined.MicNone`) — pour vérifier une paire plein/contour, comparer le nombre de sous-tracés (`MoveTo`), pas les instances `ImageVector` (voir `BottomNavStyleTest`).
 
+### Couvertures Calibre embarquées (issue #145)
+
+Les livres qui ne viennent que de Calibre (`calibre_hors_masque`, et les livres de `onkindle` sans `url_cover` Babelio) portent une colonne `cover` : vignette JPEG de 225 px de large, en BLOB. L'export la lit dans `<dossier de metadata.db>/<books.path>/cover.jpg` (`make_cover_thumbnail`). `LMELP_CALIBRE_DB` doit donc désigner le `metadata.db` d'une bibliothèque complète : sans les dossiers des livres, `cover` reste NULL, avec un `WARNING` dans le log d'export. Côté app, passer `coverData` à `BookListCard`, qui l'affiche à défaut d'`urlCover` (Coil 3 accepte un `ByteArray`).
+
 ### Room DAO pattern
 
 ```kotlin

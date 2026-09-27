@@ -173,7 +173,9 @@ data class OnKindleEntity(
     @ColumnInfo(name = "calibre_rating") val calibreRating: Double? = null,
     @ColumnInfo(name = "note_moyenne") val noteMoyenne: Double? = null,
     @ColumnInfo(name = "nb_avis", defaultValue = "0") val nbAvis: Int = 0,
-    @ColumnInfo(name = "en_cours_lecture", defaultValue = "0") val enCoursLecture: Int = 0
+    @ColumnInfo(name = "en_cours_lecture", defaultValue = "0") val enCoursLecture: Int = 0,
+    /** Vignette JPEG de la couverture Calibre, seulement à défaut d'url_cover (issue #145). */
+    @ColumnInfo(name = "cover", typeAffinity = ColumnInfo.BLOB) val cover: ByteArray? = null
 )
 
 @Entity(tableName = "calibre_hors_masque")
@@ -183,7 +185,9 @@ data class CalibreHorsMasqueEntity(
     @ColumnInfo(name = "auteur_nom") val auteurNom: String?,
     @ColumnInfo(name = "calibre_rating") val calibreRating: Double?,
     @ColumnInfo(name = "date_lecture") val dateLecture: String?,
-    @ColumnInfo(name = "date_debut_lecture") val dateDebutLecture: String? = null
+    @ColumnInfo(name = "date_debut_lecture") val dateDebutLecture: String? = null,
+    /** Vignette JPEG de la couverture Calibre (issue #145), null si Calibre n'en a pas. */
+    @ColumnInfo(name = "cover", typeAffinity = ColumnInfo.BLOB) val cover: ByteArray? = null
 )
 
 @Entity(tableName = "db_metadata")

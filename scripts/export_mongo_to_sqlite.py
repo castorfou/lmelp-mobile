@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import logging
 import re
@@ -24,6 +25,7 @@ from typing import Any
 import click
 from bson import ObjectId
 from dotenv import load_dotenv
+from PIL import Image
 from pymongo import MongoClient
 
 
@@ -39,7 +41,8 @@ MONGO_DB = "masque_et_la_plume"
 # Doit correspondre à @Database(version=N) dans LmelpDatabase.kt.
 # v7 : ajout date_debut_lecture dans palmares et calibre_hors_masque (issue #100)
 # v8 : ajout en_cours_lecture dans onkindle (issue #131)
-ROOM_VERSION = 8
+# v9 : ajout cover (vignette JPEG) dans calibre_hors_masque et onkindle (issue #145)
+ROOM_VERSION = 9
 
 _LMELP_DATABASE_KT = (
     Path(__file__).parent.parent
@@ -234,7 +237,8 @@ CREATE TABLE IF NOT EXISTS onkindle (
     calibre_rating  REAL,
     note_moyenne    REAL,
     nb_avis         INTEGER NOT NULL DEFAULT 0,
-    en_cours_lecture INTEGER NOT NULL DEFAULT 0
+    en_cours_lecture INTEGER NOT NULL DEFAULT 0,
+    cover           BLOB
 );
 
 CREATE TABLE IF NOT EXISTS calibre_hors_masque (
@@ -243,7 +247,8 @@ CREATE TABLE IF NOT EXISTS calibre_hors_masque (
     auteur_nom     TEXT,
     calibre_rating REAL,
     date_lecture   TEXT,
-    date_debut_lecture TEXT
+    date_debut_lecture TEXT,
+    cover          BLOB
 );
 """
 
@@ -754,6 +759,37 @@ def import_calibre_data(
         logger.error(f"Erreur import Calibre : {e}")
 
 
+# Largeur des vignettes de couverture, alignée sur les couvertures Babelio
+# des livres du Masque (~200-250 px), issue #145.
+COVER_THUMBNAIL_WIDTH = 225
+
+
+def make_cover_thumbnail(cover_path: Path) -> bytes | None:
+    """Réduit une couverture Calibre en vignette JPEG (largeur COVER_THUMBNAIL_WIDTH).
+
+    Ne l'agrandit jamais. Renvoie None si le fichier est absent ou illisible
+    (ex. container d'export qui ne monte que metadata.db).
+    """
+    try:
+        with Image.open(cover_path) as img:
+            thumb = img.convert("RGB")
+    except (OSError, ValueError):
+        return None
+    if thumb.width > COVER_THUMBNAIL_WIDTH:
+        height = round(thumb.height * COVER_THUMBNAIL_WIDTH / thumb.width)
+        thumb = thumb.resize((COVER_THUMBNAIL_WIDTH, height), Image.Resampling.LANCZOS)
+    buffer = io.BytesIO()
+    thumb.save(buffer, "JPEG", quality=75, optimize=True)
+    return buffer.getvalue()
+
+
+def _calibre_book_cover(calibre_library: Path, book_path: str | None) -> bytes | None:
+    """Vignette de <bibliothèque Calibre>/<books.path>/cover.jpg, ou None."""
+    if not book_path:
+        return None
+    return make_cover_thumbnail(calibre_library / book_path / "cover.jpg")
+
+
 def build_calibre_hors_masque_table(
     cur: sqlite3.Cursor,
     calibre_db_path: str,
@@ -766,6 +802,8 @@ def build_calibre_hors_masque_table(
     mais non discutés au Masque et la Plume.
     """
     logger.info("Building calibre_hors_masque table...")
+    # Les dossiers des livres (et leur cover.jpg) sont à côté de metadata.db
+    calibre_library = Path(calibre_db_path).parent
 
     try:
         cal_con = sqlite3.connect(calibre_db_path)
@@ -805,7 +843,7 @@ def build_calibre_hors_masque_table(
         if virtual_library_tag:
             cal_cur.execute(
                 """
-                SELECT b.id, b.title, a.name as author_name
+                SELECT b.id, b.title, b.path, a.name as author_name
                 FROM books b
                 JOIN books_tags_link btl ON b.id = btl.book
                 JOIN tags t ON btl.tag = t.id
@@ -818,7 +856,7 @@ def build_calibre_hors_masque_table(
         else:
             cal_cur.execute(
                 """
-                SELECT b.id, b.title, a.name as author_name
+                SELECT b.id, b.title, b.path, a.name as author_name
                 FROM books b
                 LEFT JOIN books_authors_link bal ON b.id = bal.book
                 LEFT JOIN authors a ON bal.author = a.id
@@ -837,6 +875,7 @@ def build_calibre_hors_masque_table(
         cur.execute("DELETE FROM calibre_hors_masque")
 
         inserted = 0
+        with_cover = 0
         seen_norms: set[str] = set()  # dédoublonnage par titre normalisé
 
         for book in calibre_books:
@@ -904,10 +943,14 @@ def build_calibre_hors_masque_table(
                 if ko_row:
                     date_debut_lecture = extract_date_koreader(ko_row["value"])
 
+            cover = _calibre_book_cover(calibre_library, book["path"])
+            if cover is not None:
+                with_cover += 1
+
             cur.execute(
                 """INSERT OR REPLACE INTO calibre_hors_masque
-                   (id, titre, auteur_nom, calibre_rating, date_lecture, date_debut_lecture)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
+                   (id, titre, auteur_nom, calibre_rating, date_lecture, date_debut_lecture, cover)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
                     norm,
                     titre,
@@ -915,13 +958,21 @@ def build_calibre_hors_masque_table(
                     calibre_rating,
                     date_lecture,
                     date_debut_lecture,
+                    cover,
                 ),
             )
             seen_norms.add(norm)
             inserted += 1
 
         cal_con.close()
-        logger.info(f"  → {inserted} livres hors Masque insérés")
+        logger.info(
+            f"  → {inserted} livres hors Masque insérés ({with_cover} avec couverture)"
+        )
+        if inserted and not with_cover:
+            logger.warning(
+                f"  Aucune cover.jpg trouvée sous {calibre_library} : "
+                "le dossier Calibre complet est-il monté (pas seulement metadata.db) ?"
+            )
 
     except Exception as e:
         logger.error(f"Erreur build_calibre_hors_masque_table : {e}")
@@ -943,6 +994,7 @@ def build_onkindle_table(
     à la fois le tag 'onkindle' ET le tag de la virtual library sont inclus.
     """
     logger.info(f"Building onkindle table from Calibre: {calibre_db_path}")
+    calibre_library = Path(calibre_db_path).parent
 
     try:
         cal_con = sqlite3.connect(calibre_db_path)
@@ -970,7 +1022,7 @@ def build_onkindle_table(
         if virtual_library_tag:
             cal_cur.execute(
                 """
-                SELECT b.id, b.title, a.name as auteur_calibre
+                SELECT b.id, b.title, b.path, a.name as auteur_calibre
                 FROM books b
                 JOIN books_tags_link btl_ok ON b.id = btl_ok.book
                 JOIN tags t_ok ON btl_ok.tag = t_ok.id AND t_ok.name = 'onkindle'
@@ -985,7 +1037,7 @@ def build_onkindle_table(
         else:
             cal_cur.execute(
                 """
-                SELECT b.id, b.title, a.name as auteur_calibre
+                SELECT b.id, b.title, b.path, a.name as auteur_calibre
                 FROM books b
                 JOIN books_tags_link btl ON b.id = btl.book
                 JOIN tags t ON btl.tag = t.id
@@ -1107,10 +1159,15 @@ def build_onkindle_table(
             if final_livre_id is None:
                 final_livre_id = f"calibre_{calibre_id}"
 
+            # Vignette Calibre seulement à défaut de couverture Babelio (issue #145)
+            cover: bytes | None = None
+            if url_cover is None:
+                cover = _calibre_book_cover(calibre_library, book["path"])
+
             cur.execute(
                 """INSERT OR REPLACE INTO onkindle
-                   (livre_id, titre, auteur_nom, url_babelio, url_cover, calibre_lu, calibre_rating, note_moyenne, nb_avis, en_cours_lecture)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (livre_id, titre, auteur_nom, url_babelio, url_cover, calibre_lu, calibre_rating, note_moyenne, nb_avis, en_cours_lecture, cover)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     final_livre_id,
                     calibre_titre,
@@ -1122,6 +1179,7 @@ def build_onkindle_table(
                     note_moyenne,
                     nb_avis,
                     en_cours_lecture,
+                    cover,
                 ),
             )
             inserted += 1

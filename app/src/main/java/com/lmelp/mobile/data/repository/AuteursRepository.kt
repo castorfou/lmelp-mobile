@@ -38,7 +38,8 @@ class AuteursRepository(
                 titre = it.titre,
                 auteurNom = it.auteurNom,
                 calibreRating = it.calibreRating,
-                dateLecture = it.dateLecture
+                dateLecture = it.dateLecture,
+                cover = it.cover
             )}
 
         return AuteurDetailUi(
