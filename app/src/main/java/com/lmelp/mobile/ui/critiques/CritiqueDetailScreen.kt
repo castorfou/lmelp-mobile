@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Badge
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -44,6 +43,8 @@ import com.lmelp.mobile.ui.components.LoadingIndicator
 import com.lmelp.mobile.ui.components.NoteBadge
 import com.lmelp.mobile.ui.emissions.formatDateLong
 import com.lmelp.mobile.viewmodel.CritiqueDetailViewModel
+import androidx.compose.ui.text.style.TextOverflow
+import com.lmelp.mobile.ui.components.BookListCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -241,44 +242,40 @@ fun NoteDistribution(distribution: Map<Int, Int>) {
 
 @Composable
 fun CoupDeCoeurCard(avis: AvisParCritiqueUi, onClick: () -> Unit) {
-    Card(
+    BookListCard(
+        urlCover = avis.urlCover,
         modifier = Modifier
-            .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable(onClick = onClick)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = avis.livreTitre ?: "Livre inconnu",
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            avis.auteurNom?.let {
                 Text(
-                    text = avis.livreTitre ?: "Livre inconnu",
-                    style = MaterialTheme.typography.bodyLarge
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
-                avis.auteurNom?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-                avis.emissionDate?.let {
-                    Text(
-                        text = formatDateLong(it),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
             }
-            avis.note?.let {
-                NoteBadge(note = it)
+            avis.emissionDate?.let {
+                Text(
+                    text = formatDateLong(it),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
+        }
+        avis.note?.let {
+            NoteBadge(note = it)
         }
     }
 }

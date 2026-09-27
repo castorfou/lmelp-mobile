@@ -1,15 +1,25 @@
 package com.lmelp.mobile.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -81,6 +91,67 @@ fun BookCoverThumbnail(
         )
     } else {
         Spacer(modifier = modifier.width(width).height(height))
+    }
+}
+
+/** Géométrie des cartes des listes d'œuvres (issue #143), alignée sur la carte Émission. */
+object BookListCardDefaults {
+    /** Même hauteur que la carte Émission : 120dp moins 2×4dp de padding vertical. */
+    val CardHeight: Dp = 112.dp
+    /** Largeur de couverture au ratio livre 2:3. */
+    val CoverWidth: Dp = 75.dp
+}
+
+/**
+ * Carte d'une liste d'œuvres : couverture pleine hauteur collée au bord gauche
+ * (clippée par les coins de la carte, comme la carte Émission), puis [content] centré verticalement.
+ * Sans couverture, un bloc neutre de même taille garde les textes alignés d'une carte à l'autre.
+ *
+ * Le padding externe et le clic sont fournis par l'appelant via [modifier].
+ */
+@Composable
+fun BookListCard(
+    urlCover: String?,
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit
+) {
+    Card(modifier = modifier.fillMaxWidth().height(BookListCardDefaults.CardHeight)) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            if (urlCover != null) {
+                AsyncImage(
+                    model = urlCover,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .width(BookListCardDefaults.CoverWidth)
+                        .fillMaxHeight()
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .width(BookListCardDefaults.CoverWidth)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                content = content
+            )
+        }
     }
 }
 

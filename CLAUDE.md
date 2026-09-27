@@ -256,6 +256,20 @@ fun EmissionsContent(
 }
 ```
 
+### Carte d'une liste d'œuvres
+
+Toute liste de livres (liseuse, palmarès, conseils, coups de cœur d'un critique, livres d'un auteur, résultats de recherche de type livre) passe par `BookListCard` (`ui/components/CommonComponents.kt`, issue #143) : couverture pleine hauteur collée au bord gauche, même hauteur que la carte Émission (`BookListCardDefaults`). Le padding externe et le clic sont passés via `modifier`, et le contenu est un `RowScope`. La hauteur étant fixe, borner `maxLines` sur les textes (titre 2, auteur 1). Pas de rang `#xx` affiché. `BookCoverThumbnail` (petite vignette) ne sert plus qu'à la carte livre du détail d'une émission, qui n'est pas une liste d'œuvres.
+
+```kotlin
+BookListCard(
+    urlCover = item.urlCover,
+    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).clickable(onClick = onClick)
+) {
+    Column(modifier = Modifier.weight(1f)) { /* titre, auteur */ }
+    NoteBadge(note = item.noteMoyenne)
+}
+```
+
 ### Room DAO pattern
 
 ```kotlin

@@ -12,7 +12,8 @@ data class AvisParCritiqueRow(
     @ColumnInfo(name = "auteurNom") val auteurNom: String?,
     val note: Double?,
     @ColumnInfo(name = "emissionId") val emissionId: String,
-    @ColumnInfo(name = "emissionDate") val emissionDate: String?
+    @ColumnInfo(name = "emissionDate") val emissionDate: String?,
+    @ColumnInfo(name = "urlCover") val urlCover: String? = null
 )
 
 @Dao
@@ -27,9 +28,10 @@ interface CritiquesDao {
     @Query("""
         SELECT a.id as avisId, a.livre_id as livreId, a.livre_titre as livreTitre,
                a.auteur_nom as auteurNom, a.note, a.emission_id as emissionId,
-               em.date as emissionDate
+               em.date as emissionDate, l.url_cover as urlCover
         FROM avis a
         JOIN emissions em ON em.id = a.emission_id
+        LEFT JOIN livres l ON l.id = a.livre_id
         WHERE a.critique_id = :critiqueId
         ORDER BY a.note DESC
     """)

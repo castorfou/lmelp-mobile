@@ -25,7 +25,8 @@ class AuteursRepository(
                     derniereEmissionDate = row.derniereEmissionDate,
                     calibreInLibrary = row.calibreInLibrary == 1,
                     calibreLu = row.calibreLu == 1,
-                    calibreRating = row.calibreRating
+                    calibreRating = row.calibreRating,
+                    urlCover = row.urlCover
                 )
             }
 

@@ -6,7 +6,7 @@ L'onglet **Mon Palmarès** affiche tous les livres que vous avez lus dans Calibr
 
 | Colonne | Description |
 |---------|-------------|
-| Couverture | Miniature du livre (si disponible, pour les livres du Masque) |
+| Couverture | Couverture du livre sur toute la hauteur de la carte, à gauche. Les livres hors Masque, sans couverture, affichent à la place un bloc gris avec une icône de livre. |
 | Titre / Auteur | Titre et nom de l'auteur |
 | Date de lecture | Date à laquelle vous avez terminé le livre dans Calibre |
 | **xj** | Nombre de jours de lecture (voir [Vitesse de lecture](vitesse_lecture.md)) |

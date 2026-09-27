@@ -37,6 +37,8 @@ import com.lmelp.mobile.ui.components.LoadingIndicator
 import com.lmelp.mobile.ui.components.NoteBadge
 import com.lmelp.mobile.ui.emissions.formatDateLong
 import com.lmelp.mobile.viewmodel.AuteurDetailViewModel
+import androidx.compose.ui.text.style.TextOverflow
+import com.lmelp.mobile.ui.components.BookListCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,44 +104,38 @@ fun AuteurDetailScreen(
 
 @Composable
 fun LivreParAuteurCard(livre: LivreParAuteurUi, onClick: () -> Unit) {
-    Card(
+    BookListCard(
+        urlCover = livre.urlCover,
         modifier = Modifier
-            .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable(onClick = onClick)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = livre.titre,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            livre.derniereEmissionDate?.let {
                 Text(
-                    text = livre.titre,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                livre.derniereEmissionDate?.let {
-                    Text(
-                        text = formatDateLong(it),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                livre.noteMoyenne?.let {
-                    NoteBadge(note = it)
-                }
-                CalibreBadge(
-                    calibreInLibrary = livre.calibreInLibrary,
-                    calibreLu = livre.calibreLu,
-                    calibreRating = livre.calibreRating,
-                    modifier = Modifier.padding(start = 8.dp)
+                    text = formatDateLong(it),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            livre.noteMoyenne?.let {
+                NoteBadge(note = it)
+            }
+            CalibreBadge(
+                calibreInLibrary = livre.calibreInLibrary,
+                calibreLu = livre.calibreLu,
+                calibreRating = livre.calibreRating,
+                modifier = Modifier.padding(start = 8.dp)
+            )
         }
     }
 }

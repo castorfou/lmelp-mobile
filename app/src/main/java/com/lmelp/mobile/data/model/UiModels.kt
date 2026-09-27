@@ -97,7 +97,8 @@ data class AvisParCritiqueUi(
     val livreTitre: String?,
     val auteurNom: String?,
     val note: Double?,
-    val emissionDate: String?
+    val emissionDate: String?,
+    val urlCover: String? = null
 )
 
 data class CritiqueDetailUi(
@@ -137,7 +138,8 @@ data class LivreParAuteurUi(
     val derniereEmissionDate: String?,
     val calibreInLibrary: Boolean = false,
     val calibreLu: Boolean = false,
-    val calibreRating: Double? = null
+    val calibreRating: Double? = null,
+    val urlCover: String? = null
 )
 
 data class AuteurDetailUi(
