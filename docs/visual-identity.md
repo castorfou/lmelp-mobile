@@ -128,6 +128,36 @@ Box(modifier = modifier.background(Brush.verticalGradient(...))) {
 - **Engrenage** (Settings icon) en haut à droite du hero → AboutScreen
 - **Tuiles asymétriques** : Émissions grande (weight 2f), autres normales
 
+## Icône de lancement
+
+![Icône de lancement](img/screenshot_lmelp-mobile_icon.png)
+
+Le masque et la plume de l'icône lmelp historique, avec deux changements pour ne pas confondre l'app avec la PWA back-office « BO LMELP », dont l'icône a un fond rose et une base de données (issue #141) :
+
+- le **fond bleu nuit** du bandeau d'accueil, en dégradé `#12192C` → `#1E2D4A` ;
+- un **smartphone** (cadre `#E3E8F0`, écran bleu Émissions `#1565C0`) à la place de la base de données.
+
+C'est une **icône adaptive** : le launcher la découpe à sa forme (cercle, squircle…), et elle remplit toute la pastille. Le motif tient dans la safe zone (disque central de 66 dp sur 108), donc aucun masque ne le rogne. Un calque monochrome, dont les détails sombres (yeux, bouche, écran) sont évidés, sert aux icônes thémées d'Android 13 et plus.
+
+| Ressource | Rôle |
+|-----------|------|
+| `mipmap-anydpi/ic_launcher.xml`, `ic_launcher_round.xml` | Déclaration de l'icône adaptive |
+| `drawable/ic_launcher_background.xml` | Fond : dégradé bleu nuit |
+| `mipmap-*dpi/ic_launcher_foreground.png` | Premier plan : masque, plume et smartphone |
+| `mipmap-*dpi/ic_launcher_monochrome.png` | Icône thémée |
+| `mipmap-*dpi/ic_launcher.png`, `ic_launcher_round.png` | Icônes legacy |
+
+### Régénérer l'icône
+
+Toutes ces ressources sont produites par un script ; ne jamais éditer les PNG à la main :
+
+```bash
+python scripts/generate_launcher_icon.py
+./gradlew clean assembleDebug   # clean : prise en compte des nouveaux dossiers de ressources
+```
+
+Le script part de `scripts/icon/source_lmelp_green.png`, l'icône lmelp verte du repo back-office-lmelp (`frontend/public/gimp_favicon/favicon.png`). Il détoure son fond vert et retire le liseré rose hérité de la version BO. Il ajoute ensuite le smartphone, recentre le motif dans la safe zone et exporte toutes les densités. Les couleurs et la position du téléphone sont des constantes en tête du script. `tests/test_launcher_icon.py` vérifie les ressources committées : fond bleu nuit et non rose, tailles, XML adaptive.
+
 ## Icônes utilisées (Material Icons core)
 
 | Section | Icône |

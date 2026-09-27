@@ -75,6 +75,12 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 ./gradlew lint
 ```
 
+### Icône de lancement (issue #141)
+
+Icône **adaptive** (`mipmap-anydpi/ic_launcher{,_round}.xml` : fond `drawable/ic_launcher_background.xml`, calques `ic_launcher_foreground` + `ic_launcher_monochrome`) + PNG legacy, tous **générés** par `scripts/generate_launcher_icon.py` depuis `scripts/icon/source_lmelp_green.png` — ne jamais éditer les PNG `mipmap-*` à la main, modifier le script puis relancer `python scripts/generate_launcher_icon.py`. Fond bleu nuit + smartphone : l'icône doit rester distincte de celle de la PWA BO LMELP (fond rose + base de données). Dossier `mipmap-anydpi` et non `-v26` (minSdk = 26, lint `ObsoleteSdkInt`).
+
+⚠️ **Après ajout/renommage d'un dossier de ressources, faire `./gradlew clean`** : le build incrémental a déjà produit un APK sans `mipmap-anydpi` (le launcher affiche alors l'icône legacy dans un disque blanc). Vérifier avec `aapt2 dump badging app/build/outputs/apk/debug/app-debug.apk | grep application:` → `icon='res/mipmap-anydpi-v21/ic_launcher.xml'`.
+
 ### Script Python (export données)
 
 ```bash
