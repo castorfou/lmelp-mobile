@@ -1,5 +1,6 @@
 package com.lmelp.mobile.data.repository
 
+import com.lmelp.mobile.data.db.AvisParCritiqueRow
 import com.lmelp.mobile.data.db.CritiquesDao
 import com.lmelp.mobile.data.model.AvisParCritiqueUi
 import com.lmelp.mobile.data.model.CritiqueDetailUi
@@ -34,9 +35,10 @@ class CritiquesRepository(
 
         val coupsDeCoeur = avisRows
             .filter { it.note != null && it.note >= 9.0 }
-            .sortedByDescending { it.note }
+            .sortedWith(compareByDescending<AvisParCritiqueRow> { it.note }.thenByDescending { it.emissionDate })
             .map {
                 AvisParCritiqueUi(
+                    avisId = it.avisId,
                     livreId = it.livreId,
                     livreTitre = it.livreTitre,
                     auteurNom = it.auteurNom,
