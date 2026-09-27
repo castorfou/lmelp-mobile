@@ -276,6 +276,12 @@ BookListCard(
 }
 ```
 
+### Barre de navigation du bas
+
+`LmelpBottomBar` (`LmelpBottomBar.kt`, issue #142, style WhatsApp) : icône contour au repos / pleine si sélectionnée (`BottomNavItem.icon(selected)`), pastille et icône dérivées de la couleur de l'onglet par `navIndicatorColor` / `navSelectedIconColor` (`Theme.kt`). `bottomNavItems` fixe aussi l'ordre du swipe.
+
+⚠️ Dériver une teinte claire/foncée avec `Color.hsl(...)`, **pas** `lerp(accent, White/Black, x)` : `lerp` interpole en Oklab et désature (pastille grise, icône quasi noire sur device). ⚠️ `Icons.Outlined.Mic` est dessiné **plein** (le creux est `Outlined.MicNone`) — pour vérifier une paire plein/contour, comparer le nombre de sous-tracés (`MoveTo`), pas les instances `ImageVector` (voir `BottomNavStyleTest`).
+
 ### Room DAO pattern
 
 ```kotlin
