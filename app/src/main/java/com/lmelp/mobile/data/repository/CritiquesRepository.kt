@@ -43,7 +43,8 @@ class CritiquesRepository(
                     livreTitre = it.livreTitre,
                     auteurNom = it.auteurNom,
                     note = it.note,
-                    emissionDate = it.emissionDate
+                    emissionDate = it.emissionDate,
+                    urlCover = it.urlCover
                 )
             }
 

@@ -24,12 +24,14 @@ class AuteursRepositoryTest {
         livreId: String,
         titre: String,
         noteMoyenne: Double?,
-        derniereEmissionDate: String?
+        derniereEmissionDate: String?,
+        urlCover: String? = null
     ) = LivreParAuteurRow(
         livreId = livreId,
         titre = titre,
         noteMoyenne = noteMoyenne,
-        derniereEmissionDate = derniereEmissionDate
+        derniereEmissionDate = derniereEmissionDate,
+        urlCover = urlCover
     )
 
     @Test
@@ -97,5 +99,24 @@ class AuteursRepositoryTest {
         val result = repo.getAuteurDetail("a1")!!
 
         assertNull(result.livres[0].noteMoyenne)
+    }
+
+    // Issue #143 : les livres d'un auteur affichent leur couverture
+
+    @Test
+    fun `getAuteurDetail propage la couverture des livres`() = runTest {
+        val dao = mock<AuteursDao>()
+        whenever(dao.getAuteurById(any())).thenReturn(makeAuteurEntity("a1", "Victor Hugo"))
+        whenever(dao.getLivresParAuteur(any())).thenReturn(
+            listOf(
+                makeLivreParAuteurRow("l1", "Les Misérables", 9.0, "2024-06-15", urlCover = "https://covers/l1.jpg"),
+                makeLivreParAuteurRow("l2", "Ruy Blas", null, "2023-03-01", urlCover = null),
+            )
+        )
+
+        val result = AuteursRepository(dao).getAuteurDetail("a1")!!
+
+        assertEquals("https://covers/l1.jpg", result.livres[0].urlCover)
+        assertNull(result.livres[1].urlCover)
     }
 }

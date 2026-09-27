@@ -30,7 +30,8 @@ class CritiquesRepositoryTest {
         note: Double?,
         emissionId: String = "em1",
         emissionDate: String? = "2024-01-01",
-        avisId: String = "avis_${livreId}_$emissionId"
+        avisId: String = "avis_${livreId}_$emissionId",
+        urlCover: String? = null
     ) = AvisParCritiqueRow(
         avisId = avisId,
         livreId = livreId,
@@ -38,7 +39,8 @@ class CritiquesRepositoryTest {
         auteurNom = auteurNom,
         note = note,
         emissionId = emissionId,
-        emissionDate = emissionDate
+        emissionDate = emissionDate,
+        urlCover = urlCover
     )
 
     @Test
@@ -222,5 +224,24 @@ class CritiquesRepositoryTest {
         val result = CritiquesRepository(dao).getCritiqueDetail("c1")!!
 
         assertEquals(listOf("l3", "l2", "l1"), result.coupsDeCoeur.map { it.livreId })
+    }
+
+    // Issue #143 : les coups de cœur d'un critique affichent la couverture du livre
+
+    @Test
+    fun `getCritiqueDetail propage la couverture dans les coups de coeur`() = runTest {
+        val dao = mock<CritiquesDao>()
+        whenever(dao.getCritiqueById("c1")).thenReturn(makeCritiqueEntity("c1", "Alice"))
+        whenever(dao.getAvisByCritique("c1")).thenReturn(
+            listOf(
+                makeAvisRow("l1", "Avec couverture", null, 10.0, urlCover = "https://covers/l1.jpg"),
+                makeAvisRow("l2", "Sans couverture", null, 9.0, urlCover = null),
+            )
+        )
+
+        val result = CritiquesRepository(dao).getCritiqueDetail("c1")!!
+
+        assertEquals("https://covers/l1.jpg", result.coupsDeCoeur[0].urlCover)
+        assertNull(result.coupsDeCoeur[1].urlCover)
     }
 }
