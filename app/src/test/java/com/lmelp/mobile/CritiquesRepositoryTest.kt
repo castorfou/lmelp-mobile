@@ -4,6 +4,7 @@ import com.lmelp.mobile.data.db.AvisParCritiqueRow
 import com.lmelp.mobile.data.db.CritiquesDao
 import com.lmelp.mobile.data.model.CritiqueEntity
 import com.lmelp.mobile.data.repository.CritiquesRepository
+import com.lmelp.mobile.ui.critiques.coupDeCoeurKey
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -28,8 +29,10 @@ class CritiquesRepositoryTest {
         auteurNom: String?,
         note: Double?,
         emissionId: String = "em1",
-        emissionDate: String? = "2024-01-01"
+        emissionDate: String? = "2024-01-01",
+        avisId: String = "avis_${livreId}_$emissionId"
     ) = AvisParCritiqueRow(
+        avisId = avisId,
         livreId = livreId,
         livreTitre = livreTitre,
         auteurNom = auteurNom,
@@ -165,5 +168,59 @@ class CritiquesRepositoryTest {
         val result = repo.getCritiqueDetail("c1")!!
 
         assertTrue(result.animateur)
+    }
+
+    // Issue #140 : un critique peut noter le même livre dans deux émissions
+    // (ex. Beigbeder / « Le voyant d'Étampes », 29/08 puis 31/10/2021).
+    // Les deux avis doivent rester visibles et produire des clés LazyColumn distinctes.
+
+    @Test
+    fun `getCritiqueDetail propage l'avisId dans les coups de coeur`() = runTest {
+        val dao = mock<CritiquesDao>()
+        whenever(dao.getCritiqueById("c1")).thenReturn(makeCritiqueEntity("c1", "Alice"))
+        whenever(dao.getAvisByCritique("c1")).thenReturn(
+            listOf(makeAvisRow("l1", "Livre A", null, 9.0, avisId = "avis42"))
+        )
+
+        val result = CritiquesRepository(dao).getCritiqueDetail("c1")!!
+
+        assertEquals("avis42", result.coupsDeCoeur.single().avisId)
+    }
+
+    @Test
+    fun `getCritiqueDetail meme livre coup de coeur dans deux emissions donne deux cartes aux cles distinctes`() = runTest {
+        val dao = mock<CritiquesDao>()
+        whenever(dao.getCritiqueById("c1")).thenReturn(makeCritiqueEntity("c1", "Frédéric Beigbeder"))
+        whenever(dao.getAvisByCritique("c1")).thenReturn(
+            listOf(
+                makeAvisRow("l1", "Le voyant des tempêtes", "Abel Quentin", 9.0,
+                    emissionId = "em_aout", emissionDate = "2021-08-29T00:00:00Z", avisId = "a1"),
+                makeAvisRow("l1", "Le Voyant d’Etampes", "Abel Quentin", 9.0,
+                    emissionId = "em_oct", emissionDate = "2021-10-31T00:00:00Z", avisId = "a2"),
+            )
+        )
+
+        val result = CritiquesRepository(dao).getCritiqueDetail("c1")!!
+
+        assertEquals(2, result.coupsDeCoeur.size)
+        val keys = result.coupsDeCoeur.map { coupDeCoeurKey(it) }
+        assertEquals(keys.size, keys.toSet().size)
+    }
+
+    @Test
+    fun `getCritiqueDetail coups de coeur a note egale tries du plus recent au plus ancien`() = runTest {
+        val dao = mock<CritiquesDao>()
+        whenever(dao.getCritiqueById("c1")).thenReturn(makeCritiqueEntity("c1", "Alice"))
+        whenever(dao.getAvisByCritique("c1")).thenReturn(
+            listOf(
+                makeAvisRow("l1", "Ancien", null, 9.0, emissionId = "e1", emissionDate = "2021-03-28T00:00:00Z"),
+                makeAvisRow("l2", "Récent", null, 9.0, emissionId = "e2", emissionDate = "2021-10-31T00:00:00Z"),
+                makeAvisRow("l3", "Top", null, 10.0, emissionId = "e3", emissionDate = "2020-01-01T00:00:00Z"),
+            )
+        )
+
+        val result = CritiquesRepository(dao).getCritiqueDetail("c1")!!
+
+        assertEquals(listOf("l3", "l2", "l1"), result.coupsDeCoeur.map { it.livreId })
     }
 }

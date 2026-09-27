@@ -92,6 +92,7 @@ data class CritiqueUi(
 )
 
 data class AvisParCritiqueUi(
+    val avisId: String,
     val livreId: String,
     val livreTitre: String?,
     val auteurNom: String?,

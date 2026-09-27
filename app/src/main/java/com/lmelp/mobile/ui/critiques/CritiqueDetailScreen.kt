@@ -83,6 +83,12 @@ fun CritiqueDetailScreen(
     }
 }
 
+/**
+ * Clé LazyColumn d'un coup de cœur : basée sur l'avis, pas sur le livre, car un critique
+ * peut noter le même livre dans plusieurs émissions (issue #140 — clé dupliquée = crash).
+ */
+fun coupDeCoeurKey(avis: AvisParCritiqueUi): String = "cdc_${avis.avisId}"
+
 @Composable
 fun CritiqueDetailContent(
     critique: CritiqueDetailUi,
@@ -111,7 +117,7 @@ fun CritiqueDetailContent(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
             }
-            items(critique.coupsDeCoeur, key = { "cdc_${it.livreId}" }) { avis ->
+            items(critique.coupsDeCoeur, key = ::coupDeCoeurKey) { avis ->
                 CoupDeCoeurCard(avis = avis, onClick = { onLivreClick(avis.livreId) })
             }
         } else {
