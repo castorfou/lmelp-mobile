@@ -19,12 +19,40 @@ val LmelpBordeaux = Color(0xFFA10127)   // Critiques, Conseils
 val LmelpVert = Color(0xFF00897B)       // Palmarès, Recherche
 
 // Dégradés des bandeaux (issue #138) — chaque écran garde sa couleur dominante,
-// dégradé vertical vers une teinte plus claire/vive ; cette teinte vive est
-// réutilisée comme couleur d'indicateur de l'onglet correspondant dans la
-// barre de navigation du bas
+// dégradé vertical vers une teinte plus claire/vive
 val LmelpBleuVif = Color(0xFF1E88E5)
 val LmelpBordeauxVif = Color(0xFFD32F4B)
 val LmelpVertVif = Color(0xFF26A69A)
+
+// Barre de navigation du bas façon WhatsApp (issue #142) : pastille de sélection
+// très claire et icône foncée, toutes deux dérivées de la teinte de l'onglet.
+// Calculées en HSL (teinte conservée, saturation imposée) et non par lerp vers
+// blanc/noir, qui désature : pastille grise et icône quasi noire sur device.
+
+/** Pastille de sélection d'un onglet : pastel saturé de sa teinte (gris clair si null). */
+fun navIndicatorColor(accent: Color?): Color =
+    Color.hsl(teinteHsl(accent), if (accent == null) 0f else 0.8f, 0.88f)
+
+/** Icône de l'onglet sélectionné : version foncée de sa teinte (gris foncé si null). */
+fun navSelectedIconColor(accent: Color?): Color =
+    Color.hsl(teinteHsl(accent), if (accent == null) 0f else 0.75f, 0.25f)
+
+/** Teinte HSL en degrés [0, 360) ; 0 pour une couleur absente ou grise. */
+private fun teinteHsl(color: Color?): Float {
+    if (color == null) return 0f
+    val r = color.red
+    val g = color.green
+    val b = color.blue
+    val max = maxOf(r, g, b)
+    val delta = max - minOf(r, g, b)
+    if (delta == 0f) return 0f
+    val teinte = when (max) {
+        r -> 60f * (((g - b) / delta) % 6f)
+        g -> 60f * ((b - r) / delta + 2f)
+        else -> 60f * ((r - g) / delta + 4f)
+    }
+    return (teinte + 360f) % 360f
+}
 
 // Variation subtile bleu clair/foncé par année d'émission (issue #138)
 private val AnneeBleuFonce = Color(0xFF0D47A1)

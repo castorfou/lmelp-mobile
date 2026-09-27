@@ -8,42 +8,19 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.lmelp.mobile.ui.theme.LmelpBleuVif
-import com.lmelp.mobile.ui.theme.LmelpBordeauxVif
 import com.lmelp.mobile.ui.theme.LmelpTheme
-import com.lmelp.mobile.ui.theme.LmelpVertVif
-
-data class BottomNavItem(
-    val label: String,
-    val route: String,
-    val icon: ImageVector,
-    val indicatorColor: Color? = null
-)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,22 +37,8 @@ class MainActivity : ComponentActivity() {
                 var swipeDirection by remember { mutableStateOf(0) }
                 val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-                val bottomNavItems = listOf(
-                    BottomNavItem("Accueil", Routes.HOME, Icons.Default.Home),
-                    BottomNavItem("Émissions", Routes.EMISSIONS, Icons.AutoMirrored.Filled.List, LmelpBleuVif),
-                    BottomNavItem("Palmarès", Routes.PALMARES, Icons.Default.Star, LmelpVertVif),
-                    BottomNavItem("Conseils", Routes.RECOMMENDATIONS, Icons.Default.Person, LmelpBordeauxVif),
-                    BottomNavItem("Recherche", Routes.SEARCH, Icons.Default.Search, LmelpVertVif),
-                )
-
                 // Ordre circulaire pour la navigation par swipe (inclut Home)
-                val swipeRoutes = listOf(
-                    Routes.HOME,
-                    Routes.EMISSIONS,
-                    Routes.PALMARES,
-                    Routes.RECOMMENDATIONS,
-                    Routes.SEARCH,
-                )
+                val swipeRoutes = bottomNavItems.map { it.route }
 
                 // La bottom nav s'affiche partout sauf sur la HomeScreen
                 val routesWithoutBottomNav = setOf(Routes.HOME)
@@ -105,35 +68,23 @@ class MainActivity : ComponentActivity() {
                     contentWindowInsets = WindowInsets(0),
                     bottomBar = {
                         if (currentRoute != null && currentRoute !in routesWithoutBottomNav) {
-                            NavigationBar {
-                                bottomNavItems.forEach { item ->
-                                    NavigationBarItem(
-                                        selected = currentRoute == item.route,
-                                        onClick = {
-                                            if (item.route == Routes.HOME) {
-                                                navController.navigate(Routes.HOME) {
-                                                    popUpTo(Routes.HOME) { inclusive = true }
-                                                }
-                                            } else {
-                                                navController.navigate(item.route) {
-                                                    popUpTo(Routes.HOME) { saveState = true }
-                                                    launchSingleTop = true
-                                                    restoreState = true
-                                                }
-                                            }
-                                        },
-                                        icon = { Icon(item.icon, contentDescription = item.label) },
-                                        label = if (shouldShowLabel(isLandscape)) {
-                                            { Text(item.label) }
-                                        } else null,
-                                        colors = if (item.indicatorColor != null) {
-                                            NavigationBarItemDefaults.colors(indicatorColor = item.indicatorColor)
-                                        } else {
-                                            NavigationBarItemDefaults.colors()
+                            LmelpBottomBar(
+                                currentRoute = currentRoute,
+                                showLabels = shouldShowLabel(isLandscape),
+                                onItemClick = { route ->
+                                    if (route == Routes.HOME) {
+                                        navController.navigate(Routes.HOME) {
+                                            popUpTo(Routes.HOME) { inclusive = true }
                                         }
-                                    )
+                                    } else {
+                                        navController.navigate(route) {
+                                            popUpTo(Routes.HOME) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
                                 }
-                            }
+                            )
                         }
                     }
                 ) { innerPadding ->
