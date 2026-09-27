@@ -60,11 +60,14 @@
 │  UI Layer (Jetpack Compose)                                     │
 │                                                                 │
 │  EmissionsScreen ──→ EmissionsContent ──→ EmissionCard         │
-│  PalmaresScreen  ──→ PalmaresContent  ──→ LivreRankCard        │
+│  PalmaresScreen  ──→ PalmaresContent  ──→ PalmaresCard *       │
 │  CritiquesScreen ──→ CritiquesContent ──→ CritiqueCard         │
-│  SearchScreen    ──→ SearchContent    ──→ SearchResultItem     │
-│  RecommendScreen ──→ RecommendContent ──→ RecommendCard        │
-│  OnKindleScreen  ──→ OnKindleContent  ──→ OnKindleCard         │
+│  SearchScreen    ──→ SearchContent    ──→ SearchResultItem *   │
+│  RecommendScreen ──→ RecommendContent ──→ RecommendationCard * │
+│  OnKindleScreen  ──→ OnKindleContent  ──→ OnKindleCard *       │
+│                                                                 │
+│  * listes d'œuvres : cartes bâties sur BookListCard             │
+│    (ui/components/CommonComponents.kt)                          │
 └───────────────────────────┬─────────────────────────────────────┘
                             │ collectAsStateWithLifecycle()
                             │ StateFlow<UiState>
