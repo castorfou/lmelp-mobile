@@ -31,7 +31,7 @@ Trois couleurs issues de l'image officielle du podcast :
 
 ### Teintes « vives » (dégradés de bandeau, issue #138)
 
-Chaque couleur dominante a une variante plus claire/vive, utilisée en fin de dégradé sur la TopAppBar de l'écran correspondant, et réutilisée telle quelle comme couleur de l'indicateur de sélection de l'onglet correspondant dans la barre de navigation du bas :
+Chaque couleur dominante a une variante plus claire/vive, utilisée en fin de dégradé sur la TopAppBar de l'écran correspondant (la barre de navigation du bas n'utilise plus ces teintes depuis l'issue #142, voir [Barre de navigation du bas](#barre-de-navigation-du-bas)) :
 
 | Nom | Hex | Couleur dominante associée |
 |-----|-----|------------------------------|
@@ -68,7 +68,8 @@ Disposition actuelle validée :
 | HomeScreen — grille de navigation | Blanc (`Color.White`) |
 | Autres screens — TopAppBar + status bar | Dégradé vertical, couleur de la tuile → variante « vive » (issue #138) |
 | Autres screens — contenu sous le bandeau | Blanc (`Color.White`) |
-| Bottom nav — indicateur de l'onglet sélectionné | Couleur « vive » de l'écran correspondant (Accueil non concerné) |
+| Bottom nav — fond | Blanc, fin séparateur en haut (issue #142) |
+| Bottom nav — onglet sélectionné | Pastille pastel + icône foncée dans la teinte de l'écran (issue #142) |
 
 ## Implémentation Compose — status bar colorée par écran
 
@@ -127,6 +128,42 @@ Box(modifier = modifier.background(Brush.verticalGradient(...))) {
 - **Bottom nav sur toutes les autres pages** (y compris Critiques et About)
 - **Engrenage** (Settings icon) en haut à droite du hero → AboutScreen
 - **Tuiles asymétriques** : Émissions grande (weight 2f), autres normales
+
+## Barre de navigation du bas
+
+Inspirée de celle de WhatsApp (issue #142) :
+
+- **Icône contour au repos, pleine quand l'onglet est sélectionné.**
+- **Onglet sélectionné** : une pastille très claire et une icône foncée, toutes deux dans la teinte de l'écran.
+- **Label** : noir, en gras quand l'onglet est sélectionné.
+- **Fond** : blanc, avec un fin séparateur en haut.
+
+| Onglet | Icône (repos → sélectionné) | Pastille | Icône sélectionnée |
+|--------|-----------------------------|----------|--------------------|
+| Émissions | `Outlined.MicNone` → `Filled.Mic` | `#C8DFF9` | `#103D70` |
+| Palmarès | `Outlined.StarOutline` → `Filled.Star` | `#C8F9F4` | `#107066` |
+| Conseils | `Outlined.Lightbulb` → `Filled.Lightbulb` | `#F9C8D4` | `#701027` |
+| Recherche | `Outlined.Search` → `LoupePleine` | `#C8F9F4` | `#107066` |
+
+L'onglet Accueil figure dans la liste, mais la barre est masquée sur la HomeScreen.
+
+Les deux couleurs sont dérivées de la couleur dominante de l'onglet (`LmelpBleu`, `LmelpVert`, `LmelpBordeaux`) :
+
+- `navIndicatorColor` = `Color.hsl(teinte, 0.8, 0.88)` ;
+- `navSelectedIconColor` = `Color.hsl(teinte, 0.75, 0.25)`.
+
+Ces deux fonctions sont dans `ui/theme/Theme.kt`, et la barre dans `LmelpBottomBar.kt`.
+
+!!! warning "Pas de `lerp` vers blanc ou noir"
+    `androidx.compose.ui.graphics.lerp` interpole dans l'espace Oklab, ce qui désature la couleur. Une pastille obtenue par `lerp(accent, White, 0.85)` paraît grise, et une icône obtenue par `lerp(accent, Black, 0.55)` paraît noire. Constaté sur device.
+
+!!! warning "`Icons.Outlined.Mic` est dessiné plein"
+    Il est identique à `Filled.Mic`. L'icône creuse est `Outlined.MicNone`. Pour vérifier qu'une paire plein/contour en est vraiment une, le test `BottomNavStyleTest` compare le nombre de sous-tracés : une icône contour en a un de plus, le contour intérieur du creux.
+
+**`LoupePleine`** : `Filled.Search` et `Outlined.Search` sont identiques, avec un verre creux. La loupe sélectionnée est donc dessinée à la main :
+
+- verre plein ;
+- petit reflet en croissant dans l'angle haut-gauche, percé dans le verre par remplissage pair-impair (`PathFillType.EvenOdd`).
 
 ## Icône de lancement
 
