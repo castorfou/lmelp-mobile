@@ -232,6 +232,7 @@ fun MonPalmaresCard(item: MonPalmaresItemUi, onLivreClick: (String) -> Unit) {
     val isClickable = item.livreId != null
     BookListCard(
         urlCover = item.urlCover,
+        coverData = item.coverData,
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .then(

@@ -5,6 +5,7 @@ import com.lmelp.mobile.data.model.CalibreHorsMasqueEntity
 import com.lmelp.mobile.data.model.MonPalmaresItemUi
 import com.lmelp.mobile.data.repository.PalmaresRepository
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -25,13 +26,15 @@ class CalibreHorsMasqueRepositoryTest {
         titre: String = "Titre $id",
         auteurNom: String? = "Auteur",
         calibreRating: Double? = null,
-        dateLecture: String? = null
+        dateLecture: String? = null,
+        cover: ByteArray? = null
     ) = CalibreHorsMasqueEntity(
         id = id,
         titre = titre,
         auteurNom = auteurNom,
         calibreRating = calibreRating,
-        dateLecture = dateLecture
+        dateLecture = dateLecture,
+        cover = cover
     )
 
     // --- getMonPalmaresHorsMasque (tri par note) ---
@@ -119,5 +122,40 @@ class CalibreHorsMasqueRepositoryTest {
         val result = repo.getHorsMasqueByAuteurNom("Inconnu")
 
         assertTrue(result.isEmpty())
+    }
+
+    // --- Vignette de couverture Calibre (issue #145) ---
+
+    private val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 1, 2)
+
+    @Test
+    fun `getMonPalmaresHorsMasque propage la vignette Calibre`() = runTest {
+        val horsMasqueDao = mock<CalibreHorsMasqueDao>()
+        whenever(horsMasqueDao.getAll()).thenReturn(
+            listOf(makeHorsMasque("h1", cover = jpeg), makeHorsMasque("h2"))
+        )
+        val result = PalmaresRepository(mock(), horsMasqueDao).getMonPalmaresHorsMasque()
+
+        assertArrayEquals(jpeg, result[0].coverData)
+        assertNull(result[1].coverData)
+        assertNull("pas d'URL pour un livre hors Masque", result[0].urlCover)
+    }
+
+    @Test
+    fun `getMonPalmaresHorsMasqueParDate propage la vignette Calibre`() = runTest {
+        val horsMasqueDao = mock<CalibreHorsMasqueDao>()
+        whenever(horsMasqueDao.getAllParDate()).thenReturn(listOf(makeHorsMasque("h1", cover = jpeg)))
+        val result = PalmaresRepository(mock(), horsMasqueDao).getMonPalmaresHorsMasqueParDate()
+
+        assertArrayEquals(jpeg, result[0].coverData)
+    }
+
+    @Test
+    fun `getHorsMasqueByAuteurNom propage la vignette Calibre`() = runTest {
+        val horsMasqueDao = mock<CalibreHorsMasqueDao>()
+        whenever(horsMasqueDao.getByAuteurNom(any())).thenReturn(listOf(makeHorsMasque("h1", cover = jpeg)))
+        val result = PalmaresRepository(mock(), horsMasqueDao).getHorsMasqueByAuteurNom("Auteur")
+
+        assertArrayEquals(jpeg, result[0].cover)
     }
 }

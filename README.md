@@ -100,6 +100,8 @@ uv pip install -e .
 # Configurer l'environnement local (une seule fois)
 cp scripts/.env.example scripts/.env
 # Éditer scripts/.env avec mongo URI, chemin Calibre, virtual library
+# (LMELP_CALIBRE_DB pointe sur metadata.db, dans le dossier complet de la
+# bibliothèque : l'export y lit aussi les cover.jpg des livres)
 
 # Exporter MongoDB → SQLite
 python scripts/export_mongo_to_sqlite.py --force

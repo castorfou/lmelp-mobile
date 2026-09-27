@@ -238,7 +238,8 @@ CREATE TABLE onkindle (
     calibre_rating  REAL,                        -- Note personnelle Calibre (1-10, nullable)
     note_moyenne    REAL,                        -- Note Masque et la Plume (NULL si non discuté)
     nb_avis         INTEGER NOT NULL DEFAULT 0, -- Nombre d'avis Masque (0 si non discuté)
-    en_cours_lecture INTEGER NOT NULL DEFAULT 0 -- Progression KOReader en cours (0/1), voir ci-dessous
+    en_cours_lecture INTEGER NOT NULL DEFAULT 0, -- Progression KOReader en cours (0/1), voir ci-dessous
+    cover           BLOB                         -- Vignette JPEG Calibre, seulement si url_cover est NULL (issue #145)
 );
 ```
 
@@ -248,6 +249,7 @@ CREATE TABLE onkindle (
 3. Si le livre n'est pas dans `palmares` : fallback sur `avis` (moyenne + count)
 4. Croise avec `livres` pour `url_babelio`, `url_cover` et `auteur_nom`
 5. Si `auteur_nom` est NULL après croisement : utilise l'auteur depuis Calibre
+6. Si `url_cover` est NULL (livre absent de la base Masque) : `cover` reçoit la vignette Calibre (voir ci-dessous)
 
 > **`en_cours_lecture` (issue #131)** : calculé depuis la colonne custom Calibre `ko_progfloat`
 > (progression KOReader précise, 0.0 à 1.0) — `en_cours_lecture = 1` ssi `0 < ko_progfloat < 1`
@@ -270,7 +272,9 @@ CREATE TABLE calibre_hors_masque (
     titre          TEXT NOT NULL,
     auteur_nom     TEXT,               -- Depuis Calibre (peut différer de livres.auteur_nom)
     calibre_rating REAL,              -- Note personnelle Calibre (1-10, nullable)
-    date_lecture   TEXT               -- Date de lecture ISO YYYY-MM-DD (nullable)
+    date_lecture   TEXT,              -- Date de lecture ISO YYYY-MM-DD (nullable)
+    date_debut_lecture TEXT,          -- Date de début de lecture KOReader (nullable)
+    cover          BLOB               -- Vignette JPEG de la couverture Calibre (nullable, issue #145)
 );
 ```
 
@@ -279,9 +283,17 @@ CREATE TABLE calibre_hors_masque (
 2. Exclut ceux dont le titre normalisé est déjà dans `palmares`
 3. Dédoublonne par titre normalisé (un livre peut avoir plusieurs auteurs dans Calibre)
 4. Récupère `calibre_rating` et `date_lecture` (même logique que `import_calibre_data`)
+5. Calcule la vignette `cover` depuis le `cover.jpg` Calibre (voir ci-dessous)
+
+> **Vignettes de couverture Calibre (issue #145)** : ces livres n'ont pas d'`url_cover` Babelio.
+> `make_cover_thumbnail` lit `<dossier de metadata.db>/<books.path>/cover.jpg`, le réduit à
+> 225 px de large (taille des couvertures Babelio, jamais agrandi), JPEG qualité 75, soit
+> environ 12 Ko par livre. `cover` reste NULL si le fichier est absent : c'est le cas quand
+> l'export ne voit que `metadata.db` sans le reste de la bibliothèque (un `WARNING` le signale).
+> Côté app, `BookListCard(coverData = ...)` affiche ce `ByteArray` via Coil à défaut d'`urlCover`.
 
 **Affichage dans l'app :**
-- **Mon Palmarès** (mode PERSONNEL) : mélangés avec les livres du Masque dans le même flux de tri (note ou date), non cliquables, sans couverture. Chip "Hors Masque" (persistant via DataStore) permet de les masquer.
+- **Mon Palmarès** (mode PERSONNEL) : mélangés avec les livres du Masque dans le même flux de tri (note ou date), non cliquables, avec la vignette Calibre en couverture. Chip "Hors Masque" (persistant via DataStore) permet de les masquer.
 - **Page auteur** : section "Lus hors Masque" si `auteur_nom` correspond.
 
 ### `db_metadata`

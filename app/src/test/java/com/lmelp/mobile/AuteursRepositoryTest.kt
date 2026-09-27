@@ -1,10 +1,13 @@
 package com.lmelp.mobile
 
 import com.lmelp.mobile.data.db.AuteursDao
+import com.lmelp.mobile.data.db.CalibreHorsMasqueDao
 import com.lmelp.mobile.data.db.LivreParAuteurRow
 import com.lmelp.mobile.data.model.AuteurEntity
+import com.lmelp.mobile.data.model.CalibreHorsMasqueEntity
 import com.lmelp.mobile.data.repository.AuteursRepository
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -118,5 +121,25 @@ class AuteursRepositoryTest {
 
         assertEquals("https://covers/l1.jpg", result.livres[0].urlCover)
         assertNull(result.livres[1].urlCover)
+    }
+
+    @Test
+    fun `getAuteurDetail propage la vignette Calibre des livres hors Masque`() = runTest {
+        val cover = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 1, 2)
+        val dao = mock<AuteursDao>()
+        whenever(dao.getAuteurById(any())).thenReturn(makeAuteurEntity("a1", "Marcel Proust"))
+        whenever(dao.getLivresParAuteur(any())).thenReturn(emptyList())
+        val horsMasqueDao = mock<CalibreHorsMasqueDao>()
+        whenever(horsMasqueDao.getByAuteurNom("Marcel Proust")).thenReturn(
+            listOf(
+                CalibreHorsMasqueEntity("h1", "Du côté de chez Swann", "Marcel Proust", 9.0, null, cover = cover),
+                CalibreHorsMasqueEntity("h2", "Le Temps retrouvé", "Marcel Proust", null, null)
+            )
+        )
+
+        val result = AuteursRepository(dao, horsMasqueDao).getAuteurDetail("a1")!!
+
+        assertArrayEquals(cover, result.livresHorsMasque[0].cover)
+        assertNull(result.livresHorsMasque[1].cover)
     }
 }

@@ -52,6 +52,7 @@ class OnKindleRepository(private val dao: OnKindleDao) {
         discusseAuMasque = noteMoyenne != null,
         urlCover = urlCover,
         scoreHybride = scoreHybride,
-        enCoursLecture = enCoursLecture == 1
+        enCoursLecture = enCoursLecture == 1,
+        coverData = cover
     )
 }
