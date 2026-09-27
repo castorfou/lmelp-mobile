@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +37,6 @@ import com.lmelp.mobile.data.model.MonPalmaresItemUi
 import com.lmelp.mobile.data.model.PalmaresUi
 import com.lmelp.mobile.data.repository.PalmaresRepository
 import com.lmelp.mobile.data.repository.UserPreferencesRepository
-import com.lmelp.mobile.ui.components.BookCoverThumbnail
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
@@ -47,6 +45,8 @@ import com.lmelp.mobile.viewmodel.MonPalmaresTriMode
 import com.lmelp.mobile.viewmodel.PalmaresMode
 import com.lmelp.mobile.viewmodel.PalmaresUiState
 import com.lmelp.mobile.viewmodel.PalmaresViewModel
+import androidx.compose.ui.text.style.TextOverflow
+import com.lmelp.mobile.ui.components.BookListCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -189,52 +189,40 @@ fun PalmaresContent(
 
 @Composable
 fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
-    Card(
+    BookListCard(
+        urlCover = item.urlCover,
         modifier = Modifier
-            .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable(onClick = onClick)
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "#${item.rank}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            BookCoverThumbnail(urlCover = item.urlCover)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.titre, style = MaterialTheme.typography.titleSmall)
-                item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-            }
-            if (item.calibreInLibrary) {
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = if (item.calibreLu) "✓" else "◯",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (item.calibreLu) Color(0xFF2E7D32) else Color.Gray
-                    )
-                    if (item.calibreLu) {
-                        item.calibreRating?.let {
-                            Text(
-                                text = "${it.toInt()}/10",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF2E7D32)
-                            )
-                        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = item.titre, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        }
+        if (item.calibreInLibrary) {
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = if (item.calibreLu) "✓" else "◯",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (item.calibreLu) Color(0xFF2E7D32) else Color.Gray
+                )
+                if (item.calibreLu) {
+                    item.calibreRating?.let {
+                        Text(
+                            text = "${it.toInt()}/10",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF2E7D32)
+                        )
                     }
                 }
             }
-            Column(horizontalAlignment = Alignment.End) {
-                NoteBadge(note = item.noteMoyenne)
-                Text(
-                    text = "${item.nbAvis} avis",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            NoteBadge(note = item.noteMoyenne)
+            Text(
+                text = "${item.nbAvis} avis",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
@@ -242,52 +230,43 @@ fun PalmaresCard(item: PalmaresUi, onClick: () -> Unit) {
 @Composable
 fun MonPalmaresCard(item: MonPalmaresItemUi, onLivreClick: (String) -> Unit) {
     val isClickable = item.livreId != null
-    Card(
+    BookListCard(
+        urlCover = item.urlCover,
         modifier = Modifier
-            .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .then(
                 if (isClickable) Modifier.clickable { onLivreClick(item.livreId!!) }
                 else Modifier
             )
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (isClickable) {
-                BookCoverThumbnail(urlCover = item.urlCover)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = item.titre, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+            item.dateLecture?.let {
+                Text(
+                    text = "Lu le ${it.substring(8, 10)}/${it.substring(5, 7)}/${it.substring(0, 4)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.titre, style = MaterialTheme.typography.titleSmall)
-                item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                item.dateLecture?.let {
-                    Text(
-                        text = "Lu le ${it.substring(8, 10)}/${it.substring(5, 7)}/${it.substring(0, 4)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                }
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            item.joursLecture?.let {
+                Text(
+                    text = "${it}j",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
             }
-            Column(horizontalAlignment = Alignment.End) {
-                item.joursLecture?.let {
-                    Text(
-                        text = "${it}j",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                }
-                item.calibreRating?.let {
-                    Text(
-                        text = "${it.toInt()}/10",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color(0xFF2E7D32)
-                    )
-                }
-                item.noteMoyenne?.let {
-                    NoteBadge(note = it)
-                }
+            item.calibreRating?.let {
+                Text(
+                    text = "${it.toInt()}/10",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFF2E7D32)
+                )
+            }
+            item.noteMoyenne?.let {
+                NoteBadge(note = it)
             }
         }
     }

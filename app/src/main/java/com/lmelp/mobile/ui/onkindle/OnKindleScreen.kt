@@ -8,11 +8,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,7 +23,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -39,10 +36,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,7 +49,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.data.model.OnKindleUi
 import com.lmelp.mobile.data.repository.OnKindleRepository
 import com.lmelp.mobile.data.repository.UserPreferencesRepository
-import com.lmelp.mobile.ui.components.BookCoverThumbnail
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
@@ -61,6 +57,8 @@ import com.lmelp.mobile.ui.theme.LmelpVert
 import com.lmelp.mobile.viewmodel.OnKindleUiState
 import com.lmelp.mobile.viewmodel.OnKindleViewModel
 import com.lmelp.mobile.viewmodel.TriMode
+import androidx.compose.ui.text.style.TextOverflow
+import com.lmelp.mobile.ui.components.BookListCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -220,72 +218,63 @@ fun OnKindleCard(
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
-    Card(
+    BookListCard(
+        urlCover = item.urlCover,
         modifier = Modifier
-            .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .combinedClickable(
                 onClick = { onClick?.invoke() },
                 onLongClick = { showBottomSheet = true }
             )
     ) {
-        Row(
-            modifier = Modifier
-                .padding(12.dp)
-                .height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            BookCoverThumbnail(urlCover = item.urlCover)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.titre, style = MaterialTheme.typography.titleSmall)
-                item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-            }
-            // Statut lu + note personnelle (affiché seulement si lu)
-            if (item.calibreLu) {
-                Column(horizontalAlignment = Alignment.End) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = item.titre, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        }
+        // Statut lu + note personnelle (affiché seulement si lu)
+        if (item.calibreLu) {
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "✓",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF2E7D32)
+                )
+                item.calibreRating?.let {
                     Text(
-                        text = "✓",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "${it.toInt()}/10",
+                        style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF2E7D32)
                     )
-                    item.calibreRating?.let {
-                        Text(
-                            text = "${it.toInt()}/10",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF2E7D32)
-                        )
-                    }
                 }
             }
-            // Zone droite : punaise (si épinglé) à gauche de la note, même ligne
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxHeight()
+        }
+        // Zone droite : punaise (si épinglé) à gauche de la note, même ligne
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxHeight()
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    if (item.isPinned) {
-                        Icon(
-                            imageVector = Icons.Filled.PushPin,
-                            contentDescription = "En cours de lecture — tap pour désépingler",
-                            tint = LmelpVert,
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clickable { onTogglePin() }
+                if (item.isPinned) {
+                    Icon(
+                        imageVector = Icons.Filled.PushPin,
+                        contentDescription = "En cours de lecture — tap pour désépingler",
+                        tint = LmelpVert,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clickable { onTogglePin() }
+                    )
+                }
+                if (item.discusseAuMasque && item.noteMoyenne != null) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        NoteBadge(note = item.noteMoyenne)
+                        Text(
+                            text = "${item.nbAvis} avis",
+                            style = MaterialTheme.typography.bodySmall
                         )
-                    }
-                    if (item.discusseAuMasque && item.noteMoyenne != null) {
-                        Column(horizontalAlignment = Alignment.End) {
-                            NoteBadge(note = item.noteMoyenne)
-                            Text(
-                                text = "${item.nbAvis} avis",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
                     }
                 }
             }

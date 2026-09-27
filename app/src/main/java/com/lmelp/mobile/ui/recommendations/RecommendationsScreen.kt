@@ -2,16 +2,12 @@ package com.lmelp.mobile.ui.recommendations
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.Card
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -30,7 +26,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.data.model.RecommendationUi
 import com.lmelp.mobile.data.repository.RecommendationsRepository
-import com.lmelp.mobile.ui.components.BookCoverThumbnail
 import com.lmelp.mobile.ui.components.CalibreBadge
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
@@ -38,6 +33,8 @@ import com.lmelp.mobile.ui.components.LoadingIndicator
 import com.lmelp.mobile.ui.components.NoteBadge
 import com.lmelp.mobile.viewmodel.RecommendationsUiState
 import com.lmelp.mobile.viewmodel.RecommendationsViewModel
+import androidx.compose.ui.text.style.TextOverflow
+import com.lmelp.mobile.ui.components.BookListCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,42 +79,30 @@ fun RecommendationsContent(
         uiState.error != null -> ErrorMessage(uiState.error, modifier)
         uiState.recommendations.isEmpty() -> EmptyState("Aucun conseil disponible", modifier)
         else -> LazyColumn(modifier = modifier) {
-            itemsIndexed(uiState.recommendations, key = { _, item -> item.livreId }) { index, item ->
-                RecommendationCard(item = item, displayRank = index + 1, onClick = { onLivreClick(item.livreId) })
+            items(uiState.recommendations, key = { it.livreId }) { item ->
+                RecommendationCard(item = item, onClick = { onLivreClick(item.livreId) })
             }
         }
     }
 }
 
 @Composable
-fun RecommendationCard(item: RecommendationUi, displayRank: Int, onClick: () -> Unit) {
-    Card(
+fun RecommendationCard(item: RecommendationUi, onClick: () -> Unit) {
+    BookListCard(
+        urlCover = item.urlCover,
         modifier = Modifier
-            .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable(onClick = onClick)
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-        ) {
-            Text(
-                text = "#$displayRank",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            BookCoverThumbnail(urlCover = item.urlCover)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.titre, style = MaterialTheme.typography.titleSmall)
-                item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-            }
-            CalibreBadge(
-                calibreInLibrary = item.calibreInLibrary,
-                calibreLu = item.calibreLu,
-                calibreRating = item.calibreRating
-            )
-            item.masqueMean?.let { NoteBadge(note = it) }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = item.titre, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            item.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
+        CalibreBadge(
+            calibreInLibrary = item.calibreInLibrary,
+            calibreLu = item.calibreLu,
+            calibreRating = item.calibreRating
+        )
+        item.masqueMean?.let { NoteBadge(note = it) }
     }
 }

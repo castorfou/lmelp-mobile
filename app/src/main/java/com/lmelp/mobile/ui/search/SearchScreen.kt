@@ -33,14 +33,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.data.model.SearchResultUi
 import com.lmelp.mobile.data.repository.SearchRepository
-import androidx.compose.foundation.layout.Row
-import androidx.compose.ui.Alignment
-import com.lmelp.mobile.ui.components.BookCoverThumbnail
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
 import com.lmelp.mobile.viewmodel.SearchUiState
 import com.lmelp.mobile.viewmodel.SearchViewModel
+import androidx.compose.ui.text.style.TextOverflow
+import com.lmelp.mobile.ui.components.BookListCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,28 +113,37 @@ fun SearchContent(
 
 @Composable
 fun SearchResultItem(result: SearchResultUi, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (result.type == "livre") {
-                BookCoverThumbnail(urlCover = result.urlCover)
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = result.type.replaceFirstChar { it.uppercase() },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(text = result.content.take(80), style = MaterialTheme.typography.bodyMedium)
-            }
+    val modifier = Modifier
+        .padding(horizontal = 16.dp, vertical = 4.dp)
+        .clickable(onClick = onClick)
+    if (result.type == "livre") {
+        BookListCard(urlCover = result.urlCover, modifier = modifier) {
+            SearchResultText(result = result, maxLines = 3, modifier = Modifier.weight(1f))
         }
+    } else {
+        Card(modifier = modifier.fillMaxWidth()) {
+            SearchResultText(result = result, modifier = Modifier.padding(12.dp))
+        }
+    }
+}
+
+@Composable
+private fun SearchResultText(
+    result: SearchResultUi,
+    modifier: Modifier = Modifier,
+    maxLines: Int = Int.MAX_VALUE
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = result.type.replaceFirstChar { it.uppercase() },
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = result.content.take(80),
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
