@@ -454,6 +454,11 @@ val db = SQLiteDatabase.openDatabase("/data/data/.../lmelp.db", ...)
 
 // ❌ Ne pas utiliser LiveData (préférer StateFlow)
 val emissions: LiveData<List<...>> = ...
+
+// ❌ Clé LazyColumn non unique par construction (issue #140 : crash en défilant)
+items(avisDuCritique, key = { it.livreId })   // un critique peut noter 2 fois le même livre
+// ✅ Clé primaire de la ligne affichée
+items(avisDuCritique, key = { it.avisId })
 ```
 
 ## Ressources

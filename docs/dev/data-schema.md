@@ -115,6 +115,8 @@ CREATE TABLE avis (
 
 ⚠️ **Avis orphelins ignorés à l'export** (issue #127) : un `avis` MongoDB dont `emission_oid`/`livre_oid`/`critique_oid` ne référence plus aucun document existant (ex: après une fusion de doublons de livres côté back-office-lmelp) est exclu de l'export avec un log `WARNING`, plutôt que de faire échouer tout l'export via `FOREIGN KEY constraint failed`.
 
+⚠️ **Plusieurs avis possibles pour un même couple (critique, livre)** (issue #140) : rien n'impose l'unicité de `(critique_id, livre_id)`. Un critique peut parler d'un livre en coup de cœur, puis le noter à nouveau quand ce livre passe au programme d'une émission ultérieure. Exemple : Beigbeder et « Le voyant d'Étampes », noté 9 le 29/08/2021 puis le 31/10/2021. Toute liste d'avis côté app doit donc utiliser `avis.id` comme clé (`LazyColumn(key = ...)`), jamais `livre_id`. Une clé dupliquée fait planter Compose au moment où le second item devient visible.
+
 ### `emission_livres`
 
 Table de jointure émission ↔ livres discutés.
