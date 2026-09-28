@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -65,32 +64,6 @@ fun EmptyState(message: String, modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center
     ) {
         Text(text = message)
-    }
-}
-
-/**
- * Miniature de couverture de livre (48×72dp par défaut, ratio 2:3).
- * Affiche l'image via Coil si urlCover est non null, sinon réserve l'espace avec un Spacer.
- */
-@Composable
-fun BookCoverThumbnail(
-    urlCover: String?,
-    modifier: Modifier = Modifier,
-    width: Dp = 48.dp,
-    height: Dp = 72.dp
-) {
-    if (urlCover != null) {
-        AsyncImage(
-            model = urlCover,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = modifier
-                .width(width)
-                .height(height)
-                .clip(RoundedCornerShape(4.dp))
-        )
-    } else {
-        Spacer(modifier = modifier.width(width).height(height))
     }
 }
 

@@ -1,17 +1,14 @@
 package com.lmelp.mobile.ui.emissions
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -37,7 +34,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.data.model.EmissionDetailUi
 import com.lmelp.mobile.data.model.LivreUi
 import com.lmelp.mobile.data.repository.EmissionsRepository
-import com.lmelp.mobile.ui.components.BookCoverThumbnail
+import com.lmelp.mobile.ui.components.BookListCard
 import com.lmelp.mobile.ui.components.CalibreBadge
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
@@ -198,31 +195,36 @@ fun EmissionDetailContent(
 
 @Composable
 fun LivreCard(livre: LivreUi, onClick: () -> Unit) {
-    Card(
+    BookListCard(
+        urlCover = livre.urlCover,
         modifier = Modifier
-            .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clickable(onClick = onClick)
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            BookCoverThumbnail(urlCover = livre.urlCover)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = livre.titre, style = MaterialTheme.typography.titleSmall)
-                livre.auteurNom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                livre.noteMoyenne?.let { NoteBadge(note = it) }
-                CalibreBadge(
-                    calibreInLibrary = livre.calibreInLibrary,
-                    calibreLu = livre.calibreLu,
-                    calibreRating = livre.calibreRating,
-                    modifier = Modifier.padding(top = 2.dp)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = livre.titre,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            livre.auteurNom?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            livre.noteMoyenne?.let { NoteBadge(note = it) }
+            CalibreBadge(
+                calibreInLibrary = livre.calibreInLibrary,
+                calibreLu = livre.calibreLu,
+                calibreRating = livre.calibreRating,
+                modifier = Modifier.padding(top = 2.dp)
+            )
         }
     }
 }

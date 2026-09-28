@@ -65,8 +65,9 @@
 │  SearchScreen    ──→ SearchContent    ──→ SearchResultItem *   │
 │  RecommendScreen ──→ RecommendContent ──→ RecommendationCard * │
 │  OnKindleScreen  ──→ OnKindleContent  ──→ OnKindleCard *       │
+│  EmissionDetail  ──→ EmissionDetailContent ──→ LivreCard *     │
 │                                                                 │
-│  * listes d'œuvres : cartes bâties sur BookListCard             │
+│  * cartes livre : bâties sur BookListCard                       │
 │    (ui/components/CommonComponents.kt)                          │
 └───────────────────────────┬─────────────────────────────────────┘
                             │ collectAsStateWithLifecycle()
