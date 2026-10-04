@@ -316,7 +316,7 @@ CREATE TABLE db_metadata (
 -- ('nb_avis', '4100')
 ```
 
-⚠️ `content_hash` (issue #128) ne change que si le contenu métier exporté diffère réellement du dernier export publié — `version` n'avance que dans ce cas, pour éviter que l'app ne détecte une "mise à jour disponible" à chaque republication d'anacron même sans nouvelle donnée. Voir `compute_content_hash()` dans `scripts/export_mongo_to_sqlite.py`.
+⚠️ `content_hash` (issue #128) ne change que si le contenu métier exporté diffère réellement du dernier export publié — `version` n'avance que dans ce cas, pour éviter que l'app ne détecte une "mise à jour disponible" à chaque export périodique (toutes les heures, issue #153) même sans nouvelle donnée. Voir `compute_content_hash()` dans `scripts/export_mongo_to_sqlite.py`.
 
 ## Index
 

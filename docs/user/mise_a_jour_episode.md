@@ -52,7 +52,20 @@ la suite est manuelle :
 
 ## Mettre à jour la base depuis l'application
 
-Une fois la base de données enrichie côté serveur (section précédente) et publiée automatiquement sur la GitHub Release dédiée aux données (tag `data-v{N}`, voir [ADR 0001](../dev/adr/0001-separation-maj-appli-donnees.md)), l'application mobile peut récupérer la nouvelle version elle-même :
+Une fois la base de données enrichie côté serveur (section précédente), elle est publiée automatiquement sur la GitHub Release dédiée aux données (tag `data-v{N}`, voir [ADR 0001](../dev/adr/0001-separation-maj-appli-donnees.md)) **dans l'heure** : le container `lmelp-export` relance l'export toutes les heures et ne publie que si les données ont changé.
+
+Une notification **ntfy.sh** arrive alors sur le même topic que celles de lmelp-backoffice :
+
+- **lmelp-mobile - nouvelles données publiées (data-v{N})** : avec le nombre d'émissions, de livres et d'avis, et l'écart par rapport à la publication précédente (par exemple `312 émissions (+1)`) ;
+- **lmelp-mobile - échec de publication des données** : envoyée au premier échec seulement, avec la fin du log ;
+- **lmelp-mobile - publication des données rétablie** : quand la publication fonctionne de nouveau.
+
+!!! note "Publier sans attendre"
+    Pour publier immédiatement, sans attendre le prochain run horaire : `docker exec lmelp-export export-and-publish-release`.
+
+Marquer un livre comme lu dans Calibre modifie aussi les données publiées, et déclenche donc une publication et une notification.
+
+À réception de la notification, l'application mobile peut récupérer la nouvelle version elle-même :
 
 1. Ouvrir l'écran **À propos** (icône ⚙️ en haut à droite de l'accueil — un point vert y apparaît automatiquement si une mise à jour a été détectée au lancement de l'app).
 2. Appuyer sur **Vérifier les mises à jour** (ou directement sur **Mettre à jour** si le point vert était déjà présent).
