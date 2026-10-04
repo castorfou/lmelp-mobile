@@ -4,7 +4,8 @@
 #
 # Ce script tourne DANS le container lmelp-export (voir Dockerfile.export),
 # invoqué manuellement (docker exec lmelp-export export-and-publish-release)
-# ou automatiquement via le job anacron embarqué dans l'image.
+# ou automatiquement par la boucle horaire publish-loop embarquée dans l'image
+# (scripts/docker_publish_loop.sh, issue #153).
 #
 # Contrairement à docker_export_and_push.sh (mécanisme ADB legacy, USB +
 # build debug), ce script ne dépend d'aucun accès au téléphone : il publie
@@ -24,8 +25,18 @@
 #                                       courant du script d'export — issue #132 ;
 #                                       utile pour tester sur un tag jetable sans
 #                                       toucher data-v{N})
+#   NTFY_TOPIC, NTFY_SERVER_URL, NTFY_TOKEN — notification ntfy après publication
+#                                       (optionnel, voir scripts/notify_ntfy.py)
 
 set -euo pipefail
+
+# Un seul run à la fois (issue #153) : la boucle horaire et un docker exec
+# manuel écriraient sinon le même /tmp/lmelp.db en parallèle.
+exec 9>/tmp/lmelp-publish.lock
+if ! flock -n 9; then
+    echo "[INFO] Publication déjà en cours, run ignoré"
+    exit 0
+fi
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -78,8 +89,9 @@ fi
 # ---------------------------------------------------------------------------
 # Permet à export_mongo_to_sqlite.py de réutiliser `version` si le contenu
 # exporté est identique à celui déjà publié, au lieu d'avancer un nouveau
-# timestamp à chaque run anacron même sans nouvelle donnée.
+# timestamp à chaque run périodique même sans nouvelle donnée.
 PREVIOUS_METADATA="/tmp/previous_metadata.json"
+rm -f "$PREVIOUS_METADATA"
 PREVIOUS_ARGS=""
 if gh release download "$RELEASE_TAG" --repo "$GH_REPO" \
         --pattern metadata.json --output "$PREVIOUS_METADATA" --clobber 2>/dev/null; then
@@ -148,5 +160,12 @@ else
         --clobber
 
     success "=== Publication terminée avec succès ==="
+
+    # Notification ntfy (issue #153) : jamais bloquante pour la publication.
+    python3 /app/scripts/notify_ntfy.py published \
+        --metadata "$METADATA_OUTPUT" \
+        --previous "$PREVIOUS_METADATA" \
+        --tag "$RELEASE_TAG" \
+        || warn "Notification ntfy non envoyée"
 fi
 echo ""

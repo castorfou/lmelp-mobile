@@ -171,14 +171,19 @@ GitHub Actions (sur tag) :
 Sépare la mise à jour des données (fréquente, ~1x/semaine) de la mise à jour de l'app (rare). Voir l'ADR complet : [docs/dev/adr/0001-separation-maj-appli-donnees.md](dev/adr/0001-separation-maj-appli-donnees.md).
 
 ```
-Côté serveur (NAS, container lmelp-export en daemon + anacron) :
+Côté serveur (NAS, container lmelp-export en daemon + boucle publish-loop,
+toutes les heures — issue #153) :
 1. scripts/docker_export_and_publish_release.sh
    ├── Export MongoDB → SQLite (avec données Calibre)
    ├── scripts/generate_data_release_metadata.py → metadata.json
    │     (export_date, export_version=timestamp, sha256, compteurs)
    └── gh release upload data-v{ROOM_VERSION} lmelp.db metadata.json --clobber
         (GitHub Release dédiée, distincte de la release APK vX.Y.Z ;
-         tag dérivé du schéma Room, pas data-latest fixe — issue #132)
+         tag dérivé du schéma Room, pas data-latest fixe — issue #132 ;
+         sautée si le contenu est inchangé — issue #128)
+   ├── scripts/notify_ntfy.py published → notification ntfy
+   └── (publish-loop) scripts/notify_ntfy.py status
+        → notification au 1er échec, puis au retour à la normale
 
 Côté app Android :
 2. Check silencieux au lancement (LmelpApp.onCreate) + bouton manuel

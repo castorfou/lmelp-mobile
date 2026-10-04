@@ -46,6 +46,17 @@ Constat après implémentation (issue #131) : le flux initial ci-dessus comparai
 
 Une app restée sur un ancien schéma après que le pipeline soit passé au tag suivant ne trouve simplement plus de release à son tag (404 GitHub) → pas de mise à jour de données proposée, jusqu'à ce que l'app elle-même soit mise à jour vers un build attendant le nouveau schéma. Aucune perte de données silencieuse possible : le fichier téléchargé est *par construction* toujours au même schéma que l'app qui le demande — contrairement à un garde-fou qui détecterait l'incompatibilité *après* téléchargement, cette approche élimine le risque en amont.
 
+### Mise à jour du mécanisme : publication horaire et notifications ntfy (issue #153)
+
+Avec le job anacron quotidien, une émission validée dans le back-office pouvait attendre jusqu'à 24 h avant d'être publiée, et rien ne signalait ni une publication ni un échec (issue #127 : 4 jours d'échec silencieux).
+
+**Décision** :
+
+- Anacron est remplacé par une boucle `publish-loop` (`scripts/docker_publish_loop.sh`), lancée en arrière-plan par l'entrypoint du container, qui exécute `export-and-publish-release` toutes les `PUBLISH_INTERVAL` secondes (défaut : 1 h). Anacron ne descend pas sous une période d'un jour, et son rattrapage après une coupure du NAS n'a plus d'intérêt : au redémarrage du container, la boucle relance un run immédiatement.
+- Un run horaire ne coûte qu'un export : grâce au `content_hash` (issue #128), la release n'est réécrite que si le contenu a changé.
+- `scripts/notify_ntfy.py` envoie une notification ntfy à chaque publication réelle, ainsi qu'au premier échec puis au retour à la normale. Les échecs intermédiaires restent silencieux pour ne pas recevoir une notification par heure pendant une panne.
+- Le topic ntfy est celui de `back-office-lmelp`, avec les mêmes variables (`NTFY_SERVER_URL`, `NTFY_TOPIC`), à configurer sur le service `lmelp-export` du `docker-compose.yml` de `docker-lmelp`.
+
 ### Flux application (APK) — point périphérique, hors scope technique ici
 
 Le mécanisme USB+ADB pour l'APK est lui aussi remis en cause par la migration NAS. Piste retenue comme direction future : publication sur le **Google Play Store**, qui résout nativement la distribution et la mise à jour de l'APK. Implications connues mais **non traitées dans cette issue** : compte développeur Google, processus de review, question des droits sur le contenu Le Masque et la Plume / France Inter diffusé dans l'app. Voir issue de suivi.
@@ -96,3 +107,4 @@ Issues créées dans le cadre de cette décision :
 2. [lmelp-mobile#119](https://github.com/castorfou/lmelp-mobile/issues/119) — faisabilité distribution APK (Google Play Store) et/ou ADB sans fil en dev/debug.
 3. [back-office-lmelp#262](https://github.com/castorfou/back-office-lmelp/issues/262) — visibilité côté serveur des versions app/DB déployées.
 4. [docker-lmelp#56](https://github.com/castorfou/docker-lmelp/issues/56) — provisioning du secret `GH_TOKEN` et validation de l'anacron en conditions réelles sur le NAS.
+5. [lmelp-mobile#153](https://github.com/castorfou/lmelp-mobile/issues/153) — publication horaire (remplace anacron) et notifications ntfy.
