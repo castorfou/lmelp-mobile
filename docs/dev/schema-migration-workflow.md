@@ -22,7 +22,7 @@ Suivre la procédure déjà documentée plus haut dans ce fichier CLAUDE.md ("Er
 `app/src/main/assets/lmelp.db` doit rester un extrait minimal (voir ADR [0002](adr/0002-distribution-app-mini-db-embarquee.md)) mais au **nouveau** schéma :
 
 ```bash
-source /home/vscode/.venv/bin/activate
+source /tmp/venv/bin/activate
 python scripts/export_mongo_to_sqlite.py --output /tmp/lmelp_complete.db --force
 python scripts/build_mini_db.py --source /tmp/lmelp_complete.db --output app/src/main/assets/lmelp.db --nb-emissions 3
 ```
@@ -34,7 +34,7 @@ Vérifier : `sqlite3 app/src/main/assets/lmelp.db "PRAGMA user_version;"` doit a
 En conditions réelles (avant que le pipeline NAS ne republie automatiquement après merge sur `main`), publier soi-même la release au nouveau tag pour pouvoir tester le mécanisme de mise à jour de bout en bout :
 
 ```bash
-source /home/vscode/.venv/bin/activate
+source /tmp/venv/bin/activate
 
 # 1. Récupérer le nouveau ROOM_VERSION
 ROOM_VERSION=$(python scripts/export_mongo_to_sqlite.py --print-room-version)
