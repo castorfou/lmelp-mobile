@@ -38,7 +38,13 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 ├── docs/
 │   ├── architecture.md
 │   ├── data-schema.md
-│   └── ci-cd.md
+│   ├── ci-cd.md
+│   └── agents/                      # Config des skills Matt Pocock (issues, labels, domaine)
+├── .claude/
+│   ├── commands/                    # Commandes slash personnalisées
+│   ├── skills/                      # Skills (cruft-update : mise à jour du template)
+│   └── settings.json                # Permissions + plugins activés (mattpocock-skills)
+├── TEMPLATE_VERSION                 # Version PyFoundry du projet (mise à jour par cruft update)
 └── pyproject.toml
 ```
 
@@ -47,9 +53,10 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 - **adb** : `/home/vscode/android-sdk/platform-tools/adb` (pas dans le PATH par défaut)
 - **MongoDB** : port **27018** (pas 27017)
 - **Calibre** : `/home/vscode/Calibre Library/metadata.db`, virtual library `guillaume`
+- **venv Python** : `/tmp/venv` (hors du HOME persistant, recréé au démarrage du conteneur s'il manque) — ne jamais créer de `.venv` à la racine (hook pre-commit `no-venv-at-root`)
 - **sqlite3** : disponible via le venv Python — toujours activer avant usage :
   ```bash
-  source /home/vscode/.venv/bin/activate
+  source /tmp/venv/bin/activate
   sqlite3 app/src/main/assets/lmelp.db "..."
   ```
 
@@ -86,6 +93,10 @@ Icône **adaptive** (`mipmap-anydpi/ic_launcher{,_round}.xml` : fond `drawable/i
 ```bash
 # Installer dépendances
 uv pip install -e .
+
+# Après une modification à la main de pyproject.toml : mettre à jour uv.lock et le commiter
+# (le devcontainer installe uv.lock sans le modifier, la CI vérifie qu'il est à jour)
+uv lock
 
 # ✅ Export complet MongoDB → SQLite — les paramètres sont lus depuis scripts/.env
 python scripts/export_mongo_to_sqlite.py --force
@@ -492,6 +503,28 @@ items(avisDuCritique, key = { it.livreId })   // un critique peut noter 2 fois l
 // ✅ Clé primaire de la ligne affichée
 items(avisDuCritique, key = { it.avisId })
 ```
+
+## Mise à jour du template
+
+Le projet est généré depuis le template [PyFoundry](https://github.com/castorfou/PyFoundry) (version dans `TEMPLATE_VERSION`). La skill `/cruft-update` (`.claude/skills/cruft-update/`) applique ses évolutions : `cruft update`, lecture du CHANGELOG et des migrations, résolution des rejets (`.rej`, marqueurs de conflit) selon le propriétaire de chaque fichier, vérifications, commit. Elle vient du template : ne pas la modifier ici, la prochaine mise à jour l'écraserait.
+
+## Skills Matt Pocock
+
+Le plugin [mattpocock-skills](https://github.com/mattpocock/skills) est activé dans `.claude/settings.json`, mais chaque utilisateur doit l'installer une fois sur sa machine (`/plugins` → onglet **Plugins** → `mattpocock-skills` → **Install for this project**). Skills utiles : `/grill-me`, `/grill-with-docs`, `/to-spec`, `/to-tickets`, `/tdd`, `/triage`, `/diagnosing-bugs`.
+
+## Agent skills
+
+### Issue tracker
+
+Les issues sont suivies dans GitHub Issues (`castorfou/lmelp-mobile`), via la CLI `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Labels par défaut : `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Contexte unique : `CONTEXT.md` à la racine (créé au besoin) ; les ADR du projet sont dans `docs/dev/adr/`. See `docs/agents/domain.md`.
 
 ## Ressources
 
