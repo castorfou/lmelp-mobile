@@ -9,7 +9,7 @@
         "--label",
         "com.centurylinklabs.watchtower.enable=false",
         "--env",
-        "CONTAINER_NAME=vscode-dev-container_lmelp-mobile" # pragma: allowlist secret
+        "CONTAINER_NAME=vscode-dev-container_lmelp-mobile" // pragma: allowlist secret
     ],
     // Variables d'environnement
     "containerEnv": {
