@@ -61,9 +61,17 @@ jobs:
       - name: Decode release keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
             echo "::error::Secret KEYSTORE_BASE64 absent : impossible de signer l'APK de release"
+            exit 1
+          fi
+          # L'Android Gradle Plugin refuse un mot de passe PKCS12 non ASCII
+          # (« getSecretKey failed: Password is not ASCII ») : échouer tout de suite.
+          if printf '%s%s' "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" | LC_ALL=C grep -q '[^ -~]'; then
+            echo "::error::KEYSTORE_PASSWORD ou KEY_PASSWORD contient un caractère non ASCII : changer le mot de passe (keytool -storepasswd)"
             exit 1
           fi
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
