@@ -46,6 +46,9 @@ dev = [
     "pytest",
     "ruff",
     "mypy",
+    "pandas-stubs",            # Types pour pandas (lus par mypy dans le venv)
+    "types-python-dateutil",
+    "types-requests",
     "mkdocs>=1.5.0",
     "mkdocs-material>=9.4.0",
     "mkdocs-git-revision-date-localized-plugin>=1.2.0",
@@ -63,9 +66,6 @@ Homepage = "https://github.com/castorfou/lmelp-mobile"
 Documentation = "https://castorfou.github.io/lmelp-mobile"
 Repository = "https://github.com/castorfou/lmelp-mobile.git"
 Issues = "https://github.com/castorfou/lmelp-mobile/issues"
-
-[project.scripts]
-lmelp_mobile_setup = "scripts.setup:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -154,8 +154,10 @@ classmethod-decorators = ["classmethod", "pydantic.validator"]
 python_version = "3.11"
 platform = "linux"
 
-# Chemins à analyser : exclure src/ car déjà dans sys.path via editable install
-files = ["tests"]
+# Chemins à analyser : `mypy` seul vérifie le code et les tests, comme le hook et la CI
+files = ["src", "tests"]
+# Les tests importent les scripts d'export (sys.path.insert vers scripts/)
+mypy_path = "scripts"
 
 # Ne pas chercher de namespace packages pour éviter la détection en double
 namespace_packages = false
@@ -189,6 +191,11 @@ module = [
 ]
 ignore_missing_imports = true
 disallow_untyped_defs = false
+
+# Bibliothèques des scripts d'export sans stubs ni py.typed
+[[tool.mypy.overrides]]
+module = ["surprise", "surprise.*", "scipy", "scipy.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 pythonpath = "."

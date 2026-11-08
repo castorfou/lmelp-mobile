@@ -25,7 +25,7 @@ def compute_livre_means_correct(matrix: csr_matrix) -> np.ndarray:
     matrix_dense = matrix.toarray()
     non_zero_counts = np.count_nonzero(matrix_dense, axis=0)
     non_zero_counts = np.where(non_zero_counts == 0, 1, non_zero_counts)
-    return matrix_dense.sum(axis=0) / non_zero_counts
+    return np.asarray(matrix_dense.sum(axis=0) / non_zero_counts)
 
 
 class TestLivreMeans:

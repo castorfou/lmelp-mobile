@@ -75,7 +75,8 @@ def _cover(con: sqlite3.Connection, titre: str) -> bytes | None:
         "SELECT cover FROM calibre_hors_masque WHERE titre = ?", (titre,)
     ).fetchone()
     assert row is not None, f"{titre} absent de calibre_hors_masque"
-    return row[0]
+    cover: bytes | None = row[0]
+    return cover
 
 
 class TestMakeCoverThumbnail:
@@ -153,7 +154,8 @@ def test_room_version_9():
 def _onkindle_cover(con: sqlite3.Connection, titre: str) -> bytes | None:
     row = con.execute("SELECT cover FROM onkindle WHERE titre = ?", (titre,)).fetchone()
     assert row is not None, f"{titre} absent de onkindle"
-    return row[0]
+    cover: bytes | None = row[0]
+    return cover
 
 
 class TestBuildOnkindleCover:
