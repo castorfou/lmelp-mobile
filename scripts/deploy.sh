@@ -2,10 +2,16 @@
 # deploy.sh — Déploie l'APK debug de lmelp-mobile sur un device Android connecté
 # Peut être appelé depuis n'importe où dans l'arborescence du projet
 # Si INSTALL_FAILED_UPDATE_INCOMPATIBLE (signatures différentes), désinstalle automatiquement avant de réinstaller
+#
+# L'APK debug a son propre identifiant (com.lmelp.mobile.debug, issue #160) : il s'installe
+# à côté de l'APK de release (com.lmelp.mobile), auquel ce script ne touche jamais.
 
 set -euo pipefail
 
-APP_PACKAGE="com.lmelp.mobile"
+APP_PACKAGE="com.lmelp.mobile.debug"
+# Nom de classe complet : « .MainActivity » se résoudrait sur l'applicationId
+# (com.lmelp.mobile.debug.MainActivity), alors que le code est dans com.lmelp.mobile.
+APP_COMPONENT="${APP_PACKAGE}/com.lmelp.mobile.MainActivity"
 
 # Trouver la racine du projet (répertoire contenant gradlew)
 find_project_root() {
@@ -71,6 +77,10 @@ else
     echo "Première installation de $APP_PACKAGE..."
     "$ADB" install "$APK_PATH"
 fi
+
+echo ""
+echo "Lancement de l'app..."
+"$ADB" shell am start -n "$APP_COMPONENT" >/dev/null
 
 echo ""
 echo "Déploiement terminé."

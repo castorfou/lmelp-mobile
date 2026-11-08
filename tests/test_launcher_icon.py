@@ -212,3 +212,53 @@ class TestRessourcesCommittees:
 
         assert "#FF12192C" in text
         assert "#FF1E2D4A" in text
+
+
+DEBUG_RES_DIR = Path(__file__).parent.parent / "app" / "src" / "debug" / "res"
+
+
+class TestVarianteDebug:
+    """Issue #160 : l'APK debug (com.lmelp.mobile.debug) cohabite avec la release.
+
+    Même motif, fond orange au lieu de bleu nuit, nom « LMELP debug ».
+    """
+
+    def test_couleurs_debug_orange_et_distinctes_du_bleu_nuit(self):
+        for rgb in (script.DEBUG_ORANGE, script.DEBUG_ORANGE_END):
+            assert 15 <= _hue_deg(rgb) <= 40, rgb
+            assert not _is_close(rgb, script.NIGHT_BLUE, tol=60)
+
+    def test_build_background_accepte_les_couleurs_debug(self):
+        bg = script.build_background(
+            64, colors=(script.DEBUG_ORANGE, script.DEBUG_ORANGE_END)
+        )
+        assert _is_close(bg.getpixel((32, 0)), script.DEBUG_ORANGE)
+        assert _is_close(bg.getpixel((32, 63)), script.DEBUG_ORANGE_END)
+
+    @pytest.mark.parametrize(("density", "size"), list(script.LEGACY_SIZES.items()))
+    def test_png_legacy_debug_fond_orange(self, density, size):
+        for name in ("ic_launcher.png", "ic_launcher_round.png"):
+            path = DEBUG_RES_DIR / f"mipmap-{density}" / name
+            img = Image.open(path).convert("RGBA")
+            assert img.size == (size, size), path
+            px = img.getpixel((size // 2, size // 8))
+            assert px[3] == 255, path
+            assert _is_close(px, script.DEBUG_ORANGE, tol=20), (path, px)
+
+    def test_background_drawable_debug_orange(self):
+        text = (DEBUG_RES_DIR / "drawable" / "ic_launcher_background.xml").read_text()
+
+        assert f"#FF{script._hex(script.DEBUG_ORANGE)}" in text
+        assert f"#FF{script._hex(script.DEBUG_ORANGE_END)}" in text
+
+    def test_foreground_et_monochrome_partages_avec_main(self):
+        # seuls le fond et les PNG legacy (qui l'intègrent) sont surchargés
+        for density in script.LEGACY_SIZES:
+            for name in ("ic_launcher_foreground.png", "ic_launcher_monochrome.png"):
+                assert not (DEBUG_RES_DIR / f"mipmap-{density}" / name).exists()
+        assert not (DEBUG_RES_DIR / "mipmap-anydpi").exists()
+
+    def test_nom_de_l_app_debug(self):
+        root = ET.parse(DEBUG_RES_DIR / "values" / "strings.xml").getroot()
+        names = {s.get("name"): s.text for s in root.findall("string")}
+        assert names == {"app_name": "LMELP debug"}

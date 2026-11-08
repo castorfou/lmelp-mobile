@@ -79,6 +79,13 @@ android {
     }
 
     buildTypes {
+        // APK debug installable à côté de l'APK de release (issue #160) : signatures
+        // différentes, donc identifiants différents. Le namespace (code, R, BuildConfig)
+        // reste com.lmelp.mobile ; nom et icône debug dans src/debug/res.
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
