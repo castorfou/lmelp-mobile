@@ -86,6 +86,8 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 
 Icône **adaptive** (`mipmap-anydpi/ic_launcher{,_round}.xml` : fond `drawable/ic_launcher_background.xml`, calques `ic_launcher_foreground` + `ic_launcher_monochrome`) + PNG legacy, tous **générés** par `scripts/generate_launcher_icon.py` depuis `scripts/icon/source_lmelp_green.png` — ne jamais éditer les PNG `mipmap-*` à la main, modifier le script puis relancer `python scripts/generate_launcher_icon.py`. Fond bleu nuit + smartphone : l'icône doit rester distincte de celle de la PWA BO LMELP (fond rose + base de données). Dossier `mipmap-anydpi` et non `-v26` (minSdk = 26, lint `ObsoleteSdkInt`).
 
+**APK debug ≠ APK release** (issue #160) : le build debug a l'identifiant `com.lmelp.mobile.debug` (`applicationIdSuffix`), le nom « LMELP debug » (`app/src/debug/res/values/strings.xml`) et une icône sur fond orange (`app/src/debug/res`, générée par le même script) ; il s'installe à côté de la release `com.lmelp.mobile`. `namespace` inchangé (`com.lmelp.mobile`). Toute commande `adb` de dev vise donc `com.lmelp.mobile.debug` (`deploy.sh`, `export-and-push`). ⚠️ `am start -n com.lmelp.mobile.debug/.MainActivity` échoue : le `.` se résout sur l'applicationId → écrire `com.lmelp.mobile.debug/com.lmelp.mobile.MainActivity`.
+
 ⚠️ **Après ajout/renommage d'un dossier de ressources, faire `./gradlew clean`** : le build incrémental a déjà produit un APK sans `mipmap-anydpi` (le launcher affiche alors l'icône legacy dans un disque blanc). Vérifier avec `aapt2 dump badging app/build/outputs/apk/debug/app-debug.apk | grep application:` → `icon='res/mipmap-anydpi-v21/ic_launcher.xml'`.
 
 ### Script Python (export données)
@@ -143,7 +145,7 @@ Room met en cache la base locale au premier lancement. Si la version Room n'a
 pas changé, **désinstaller et réinstaller** l'app pour forcer la recopie :
 
 ```bash
-adb uninstall com.lmelp.mobile
+adb uninstall com.lmelp.mobile.debug
 ./gradlew installDebug
 ```
 
@@ -153,7 +155,7 @@ l'asset `lmelp.db` par Room. Après une régénération de `lmelp.db` sans
 changement de version Room, toujours désinstaller d'abord (voir issue #112) :
 
 ```bash
-adb uninstall com.lmelp.mobile
+adb uninstall com.lmelp.mobile.debug
 scripts/build.sh && scripts/deploy.sh
 ```
 

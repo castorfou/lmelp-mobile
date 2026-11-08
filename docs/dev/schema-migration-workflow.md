@@ -60,7 +60,7 @@ gh release create "data-v${ROOM_VERSION}" \
 ### 4. Builder et installer l'app avec la mini-DB au nouveau schéma
 
 ```bash
-adb uninstall com.lmelp.mobile
+adb uninstall com.lmelp.mobile.debug
 scripts/build.sh && scripts/deploy.sh
 ```
 

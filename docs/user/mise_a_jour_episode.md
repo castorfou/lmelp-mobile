@@ -157,4 +157,4 @@ Si `adb devices` ne voit pas le téléphone :
 - En dernier recours : `adb kill-server && adb -a start-server`
 - En tout dernier recours : redémarre le téléphone, ça a solutionné plusieurs fois le problème
 
-Voir aussi [docs/dev/build_deploy_apk.md](../dev/build_deploy_apk.md) pour le diagnostic complet.
+Voir aussi [Build / Deploy apk](../dev/build_deploy_apk.md#le-telephone-napparait-pas-dans-adb-devices) pour le diagnostic complet.

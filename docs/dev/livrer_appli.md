@@ -22,8 +22,12 @@ Android n'accepte de mettre à jour une app installée que si le nouvel APK port
 | Produit par | `scripts/build.sh` (`./gradlew assembleDebug`) | `release.yml`, sur un tag `vX.Y.Z` |
 | Signé avec | une clé debug générée automatiquement par la machine qui compile | la clé de release `lmelp-release.jks` |
 | Usage | tester une modification sur le téléphone, en USB | distribuer une version |
+| Identifiant | `com.lmelp.mobile.debug` | `com.lmelp.mobile` |
+| Sur le téléphone | « LMELP debug », icône sur fond orange | « Le Masque et la Plume », icône sur fond bleu nuit |
 
-Les deux portent le même identifiant `com.lmelp.mobile` mais pas la même signature : l'un ne peut pas remplacer l'autre. Passer d'un APK debug à un APK release, ou l'inverse, impose de désinstaller l'app, ce qui efface son état local (épingles, palmarès personnel…) et la base téléchargée.
+Les deux APK ayant des identifiants différents, Android les traite comme deux applications distinctes : elles s'installent côte à côte, chacune avec ses propres données (épingles, palmarès personnel, base téléchargée). Tester un APK debug ne touche jamais à la version release installée.
+
+L'identifiant debug vient de `applicationIdSuffix = ".debug"` dans `app/build.gradle.kts` ; le `namespace` du code reste `com.lmelp.mobile`. Le nom et l'icône debug sont des ressources de `app/src/debug/res`, générées par `scripts/generate_launcher_icon.py` pour l'icône.
 
 ## En tant que développeur : la boucle quotidienne
 
@@ -70,7 +74,17 @@ Le guide utilisateur [Installer et mettre à jour l'appli](../user/installer_met
 
 ## Debug et release sur le même téléphone
 
-Un seul des deux APK peut être installé à la fois. Tester un APK debug fait perdre la version release installée, et inversement : `adb uninstall com.lmelp.mobile` d'abord, puis réinstallation. L'installation côte à côte des deux versions est suivie dans l'[issue #160](https://github.com/castorfou/lmelp-mobile/issues/160).
+Les deux apps cohabitent. Les commandes `adb` de développement visent la version debug :
+
+```bash
+ADB=~/android-sdk/platform-tools/adb
+$ADB uninstall com.lmelp.mobile.debug                                   # désinstaller la debug
+$ADB shell am start -n com.lmelp.mobile.debug/com.lmelp.mobile.MainActivity   # la lancer
+```
+
+`am start` exige le nom de classe complet `com.lmelp.mobile.MainActivity` : la forme courte `com.lmelp.mobile.debug/.MainActivity` se résout en `com.lmelp.mobile.debug.MainActivity`, qui n'existe pas.
+
+Les icônes thématiques d'Android 13+ (monochromes) sont identiques pour les deux apps : seul le nom les distingue dans ce mode.
 
 ## Le keystore de release
 
