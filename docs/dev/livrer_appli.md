@@ -80,9 +80,30 @@ La règle est dans `buildSrc/src/main/kotlin/AppVersion.kt`, testée par `buildS
 ## En tant qu'utilisateur : mettre à jour
 
 - **Les données** : l'app vérifie au lancement et affiche un badge sur l'icône des réglages quand une mise à jour est disponible ; l'utilisateur l'applique depuis l'écran À propos, puis rouvre l'app.
-- **L'appli** : sur le téléphone, ouvrir la page [Releases](https://github.com/castorfou/lmelp-mobile/releases) du dépôt, télécharger le dernier `lmelp-mobile-vX.Y.Z.apk`, l'ouvrir et choisir « Mettre à jour ». La signature est la même, l'état local est conservé. L'app ne signale pas encore d'elle-même une nouvelle version de l'appli ([issue #162](https://github.com/castorfou/lmelp-mobile/issues/162)).
+- **L'appli** : l'app vérifie aussi au lancement si une release `vX.Y.Z` plus récente existe (même badge) ; l'écran À propos propose alors **Télécharger et installer**, qui télécharge l'APK et ouvre l'installateur Android. La signature est la même, l'état local est conservé. À défaut, télécharger le dernier `lmelp-mobile-vX.Y.Z.apk` depuis la page [Releases](https://github.com/castorfou/lmelp-mobile/releases).
 
 Le guide utilisateur [Installer et mettre à jour l'appli](../user/installer_mettre_a_jour.md) reprend ces étapes pas à pas.
+
+## Détection d'une nouvelle version de l'appli
+
+Introduite par l'[issue #162](https://github.com/castorfou/lmelp-mobile/issues/162), sur le modèle de la mise à jour des données (ADR 0001) :
+
+| Étape | Code | Règle |
+|---|---|---|
+| Lister les releases | `OkHttpAppReleaseApi` | `GET /repos/castorfou/lmelp-mobile/releases?per_page=30`, sans authentification |
+| Choisir la release | `selectLatestAppRelease` (`data/update/AppReleaseVersion.kt`) | tag `vX.Y.Z` strict, ni brouillon ni pré-release, avec un asset `.apk`, `versionCode` strictement supérieur à celui installé |
+| Comparer | `appVersionCodeFromTag` | même formule que `buildSrc/AppVersion.kt`, dupliquée car `buildSrc` n'existe qu'au build |
+| Télécharger | `AppUpdateRepository.downloadApk` | vers `cacheDir/updates/`, SHA-256 vérifié si GitHub fournit le champ `digest` de l'asset |
+| Installer | `ApkInstaller` | `FileProvider` + `ACTION_VIEW` ; permission `REQUEST_INSTALL_PACKAGES`, réglage « sources inconnues » ouvert si l'autorisation manque |
+
+`releases/latest` n'est pas utilisable : GitHub marque les releases de données `data-v{N}` comme « Latest ». Une version de dev (`0.0.0-dev…`) ne vérifie jamais. Pour tester le parcours complet, installer un debug « non dev » face à une release publiée plus récente :
+
+```bash
+./gradlew installDebug -PversionName=0.0.1
+```
+
+L'installateur installe alors la release à côté du debug (identifiants différents) ; une vraie mise à jour se vérifie d'une release à la suivante.
+
 
 ## Debug et release sur le même téléphone
 

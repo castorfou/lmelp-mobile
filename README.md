@@ -91,7 +91,7 @@ code Kotlin
 |---|---|---|
 | Tester une modification | `scripts/build.sh && scripts/deploy.sh` | APK debug installé en USB |
 | Publier une version de l'appli | `git tag vX.Y.Z && git push origin vX.Y.Z` | APK signé sur la release GitHub `vX.Y.Z`, version `X.Y.Z` (À propos) |
-| Mettre à jour l'appli (utilisateur) | télécharger l'APK de la dernière release `vX.Y.Z` | mise à jour sans perte des données |
+| Mettre à jour l'appli (utilisateur) | À propos → Télécharger et installer (proposé dès qu'une release `vX.Y.Z` plus récente existe) | mise à jour sans perte des données |
 | Mettre à jour les données (utilisateur) | À propos → mise à jour | nouvelle base téléchargée |
 
 APK debug (« LMELP debug », icône orange, `com.lmelp.mobile.debug`) et APK release (« Le Masque et la Plume », `com.lmelp.mobile`) s'installent côte à côte, chacun avec ses données. Le cycle complet, la signature et le keystore de release sont décrits dans [Développer, livrer, mettre à jour](https://castorfou.github.io/lmelp-mobile/dev/livrer_appli/).

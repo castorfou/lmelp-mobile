@@ -196,6 +196,10 @@ Le mécanisme ADB ci-dessus (USB + laptop + build debug) devient impraticable av
 
 ⚠️ **Pas de redémarrage automatique après MAJ** : `ProcessRestarter.closeApp()` ferme le process (nécessaire pour un état Room propre) mais ne tente **pas** de relancer l'Activity automatiquement — testé et confirmé cassé sur Android 12+ (restrictions de lancement d'activité en arrière-plan, confirmé sur Android 17/API 37). L'app affiche "Mise à jour appliquée ! Veuillez rouvrir l'application." puis se ferme ; l'utilisateur la rouvre lui-même.
 
+**Nouvelle version de l'appli** (issue #162) : même principe pour l'APK. `AppUpdateRepository` liste `GET /releases` (⚠️ pas `releases/latest`, qui renvoie `data-v{N}`, marquée « Latest »), garde le plus grand tag `vX.Y.Z` stable avec un `.apk` dont le versionCode (`appVersionCodeFromTag`, formule de `buildSrc/AppVersion.kt` **dupliquée** : buildSrc n'existe qu'au build) dépasse `BuildConfig.VERSION_CODE`. Jamais de check pour une version `-dev` (APK debug normal, versionCode 1) ; tester avec `./gradlew installDebug -PversionName=0.0.1`. Téléchargement dans `cacheDir/updates/` (SHA-256 via le `digest` de l'asset), installation par `ApkInstaller` (`FileProvider` `${applicationId}.fileprovider` + `REQUEST_INSTALL_PACKAGES`).
+
+⚠️ **`release.yml` checkout en `fetch-depth: 0`** : l'historique de l'écran À propos vient de `git log -30` au build (`gitChangelog`, `app/build.gradle.kts`) ; avec le clone superficiel par défaut, l'APK de release (v0.9.0) n'affichait qu'un commit.
+
 Voir l'ADR complet : [docs/dev/adr/0001-separation-maj-appli-donnees.md](docs/dev/adr/0001-separation-maj-appli-donnees.md). Le mécanisme ADB ci-dessus reste documenté comme solution **legacy/dev-only**, toujours utile en développement local.
 
 ## Architecture MVVM

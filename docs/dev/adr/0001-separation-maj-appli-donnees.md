@@ -61,6 +61,8 @@ Avec le job anacron quotidien, une émission validée dans le back-office pouvai
 
 Le mécanisme USB+ADB pour l'APK est lui aussi remis en cause par la migration NAS. Piste retenue comme direction future : publication sur le **Google Play Store**, qui résout nativement la distribution et la mise à jour de l'APK. Implications connues mais **non traitées dans cette issue** : compte développeur Google, processus de review, question des droits sur le contenu Le Masque et la Plume / France Inter diffusé dans l'app. Voir issue de suivi.
 
+**Mise à jour (issue #162)** : en attendant une éventuelle distribution par le Play Store, l'APK est publié sur une release GitHub `vX.Y.Z` et l'app détecte, télécharge et fait installer elle-même une version plus récente, sur le modèle du flux de données. Voir [Développer, livrer, mettre à jour](../livrer_appli.md#detection-dune-nouvelle-version-de-lappli).
+
 Le sous-sujet "ADB sans fil depuis le NAS" (pairing debug sans fil Android 11+, `adb connect`) mentionné dans l'issue initiale devient obsolète pour le flux de données, remplacé par le téléchargement HTTP direct — strictement supérieur ici (pas de dépendance USB/pairing, fonctionne avec un build release). Il reste une piste possible pour un usage dev/debug ponctuel de déploiement APK sur un device de test — traité dans l'issue de suivi dédiée à la distribution APK, pas résolu ici.
 
 ## Trajectoire court terme vs long terme
