@@ -104,3 +104,26 @@ def test_release_workflow_signs_with_gradle():
     assert "LMELP_KEYSTORE_FILE" in release
     assert "apksigner" in release
     assert "verify --print-certs" in release
+
+
+def test_release_workflow_passes_tag_version_to_gradle():
+    """Issue #161 : la version de l'APK vient du tag, pas d'une valeur fixe."""
+    release = (WORKFLOWS_DIR / "release.yml").read_text(encoding="utf-8")
+    assert re.search(r"assembleRelease\s+-PversionName=", release), (
+        "release.yml doit passer -PversionName=<tag sans v> à assembleRelease"
+    )
+    assert re.search(r"aapt2\"? dump badging", release), (
+        "release.yml doit vérifier le versionName de l'APK produit"
+    )
+
+
+def test_app_version_not_hardcoded():
+    gradle = APP_GRADLE.read_text(encoding="utf-8")
+    assert "AppVersion.resolve(" in gradle
+    assert 'versionName = "1.0"' not in gradle
+
+
+def test_ci_runs_buildsrc_tests():
+    """Gradle 8 ne lance plus les tests de buildSrc pendant le build."""
+    ci = (WORKFLOWS_DIR / "ci.yml").read_text(encoding="utf-8")
+    assert "-p buildSrc test" in ci

@@ -115,6 +115,10 @@ jobs:
     - name: 🔑 Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    - name: 🧪 Run buildSrc tests
+      # Gradle 8 ne lance plus les tests de buildSrc pendant le build (règle de version, #161)
+      run: ./gradlew -p buildSrc test
+
     - name: 🧪 Run unit tests
       run: ./gradlew :app:testDebugUnitTest
 
