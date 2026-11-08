@@ -24,7 +24,7 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw
-from scipy import ndimage  # type: ignore[import-untyped]
+from scipy import ndimage
 
 
 ROOT = Path(__file__).resolve().parent.parent
