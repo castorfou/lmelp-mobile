@@ -1,5 +1,6 @@
 nav:
   - Contenu: README.md
+  - Installer et mettre à jour l'appli: installer_mettre_a_jour.md
   - Mise à jour d'un épisode: mise_a_jour_episode.md
   - Épingler des livres en cours de lecture: epingler_livres.md
   - Vitesse de lecture: vitesse_lecture.md

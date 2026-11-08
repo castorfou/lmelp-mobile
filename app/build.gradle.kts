@@ -63,8 +63,24 @@ android {
         buildConfigField("String", "CHANGELOG", "\"$gitChangelog\"")
     }
 
+    // Signature de l'APK de release (issue #159) : keystore fourni par l'environnement
+    // (release.yml le décode depuis le secret KEYSTORE_BASE64). Sans LMELP_KEYSTORE_FILE,
+    // assembleRelease produit un APK non signé (app-release-unsigned.apk).
+    val releaseKeystore = System.getenv("LMELP_KEYSTORE_FILE")?.let { file(it) }?.takeIf { it.exists() }
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("LMELP_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("LMELP_KEY_ALIAS")
+                keyPassword = System.getenv("LMELP_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

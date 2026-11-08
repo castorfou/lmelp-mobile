@@ -9,53 +9,43 @@ jobs:
   build:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write   # création de la GitHub Release (GITHUB_TOKEN en lecture seule par défaut)
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+        uses: actions/checkout@v7
 
       # ------------------------------------------------------------------
-      # Step 1: Generate SQLite database from MongoDB
-      # Requires secret MONGO_URI to be configured in GitHub repo settings.
-      # If not configured, the pre-committed lmelp.db in assets/ is used.
+      # Step 1: Vérifier la mini-DB embarquée
+      # L'APK embarque l'extrait minimal committé (ADR 0002) : jamais d'export
+      # MongoDB complet ici, l'app télécharge la vraie base au lancement.
+      # Dépendances installées depuis uv.lock, comme le job tests de ci.yml.
       # ------------------------------------------------------------------
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
       - name: Install Python dependencies
-        run: pip install pymongo numpy scipy click
-
-      - name: Export MongoDB to SQLite
-        env:
-          MONGO_URI: ${{ secrets.MONGO_URI }}
         run: |
-          if [ -n "$MONGO_URI" ]; then
-            python scripts/export_mongo_to_sqlite.py \
-              --mongo-uri "$MONGO_URI" \
-              --output app/src/main/assets/lmelp.db \
-              --force
-          else
-            echo "MONGO_URI not configured, using pre-committed lmelp.db"
-          fi
+          uv python install 3.11
+          uv sync --frozen
 
       - name: Verify SQLite database
         run: |
-          python scripts/export_mongo_to_sqlite.py \
+          uv run python scripts/export_mongo_to_sqlite.py \
             --verify app/src/main/assets/lmelp.db
 
       # ------------------------------------------------------------------
       # Step 2: Build Android APK
       # ------------------------------------------------------------------
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: '17'
           distribution: 'temurin'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
           # Le défaut 'tools platform-tools' échoue : le paquet 'tools' n'existe plus
           # avec cmdline-tools 16.0 (image runner). Gradle installe platform/build-tools.
@@ -64,47 +54,75 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Release APK
+      # ------------------------------------------------------------------
+      # Step 3: Build + sign APK (issue #159)
+      # Signature par signingConfigs Gradle (app/build.gradle.kts), keystore
+      # décodé depuis le secret KEYSTORE_BASE64. Remplace r0adkll/sign-android-release,
+      # abandonnée et sous Node 12.
+      # ------------------------------------------------------------------
+      - name: Decode release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Secret KEYSTORE_BASE64 absent : impossible de signer l'APK de release"
+            exit 1
+          fi
+          # L'Android Gradle Plugin refuse un mot de passe PKCS12 non ASCII
+          # (« getSecretKey failed: Password is not ASCII ») : échouer tout de suite.
+          if printf '%s%s' "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" | LC_ALL=C grep -q '[^ -~]'; then
+            echo "::error::KEYSTORE_PASSWORD ou KEY_PASSWORD contient un caractère non ASCII : changer le mot de passe (keytool -storepasswd)"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "LMELP_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Build signed Release APK
+        env:
+          LMELP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          LMELP_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          LMELP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
-      # ------------------------------------------------------------------
-      # Step 3: Sign APK (requires keystore secrets)
-      # ------------------------------------------------------------------
-      - name: Sign APK
-        continue-on-error: true
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-
-      # ------------------------------------------------------------------
-      # Step 4: Create GitHub Release
-      # ------------------------------------------------------------------
       - name: Extract version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
+      - name: Verify signature and rename APK
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
+          "$APKSIGNER" verify --print-certs "$APK"
+          mkdir -p dist
+          cp "$APK" "dist/lmelp-mobile-$VERSION.apk"
+          rm -f "$RUNNER_TEMP/release.jks"
+
+      # ------------------------------------------------------------------
+      # Step 4: Create GitHub Release
+      # ------------------------------------------------------------------
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.VERSION }}
           name: "lmelp-mobile ${{ steps.version.outputs.VERSION }}"
+          # Tag avec suffixe (ex. v0.0.0-test) → pré-release
+          prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
           body: |
             ## lmelp-mobile ${{ steps.version.outputs.VERSION }}
 
             ### Installation
             1. Télécharger `lmelp-mobile-${{ steps.version.outputs.VERSION }}.apk`
-            2. Sur Android : Paramètres → Sécurité → Sources inconnues → Activer
-            3. Ouvrir le fichier APK téléchargé
+            2. Ouvrir le fichier APK téléchargé (autoriser l'installation depuis cette source si Android le demande)
+            3. Si une version debug est installée : la désinstaller d'abord (signature différente)
 
-            ### Données embarquées
-            - Source : MongoDB masque_et_la_plume
-            - Date d'export : voir Paramètres → À propos dans l'appli
+            ### Données
+            L'APK embarque un extrait minimal ; l'appli télécharge la base complète au premier lancement
+            (release `data-v{N}`). Date des données : écran À propos.
           files: |
-            app/build/outputs/apk/release/*.apk
+            dist/lmelp-mobile-*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
