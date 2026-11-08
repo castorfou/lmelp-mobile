@@ -31,4 +31,6 @@ L'appli ne signale pas encore d'elle-même qu'une nouvelle version est disponibl
 
 ## Dépannage
 
-**« Application non installée » ou « conflit avec un paquet existant »** : la version installée a été signée avec une autre clé, typiquement une version de développement installée depuis un ordinateur. Désinstaller l'appli (appui long sur l'icône → Désinstaller), puis installer l'APK. L'état local (épingles, palmarès personnel) est perdu, et la base est retéléchargée au lancement.
+**Deux icônes, « Le Masque et la Plume » et « LMELP debug »** : « LMELP debug » (icône orange) est une version de développement, installée depuis un ordinateur. C'est une application distincte, avec ses propres données : elle n'interfère pas avec l'appli et peut être désinstallée sans conséquence pour celle-ci.
+
+**« Application non installée » ou « conflit avec un paquet existant »** : la version installée a été signée avec une autre clé de release. Désinstaller l'appli (appui long sur l'icône → Désinstaller), puis installer l'APK. L'état local (épingles, palmarès personnel) est perdu, et la base est à retélécharger.

@@ -16,6 +16,11 @@ Produit, sous ``app/src/main/res`` :
 - ``drawable/ic_launcher_background.xml`` (dégradé bleu nuit) ;
 - ``mipmap-anydpi/ic_launcher.xml`` et ``ic_launcher_round.xml``.
 
+Produit aussi, sous ``app/src/debug/res``, la variante de l'APK debug
+(``com.lmelp.mobile.debug``, installé à côté de la release, issue #160) : même
+motif sur fond orange. Seuls le fond et les PNG legacy (qui l'intègrent) y sont
+surchargés ; foreground, monochrome et XML adaptive viennent de ``main``.
+
 Usage :
     python scripts/generate_launcher_icon.py
 """
@@ -30,10 +35,18 @@ from scipy import ndimage
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = Path(__file__).resolve().parent / "icon" / "source_lmelp_green.png"
 RES_DIR = ROOT / "app" / "src" / "main" / "res"
+DEBUG_RES_DIR = ROOT / "app" / "src" / "debug" / "res"
 
 # Couleurs du bandeau hero de l'accueil (LmelpNightBlue / LmelpNightBlueEnd, Theme.kt)
 NIGHT_BLUE = (0x12, 0x19, 0x2C)
 NIGHT_BLUE_END = (0x1E, 0x2D, 0x4A)
+# Fond de l'icône de l'APK debug : orange, pour la distinguer de la release d'un coup d'œil
+DEBUG_ORANGE = (0xE6, 0x6A, 0x00)
+DEBUG_ORANGE_END = (0xB8, 0x4A, 0x00)
+
+Colors = tuple[tuple[int, int, int], tuple[int, int, int]]
+RELEASE_COLORS: Colors = (NIGHT_BLUE, NIGHT_BLUE_END)
+DEBUG_COLORS: Colors = (DEBUG_ORANGE, DEBUG_ORANGE_END)
 # Smartphone : cadre clair pour ressortir sur le bleu nuit, écran bleu Émissions
 PHONE_FRAME_COLOR = (0xE3, 0xE8, 0xF0)
 SCREEN_COLOR = (0x15, 0x65, 0xC0)
@@ -176,10 +189,10 @@ def build_foreground(size: int) -> Image.Image:
     return canvas.resize((size, size), Image.Resampling.LANCZOS)
 
 
-def build_background(size: int) -> Image.Image:
-    """Dégradé vertical bleu nuit, identique à ``drawable/ic_launcher_background.xml``."""
+def build_background(size: int, colors: Colors = RELEASE_COLORS) -> Image.Image:
+    """Dégradé vertical (bleu nuit par défaut), identique à ``drawable/ic_launcher_background.xml``."""
     t = np.linspace(0.0, 1.0, size)[:, None]
-    start, end = np.array(NIGHT_BLUE), np.array(NIGHT_BLUE_END)
+    start, end = np.array(colors[0]), np.array(colors[1])
     rows = (start + (end - start) * t).round().astype(np.uint8)
     rgb = np.repeat(rows[:, None, :], size, axis=1)
     alpha = np.full((size, size, 1), 255, dtype=np.uint8)
@@ -201,10 +214,14 @@ def build_monochrome(foreground: Image.Image) -> Image.Image:
     return Image.fromarray(out.astype(np.uint8), "RGBA")
 
 
-def build_legacy_icon(size: int, round_shape: bool = False) -> Image.Image:
+def build_legacy_icon(
+    size: int, round_shape: bool = False, colors: Colors = RELEASE_COLORS
+) -> Image.Image:
     """Icône legacy : partie visible (72/108) de l'adaptive, en carré arrondi ou disque."""
     full = round(size * ADAPTIVE_DP / VIEWPORT_DP)
-    layered = Image.alpha_composite(build_background(full), build_foreground(full))
+    layered = Image.alpha_composite(
+        build_background(full, colors), build_foreground(full)
+    )
     offset = (full - size) // 2
     icon = layered.crop((offset, offset, offset + size, offset + size))
 
@@ -247,14 +264,32 @@ def _hex(rgb: tuple[int, int, int]) -> str:
     return "".join(f"{c:02X}" for c in rgb)
 
 
+def write_background(res_dir: Path, colors: Colors) -> None:
+    """Fond de l'icône adaptive (``drawable/ic_launcher_background.xml``)."""
+    drawable = res_dir / "drawable"
+    drawable.mkdir(parents=True, exist_ok=True)
+    (drawable / "ic_launcher_background.xml").write_text(
+        BACKGROUND_XML.format(start=_hex(colors[0]), end=_hex(colors[1])),
+        encoding="utf-8",
+    )
+
+
+def write_legacy_icons(folder: Path, size: int, colors: Colors) -> None:
+    """Icônes legacy carrée arrondie et ronde d'une densité."""
+    folder.mkdir(parents=True, exist_ok=True)
+    build_legacy_icon(size, colors=colors).save(
+        folder / "ic_launcher.png", optimize=True
+    )
+    build_legacy_icon(size, round_shape=True, colors=colors).save(
+        folder / "ic_launcher_round.png", optimize=True
+    )
+
+
 def main() -> None:
     for density, size in LEGACY_SIZES.items():
         folder = RES_DIR / f"mipmap-{density}"
-        folder.mkdir(parents=True, exist_ok=True)
-        build_legacy_icon(size).save(folder / "ic_launcher.png", optimize=True)
-        build_legacy_icon(size, round_shape=True).save(
-            folder / "ic_launcher_round.png", optimize=True
-        )
+        write_legacy_icons(folder, size, RELEASE_COLORS)
+        write_legacy_icons(DEBUG_RES_DIR / f"mipmap-{density}", size, DEBUG_COLORS)
         foreground = build_foreground(size * ADAPTIVE_DP // 48)
         foreground.save(folder / "ic_launcher_foreground.png", optimize=True)
         build_monochrome(foreground).save(
@@ -262,17 +297,14 @@ def main() -> None:
         )
         print(f"✓ mipmap-{density}")
 
-    drawable = RES_DIR / "drawable"
-    drawable.mkdir(parents=True, exist_ok=True)
-    (drawable / "ic_launcher_background.xml").write_text(
-        BACKGROUND_XML.format(start=_hex(NIGHT_BLUE), end=_hex(NIGHT_BLUE_END)),
-        encoding="utf-8",
-    )
+    write_background(RES_DIR, RELEASE_COLORS)
+    write_background(DEBUG_RES_DIR, DEBUG_COLORS)
     anydpi = RES_DIR / "mipmap-anydpi"
     anydpi.mkdir(parents=True, exist_ok=True)
     for name in ("ic_launcher.xml", "ic_launcher_round.xml"):
         (anydpi / name).write_text(ADAPTIVE_XML, encoding="utf-8")
     print("✓ icône adaptive (mipmap-anydpi + drawable/ic_launcher_background.xml)")
+    print("✓ variante debug, fond orange (app/src/debug/res)")
 
 
 if __name__ == "__main__":

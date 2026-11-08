@@ -10,7 +10,8 @@
 #   LMELP_CALIBRE_VIRTUAL_LIBRARY    — tag virtual library Calibre (ex: guillaume)
 #   ADB_HOST                         — host du daemon ADB (défaut: host-gateway)
 #   ADB_PORT                         — port du daemon ADB (défaut: 5037)
-#   APP_PACKAGE                      — package Android (défaut: com.lmelp.mobile)
+#   APP_PACKAGE                      — package Android (défaut: com.lmelp.mobile.debug, seul
+#                                      paquet debuggable donc compatible run-as, issue #160)
 
 set -euo pipefail
 
@@ -29,7 +30,7 @@ die()     { echo -e "${RED}[ERR]${NC}  $*" >&2; exit 1; }
 DB_OUTPUT="/tmp/lmelp.db"
 ADB_HOST="${ADB_HOST:-host-gateway}"
 ADB_PORT="${ADB_PORT:-5037}"
-APP_PACKAGE="${APP_PACKAGE:-com.lmelp.mobile}"
+APP_PACKAGE="${APP_PACKAGE:-com.lmelp.mobile.debug}"
 ADB="adb -H ${ADB_HOST} -P ${ADB_PORT}"
 
 echo -e "\n${BOLD}=== lmelp-mobile : Export et mise à jour de la base ===${NC}\n"
@@ -127,7 +128,8 @@ $ADB shell rm -f "$TMP_REMOTE"
 # 6. Redémarrage de l'app
 # ---------------------------------------------------------------------------
 info "Redémarrage de l'app..."
-$ADB shell am start -n "${APP_PACKAGE}/.MainActivity" || true
+# Nom de classe complet : « .MainActivity » se résoudrait sur l'applicationId
+$ADB shell am start -n "${APP_PACKAGE}/com.lmelp.mobile.MainActivity" || true
 
 echo ""
 success "=== Mise à jour terminée avec succès ==="

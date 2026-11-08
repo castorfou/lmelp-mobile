@@ -94,7 +94,7 @@ code Kotlin
 | Mettre à jour l'appli (utilisateur) | télécharger l'APK de la dernière release `vX.Y.Z` | mise à jour sans perte des données |
 | Mettre à jour les données (utilisateur) | À propos → mise à jour | nouvelle base téléchargée |
 
-APK debug et APK release n'ont pas la même signature : passer de l'un à l'autre impose de désinstaller l'app. Le cycle complet, la signature et le keystore de release sont décrits dans [Développer, livrer, mettre à jour](https://castorfou.github.io/lmelp-mobile/dev/livrer_appli/).
+APK debug (« LMELP debug », icône orange, `com.lmelp.mobile.debug`) et APK release (« Le Masque et la Plume », `com.lmelp.mobile`) s'installent côte à côte, chacun avec ses données. Le cycle complet, la signature et le keystore de release sont décrits dans [Développer, livrer, mettre à jour](https://castorfou.github.io/lmelp-mobile/dev/livrer_appli/).
 
 ## Setup développement
 
@@ -124,7 +124,7 @@ python scripts/export_mongo_to_sqlite.py --force --output /tmp/lmelp_complete.db
 python scripts/export_mongo_to_sqlite.py --verify /tmp/lmelp_complete.db
 ```
 
-L'APK n'embarque qu'un extrait minimal (`app/src/main/assets/lmelp.db`), régénéré avec `scripts/build_mini_db.py` : ne jamais y exporter la base complète (voir [Build / Deploy apk](https://castorfou.github.io/lmelp-mobile/dev/build_deploy_apk/#regenerer-la-db-asset)).
+L'APK n'embarque qu'un extrait minimal (`app/src/main/assets/lmelp.db`), régénéré avec `scripts/build_mini_db.py` : ne jamais y exporter la base complète (voir [Build / Deploy apk](https://castorfou.github.io/lmelp-mobile/dev/build_deploy_apk/#extrait-minimal-embarque)).
 ### Lancer l'appli
 
 ```bash

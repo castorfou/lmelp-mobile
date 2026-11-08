@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nom de l'APK debug (com.lmelp.mobile.debug), installé à côté de la release (issue #160) -->
+<resources>
+    <string name="app_name">LMELP debug</string>
+</resources>
