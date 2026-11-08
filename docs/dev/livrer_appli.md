@@ -51,8 +51,8 @@ Le workflow `.github/workflows/release.yml` prend le relais (environ 5 minutes) 
 
 1. il vérifie la mini-DB embarquée (`app/src/main/assets/lmelp.db`) ;
 2. il décode le keystore depuis le secret `KEYSTORE_BASE64` ;
-3. il compile l'APK release, signé par Gradle (`signingConfigs` de `app/build.gradle.kts`) ;
-4. il vérifie la signature avec `apksigner` ;
+3. il compile l'APK release, signé par Gradle (`signingConfigs` de `app/build.gradle.kts`), avec la version du tag (`./gradlew assembleRelease -PversionName=1.1.0`) ;
+4. il vérifie la signature avec `apksigner`, et avec `aapt2` que l'APK porte bien la version du tag ;
 5. il crée la release GitHub `v1.1.0` avec `lmelp-mobile-v1.1.0.apk` en pièce jointe.
 
 Un tag qui contient un tiret (`v1.1.0-rc1`, `v0.0.0-test`) produit une **pré-release**, pratique pour tester le workflow. Pour la supprimer ensuite :
@@ -62,8 +62,20 @@ gh release delete v0.0.0-test --yes --cleanup-tag
 git tag -d v0.0.0-test
 ```
 
-!!! note "Numéro de version"
-    Le numéro affiché par Android (`versionName`) est fixé à `1.0` dans `app/build.gradle.kts` : il ne suit pas encore le tag ([issue #161](https://github.com/castorfou/lmelp-mobile/issues/161)).
+### Numéro de version de l'APK
+
+Le tag fixe les deux numéros de version de l'APK (issue #161) :
+
+| | Valeur | Exemple, tag `v1.2.3` |
+|---|---|---|
+| `versionName` (affiché par Android et par l'écran À propos) | le tag sans le `v` | `1.2.3` |
+| `versionCode` (comparé par Android pour une mise à jour) | `major*10000 + minor*100 + patch` | `10203` |
+
+Android refuse d'installer un APK dont le `versionCode` est inférieur à celui de l'app installée. La formule le fait croître d'une version à la suivante, à condition que **minor et patch restent ≤ 99** : un tag `v1.100.0` fait échouer le build, comme un tag mal formé (`v1.2`). Un suffixe de pré-release est conservé dans `versionName` (`v1.2.3-rc1` → `1.2.3-rc1`, `versionCode` 10203).
+
+Sans `-PversionName` (build local, `scripts/build.sh`), l'APK porte une version de développement : `versionName` `0.0.0-dev+<commit>` (suivi de `-debug` pour l'APK debug), `versionCode` 1.
+
+La règle est dans `buildSrc/src/main/kotlin/AppVersion.kt`, testée par `buildSrc/src/test/kotlin/AppVersionTest.kt`. Gradle 8 ne lance plus les tests de `buildSrc` pendant un build : les lancer avec `./gradlew -p buildSrc test` (la CI le fait).
 
 ## En tant qu'utilisateur : mettre à jour
 

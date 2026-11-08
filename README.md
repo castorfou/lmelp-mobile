@@ -90,7 +90,7 @@ code Kotlin
 | | Commande | Résultat |
 |---|---|---|
 | Tester une modification | `scripts/build.sh && scripts/deploy.sh` | APK debug installé en USB |
-| Publier une version de l'appli | `git tag vX.Y.Z && git push origin vX.Y.Z` | APK signé sur la release GitHub `vX.Y.Z` |
+| Publier une version de l'appli | `git tag vX.Y.Z && git push origin vX.Y.Z` | APK signé sur la release GitHub `vX.Y.Z`, version `X.Y.Z` (À propos) |
 | Mettre à jour l'appli (utilisateur) | télécharger l'APK de la dernière release `vX.Y.Z` | mise à jour sans perte des données |
 | Mettre à jour les données (utilisateur) | À propos → mise à jour | nouvelle base téléchargée |
 
