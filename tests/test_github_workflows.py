@@ -127,3 +127,25 @@ def test_ci_runs_buildsrc_tests():
     """Gradle 8 ne lance plus les tests de buildSrc pendant le build."""
     ci = (WORKFLOWS_DIR / "ci.yml").read_text(encoding="utf-8")
     assert "-p buildSrc test" in ci
+
+
+def test_release_checkout_fetches_full_history():
+    """Issue #162 : l'historique de l'écran À propos vient de `git log` au build.
+
+    Avec le clone superficiel par défaut d'actions/checkout (fetch-depth 1), l'APK de
+    release (v0.9.0) n'affichait qu'un seul commit.
+    """
+    release = yaml.safe_load(
+        (WORKFLOWS_DIR / "release.yml").read_text(encoding="utf-8")
+    )
+    checkouts = [
+        step
+        for job in release["jobs"].values()
+        for step in job["steps"]
+        if str(step.get("uses", "")).startswith("actions/checkout@")
+    ]
+    assert checkouts, "release.yml doit faire un actions/checkout"
+    for step in checkouts:
+        assert (step.get("with") or {}).get("fetch-depth") == 0, (
+            "release.yml : actions/checkout doit avoir fetch-depth: 0"
+        )

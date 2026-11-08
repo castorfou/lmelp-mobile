@@ -65,6 +65,7 @@ import coil3.compose.AsyncImage
 import com.lmelp.mobile.R
 import com.lmelp.mobile.data.model.DerniereEmissionUi
 import com.lmelp.mobile.data.model.SlideItem
+import com.lmelp.mobile.data.repository.AppUpdateRepository
 import com.lmelp.mobile.data.repository.DataUpdateRepository
 import com.lmelp.mobile.data.repository.HomeRepository
 import com.lmelp.mobile.ui.components.NoteBadge
@@ -82,10 +83,11 @@ fun HomeScreen(
     onNavigate: (String) -> Unit,
     onSettingsClick: () -> Unit,
     dataUpdateRepository: DataUpdateRepository? = null,
+    appUpdateRepository: AppUpdateRepository? = null,
     modifier: Modifier = Modifier
 ) {
     val viewModel: HomeViewModel = viewModel(
-        factory = HomeViewModel.Factory(repository, dataUpdateRepository)
+        factory = HomeViewModel.Factory(repository, dataUpdateRepository, appUpdateRepository)
     )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     HomeContent(

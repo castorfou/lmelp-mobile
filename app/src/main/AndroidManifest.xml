@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Installation d'une nouvelle version de l'appli téléchargée depuis GitHub (issue #162). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
 
     <uses-feature
         android:name="android.software.car.templates.host"
@@ -40,6 +42,17 @@
                 android:name="androidx.car.app.minApiLevel"
                 android:value="1"/>
         </service>
+
+        <!-- Partage des APK de mise à jour (cacheDir/updates) avec l'installateur, issue #162. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"/>
+        </provider>
 
         <meta-data
             android:name="com.google.android.gms.car.application"

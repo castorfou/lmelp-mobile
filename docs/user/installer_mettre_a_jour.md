@@ -25,11 +25,17 @@ Le détail de la publication des données est décrit dans [Mise à jour d'un é
 
 ## Mettre à jour l'appli
 
-Refaire les étapes 1 à 4 de l'installation avec la nouvelle version, puis choisir **Mettre à jour**. L'appli installée est remplacée, les données et les réglages sont conservés.
+À chaque lancement, l'appli vérifie aussi si une nouvelle version d'elle-même est publiée. Si c'est le cas, le badge apparaît sur l'icône des réglages, et l'écran **À propos** affiche un bloc **Application** : « Nouvelle version X.Y.Z disponible ». Pour l'installer :
 
-La version installée est affichée en haut de l'écran **À propos** (par exemple « Version 1.2.3 »), et dans les paramètres Android de l'appli. Une version qui commence par `0.0.0-dev` est une version de développement.
+1. appuyer sur **Télécharger et installer** ;
+2. la première fois, Android ouvre le réglage « Installer des applis inconnues » : autoriser l'appli, revenir, puis appuyer sur **Autoriser LMELP à installer des applications, puis réessayer** ;
+3. dans l'installateur Android, choisir **Mettre à jour**.
 
-L'appli ne signale pas encore d'elle-même qu'une nouvelle version est disponible : consulter la page [Releases](https://github.com/castorfou/lmelp-mobile/releases).
+L'appli installée est remplacée, les données et les réglages sont conservés. Le bouton **Vérifier les mises à jour** relance la vérification des données et de l'appli.
+
+Sans passer par l'appli, on peut aussi refaire les étapes 1 à 4 de l'installation avec la nouvelle version, puis choisir **Mettre à jour**.
+
+La version installée est affichée en haut de l'écran **À propos** (par exemple « Version 1.2.3 »), et dans les paramètres Android de l'appli. Une version qui commence par `0.0.0-dev` est une version de développement : elle ne cherche jamais de nouvelle version de l'appli.
 
 ## Dépannage
 

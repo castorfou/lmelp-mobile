@@ -15,6 +15,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          # Historique complet : l'écran À propos liste les derniers commits (git log au build).
+          # Le clone superficiel par défaut n'en donnait qu'un (issue #162, release v0.9.0).
+          fetch-depth: 0
 
       # ------------------------------------------------------------------
       # Step 1: Vérifier la mini-DB embarquée

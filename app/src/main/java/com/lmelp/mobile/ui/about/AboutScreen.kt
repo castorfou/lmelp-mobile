@@ -21,10 +21,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.BuildConfig
+import com.lmelp.mobile.data.model.AppUpdateState
 import com.lmelp.mobile.data.model.DataUpdateState
 import com.lmelp.mobile.data.model.DbInfoUi
+import com.lmelp.mobile.data.repository.AppUpdateRepository
 import com.lmelp.mobile.data.repository.DataUpdateRepository
 import com.lmelp.mobile.data.repository.MetadataRepository
+import com.lmelp.mobile.data.update.ApkInstallOutcome
 import com.lmelp.mobile.viewmodel.AboutViewModel
 import java.io.File
 
@@ -53,6 +56,25 @@ fun formatUpdateStateLabel(state: DataUpdateState): String = when (state) {
     is DataUpdateState.Error -> "Erreur : ${state.message}"
 }
 
+/** Titre du bloc « nouvelle version de l'appli », null s'il n'y en a pas (issue #162). */
+fun formatAppUpdateTitle(state: AppUpdateState): String? = when (state) {
+    is AppUpdateState.Idle -> null
+    is AppUpdateState.UpdateAvailable -> "Nouvelle version ${state.release.versionName} disponible"
+    is AppUpdateState.Downloading -> "Nouvelle version ${state.release.versionName} disponible"
+    is AppUpdateState.NeedsPermission -> "Nouvelle version ${state.release.versionName} disponible"
+    is AppUpdateState.Installing -> "Nouvelle version ${state.release.versionName} disponible"
+    is AppUpdateState.Error -> "Nouvelle version ${state.release.versionName} disponible"
+}
+
+/** Libellé du bouton du bloc « nouvelle version de l'appli » (issue #162). */
+fun formatAppUpdateButtonLabel(state: AppUpdateState): String = when (state) {
+    is AppUpdateState.Idle, is AppUpdateState.UpdateAvailable -> "Télécharger et installer"
+    is AppUpdateState.Downloading -> "Téléchargement en cours…"
+    is AppUpdateState.NeedsPermission -> "Autoriser LMELP à installer des applications, puis réessayer"
+    is AppUpdateState.Installing -> "Relancer l'installation"
+    is AppUpdateState.Error -> "Erreur : ${state.message} — réessayer"
+}
+
 fun parseChangelog(raw: String): List<ChangelogEntry> {
     if (raw.isBlank()) return emptyList()
     return raw.split("\n")
@@ -71,13 +93,16 @@ fun AboutScreen(
     targetDbFile: File,
     tempDir: File,
     onRestartRequired: () -> Unit = {},
+    appUpdateRepository: AppUpdateRepository? = null,
+    installApk: (File) -> ApkInstallOutcome = { ApkInstallOutcome.NeedsPermission },
     modifier: Modifier = Modifier
 ) {
     val viewModel: AboutViewModel = viewModel(
-        factory = AboutViewModel.Factory(repository, dataUpdateRepository)
+        factory = AboutViewModel.Factory(repository, dataUpdateRepository, appUpdateRepository)
     )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val dataUpdateState by viewModel.dataUpdateState.collectAsStateWithLifecycle()
+    val appUpdateState by viewModel.appUpdateState.collectAsStateWithLifecycle()
     AboutContent(
         versionName = BuildConfig.VERSION_NAME,
         gitCommit = BuildConfig.GIT_COMMIT,
@@ -89,6 +114,8 @@ fun AboutScreen(
         onApplyUpdate = {
             viewModel.applyUpdate(targetDbFile, tempDir, onSuccess = onRestartRequired)
         },
+        appUpdateState = appUpdateState,
+        onInstallAppUpdate = { viewModel.installAppUpdate(tempDir, installApk) },
         modifier = modifier
     )
 }
@@ -103,6 +130,8 @@ fun AboutContent(
     dataUpdateState: DataUpdateState = DataUpdateState.Idle,
     onCheckForUpdate: () -> Unit = {},
     onApplyUpdate: () -> Unit = {},
+    appUpdateState: AppUpdateState = AppUpdateState.Idle,
+    onInstallAppUpdate: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val entries = remember(changelog) { parseChangelog(changelog) }
@@ -129,6 +158,30 @@ fun AboutContent(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+
+        val appUpdateTitle = formatAppUpdateTitle(appUpdateState)
+        if (appUpdateTitle != null) {
+            item {
+                Text(
+                    text = "Application",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = appUpdateTitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Button(
+                    onClick = onInstallAppUpdate,
+                    enabled = appUpdateState !is AppUpdateState.Downloading
+                ) {
+                    Text(formatAppUpdateButtonLabel(appUpdateState))
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
             }
         }
 
