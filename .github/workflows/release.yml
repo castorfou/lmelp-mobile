@@ -9,6 +9,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write   # création de la GitHub Release (GITHUB_TOKEN en lecture seule par défaut)
 
     steps:
       - name: Checkout code
@@ -114,12 +116,12 @@ jobs:
 
             ### Installation
             1. Télécharger `lmelp-mobile-${{ steps.version.outputs.VERSION }}.apk`
-            2. Sur Android : Paramètres → Sécurité → Sources inconnues → Activer
-            3. Ouvrir le fichier APK téléchargé
+            2. Ouvrir le fichier APK téléchargé (autoriser l'installation depuis cette source si Android le demande)
+            3. Si une version debug est installée : la désinstaller d'abord (signature différente)
 
-            ### Données embarquées
-            - Source : MongoDB masque_et_la_plume
-            - Date d'export : voir Paramètres → À propos dans l'appli
+            ### Données
+            L'APK embarque un extrait minimal ; l'appli télécharge la base complète au premier lancement
+            (release `data-v{N}`). Date des données : écran À propos.
           files: |
             dist/lmelp-mobile-*.apk
         env:
