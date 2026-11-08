@@ -33,6 +33,7 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 │       │   └── auto/               # Android Auto (Car App Library)
 │       ├── viewmodel/               # ViewModels par feature
 │       └── MainActivity.kt
+├── buildSrc/                        # Logique de build testée (AppVersion : version de l'APK depuis le tag)
 ├── scripts/
 │   └── export_mongo_to_sqlite.py
 ├── docs/
@@ -481,6 +482,8 @@ Le script `scripts/export_mongo_to_sqlite.py` :
 - `ci.yml` : tests Python, pre-commit, build du paquet (jobs du template PyFoundry) + job `android` (tests unitaires, APK debug), propre au projet.
 - `build-export-image.yml` : image `lmelp-mobile-export`, puis Watchtower sur le NAS (#152).
 - `release.yml`, sur tag `v*.*.*` : vérifie la mini-DB, compile l'APK release **signé par Gradle** (`signingConfigs` de `app/build.gradle.kts`, variables `LMELP_KEYSTORE_FILE`/`LMELP_KEYSTORE_PASSWORD`/`LMELP_KEY_ALIAS`/`LMELP_KEY_PASSWORD`, keystore décodé du secret `KEYSTORE_BASE64`), vérifie la signature avec `apksigner`, publie `lmelp-mobile-vX.Y.Z.apk`. Tag avec tiret (`v0.0.0-test`) = pré-release, pour tester le workflow. Jamais d'export MongoDB ici (ADR 0002).
+
+**Version de l'APK** (issue #161) : `versionName`/`versionCode` ne sont plus fixes, `AppVersion.resolve()` (`buildSrc/src/main/kotlin/AppVersion.kt`) les calcule depuis `-PversionName=X.Y.Z` passé par `release.yml` (tag sans le `v`) ; `versionCode = major*10000 + minor*100 + patch`, donc **minor et patch ≤ 99** (build en échec sinon). Sans propriété : `0.0.0-dev+<sha>`, code 1. ⚠️ Gradle 8 ne lance plus les tests de `buildSrc` pendant un build : `./gradlew -p buildSrc test` (étape dédiée dans `ci.yml`). `-PversionName` s'applique à toutes les variantes d'une même invocation Gradle.
 
 Cycle debug/release, signature, keystore : [docs/dev/livrer_appli.md](docs/dev/livrer_appli.md).
 

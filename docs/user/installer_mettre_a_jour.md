@@ -27,6 +27,8 @@ Le détail de la publication des données est décrit dans [Mise à jour d'un é
 
 Refaire les étapes 1 à 4 de l'installation avec la nouvelle version, puis choisir **Mettre à jour**. L'appli installée est remplacée, les données et les réglages sont conservés.
 
+La version installée est affichée en haut de l'écran **À propos** (par exemple « Version 1.2.3 »), et dans les paramètres Android de l'appli. Une version qui commence par `0.0.0-dev` est une version de développement.
+
 L'appli ne signale pas encore d'elle-même qu'une nouvelle version est disponible : consulter la page [Releases](https://github.com/castorfou/lmelp-mobile/releases).
 
 ## Dépannage

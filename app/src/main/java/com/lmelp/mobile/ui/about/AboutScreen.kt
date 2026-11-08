@@ -35,6 +35,10 @@ fun formatDbInfoSummary(dbInfo: DbInfoUi): String =
     "Export du ${dbInfo.exportDate} — " +
         "${dbInfo.nbEmissions} émissions, ${dbInfo.nbLivres} livres, ${dbInfo.nbAvis} avis"
 
+/** Ligne de version de l'en-tête : versionName de l'APK, commit et date de build (issue #161). */
+fun formatVersionLine(versionName: String, gitCommit: String, buildDate: String): String =
+    "Version $versionName · $gitCommit ($buildDate)"
+
 /** Libellé du bouton/état de mise à jour des données (issue #118). */
 fun formatUpdateStateLabel(state: DataUpdateState): String = when (state) {
     is DataUpdateState.Idle -> "Vérifier les mises à jour"
@@ -75,6 +79,7 @@ fun AboutScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val dataUpdateState by viewModel.dataUpdateState.collectAsStateWithLifecycle()
     AboutContent(
+        versionName = BuildConfig.VERSION_NAME,
         gitCommit = BuildConfig.GIT_COMMIT,
         buildDate = BuildConfig.BUILD_DATE,
         changelog = BuildConfig.CHANGELOG,
@@ -90,6 +95,7 @@ fun AboutScreen(
 
 @Composable
 fun AboutContent(
+    versionName: String,
     gitCommit: String,
     buildDate: String,
     changelog: String,
@@ -119,7 +125,7 @@ fun AboutContent(
                     style = MaterialTheme.typography.headlineMedium
                 )
                 Text(
-                    text = "v. $gitCommit ($buildDate)",
+                    text = formatVersionLine(versionName, gitCommit, buildDate),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

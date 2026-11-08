@@ -45,6 +45,10 @@ val gitChangelog: String by lazy {
     }
 }
 
+// Version de l'APK (issue #161) : release.yml passe -PversionName=X.Y.Z (tag sans le v) ;
+// sans propriété, version de dev 0.0.0-dev+<sha>, versionCode 1. Règle : buildSrc/AppVersion.kt.
+val appVersion = AppVersion.resolve(findProperty("versionName") as String?, gitCommit)
+
 android {
     namespace = "com.lmelp.mobile"
     compileSdk = 35
@@ -53,8 +57,8 @@ android {
         applicationId = "com.lmelp.mobile"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersion.code
+        versionName = appVersion.name
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

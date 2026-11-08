@@ -79,24 +79,33 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "LMELP_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
 
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      # versionName = tag sans le v, versionCode = major*10000 + minor*100 + patch
+      # (issue #161, règle dans buildSrc/src/main/kotlin/AppVersion.kt).
       - name: Build signed Release APK
         env:
           LMELP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           LMELP_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           LMELP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
-
-      - name: Extract version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: ./gradlew assembleRelease -PversionName="${VERSION#v}"
 
       - name: Verify signature and rename APK
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
           APK=app/build/outputs/apk/release/app-release.apk
-          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
-          "$APKSIGNER" verify --print-certs "$APK"
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)
+          "${BUILD_TOOLS}apksigner" verify --print-certs "$APK"
+          # L'APK doit porter la version du tag (issue #161)
+          "${BUILD_TOOLS}aapt2" dump badging "$APK" | grep "^package:"
+          if ! "${BUILD_TOOLS}aapt2" dump badging "$APK" | grep -q "versionName='${VERSION#v}'"; then
+            echo "::error::versionName de l'APK différent du tag ${VERSION#v}"
+            exit 1
+          fi
           mkdir -p dist
           cp "$APK" "dist/lmelp-mobile-$VERSION.apk"
           rm -f "$RUNNER_TEMP/release.jks"
