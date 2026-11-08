@@ -237,3 +237,40 @@ sealed class DataUpdateState {
     data object Success : DataUpdateState()
     data class Error(val message: String) : DataUpdateState()
 }
+
+/**
+ * Release GitHub telle que listée par l'API (issue #162) : release d'appli (`vX.Y.Z`, APK
+ * `lmelp-mobile-vX.Y.Z.apk`) ou de données (`data-v{N}`, sans APK). versionCode est null
+ * pour tout tag qui n'est pas une release d'appli stable.
+ */
+data class AppRelease(
+    val tag: String,
+    val prerelease: Boolean,
+    val draft: Boolean,
+    val apkUrl: String?,
+    /** Empreinte SHA-256 de l'APK (champ `digest` de GitHub), si fournie. */
+    val apkSha256: String?,
+    val htmlUrl: String
+) {
+    val versionName: String get() = tag.removePrefix("v")
+    val versionCode: Int? get() = com.lmelp.mobile.data.update.appVersionCodeFromTag(tag)
+}
+
+/** Résultat de la recherche d'une nouvelle version de l'appli (issue #162). */
+sealed class AppUpdateCheckResult {
+    data object UpToDate : AppUpdateCheckResult()
+    data class UpdateAvailable(val release: AppRelease) : AppUpdateCheckResult()
+    data class Error(val message: String) : AppUpdateCheckResult()
+}
+
+/** État du bloc « nouvelle version de l'appli » de l'écran À propos (issue #162). */
+sealed class AppUpdateState {
+    data object Idle : AppUpdateState()
+    data class UpdateAvailable(val release: AppRelease) : AppUpdateState()
+    data class Downloading(val release: AppRelease) : AppUpdateState()
+    /** L'utilisateur doit autoriser LMELP à installer des applications (« sources inconnues »). */
+    data class NeedsPermission(val release: AppRelease) : AppUpdateState()
+    /** L'installateur Android a été lancé ; l'utilisateur peut l'avoir annulé. */
+    data class Installing(val release: AppRelease) : AppUpdateState()
+    data class Error(val release: AppRelease, val message: String) : AppUpdateState()
+}

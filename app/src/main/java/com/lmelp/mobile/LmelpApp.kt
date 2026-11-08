@@ -7,7 +7,9 @@ import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.lmelp.mobile.data.db.LmelpDatabase
+import com.lmelp.mobile.data.remote.OkHttpAppReleaseApi
 import com.lmelp.mobile.data.remote.OkHttpGitHubReleaseApi
+import com.lmelp.mobile.data.repository.AppUpdateRepository
 import com.lmelp.mobile.data.repository.AuteursRepository
 import com.lmelp.mobile.data.repository.CritiquesRepository
 import com.lmelp.mobile.data.repository.DataUpdateRepository
@@ -38,6 +40,10 @@ class LmelpApp : Application() {
         // dataUpdateRepository.lastCheckResult, aucune UI en cas d'échec (offline-first).
         applicationScope.launch {
             dataUpdateRepository.checkForUpdateAndCache()
+        }
+        // Même principe pour une nouvelle version de l'appli (issue #162) ; jamais pour une version de dev.
+        applicationScope.launch {
+            appUpdateRepository.checkForUpdateAndCache()
         }
         // Cache des images dans getExternalFilesDir() → /sdcard/Android/data/com.lmelp.mobile/files/
         // Ce répertoire est effacé par Android 11+ lors d'une désinstallation (protection vie privée).
@@ -95,5 +101,12 @@ class LmelpApp : Application() {
     }
     val dataUpdateRepository by lazy {
         DataUpdateRepository(OkHttpGitHubReleaseApi(localDbFile = getDatabasePath("lmelp.db")), metadataRepository)
+    }
+    val appUpdateRepository by lazy {
+        AppUpdateRepository(
+            api = OkHttpAppReleaseApi(),
+            installedVersionCode = BuildConfig.VERSION_CODE,
+            installedVersionName = BuildConfig.VERSION_NAME
+        )
     }
 }

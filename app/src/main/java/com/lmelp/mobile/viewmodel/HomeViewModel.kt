@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.lmelp.mobile.data.model.DerniereEmissionUi
 import com.lmelp.mobile.data.model.SlideItem
+import com.lmelp.mobile.data.model.AppUpdateCheckResult
 import com.lmelp.mobile.data.model.UpdateCheckResult
+import com.lmelp.mobile.data.repository.AppUpdateRepository
 import com.lmelp.mobile.data.repository.DataUpdateRepository
 import com.lmelp.mobile.data.repository.HomeRepository
 import kotlinx.coroutines.CancellationException
@@ -14,6 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -31,6 +35,10 @@ internal fun randomInitialIndex(size: Int): Int =
 /** Dérive l'affichage du badge "mise à jour disponible" sur l'icône réglages (issue #118). */
 internal fun hasUpdateAvailable(result: UpdateCheckResult): Boolean =
     result is UpdateCheckResult.UpdateAvailable
+
+/** Badge réglages : MAJ des données ou nouvelle version de l'appli (issue #162). */
+internal fun hasUpdateAvailable(data: UpdateCheckResult, app: AppUpdateCheckResult): Boolean =
+    hasUpdateAvailable(data) || app is AppUpdateCheckResult.UpdateAvailable
 
 /**
  * Tire un délai selon une distribution normale N(meanMs, stdDevMs), tronquée à minMs.
@@ -65,7 +73,8 @@ data class HomeUiState(
 
 class HomeViewModel(
     private val repository: HomeRepository,
-    private val dataUpdateRepository: DataUpdateRepository? = null
+    private val dataUpdateRepository: DataUpdateRepository? = null,
+    private val appUpdateRepository: AppUpdateRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -79,10 +88,12 @@ class HomeViewModel(
 
     /** Badge sur l'icône réglages (issue #118) : reflète le check silencieux fait au démarrage. */
     private fun observeUpdateAvailability() {
-        val repo = dataUpdateRepository ?: return
+        val dataFlow = dataUpdateRepository?.lastCheckResult ?: flowOf(UpdateCheckResult.UpToDate)
+        val appFlow = appUpdateRepository?.lastCheckResult ?: flowOf(AppUpdateCheckResult.UpToDate)
+        if (dataUpdateRepository == null && appUpdateRepository == null) return
         viewModelScope.launch {
-            repo.lastCheckResult.collect { result ->
-                _uiState.update { it.copy(hasUpdateAvailable = hasUpdateAvailable(result)) }
+            combine(dataFlow, appFlow) { data, app -> hasUpdateAvailable(data, app) }.collect { available ->
+                _uiState.update { it.copy(hasUpdateAvailable = available) }
             }
         }
     }
@@ -199,11 +210,12 @@ class HomeViewModel(
 
     class Factory(
         private val repository: HomeRepository,
-        private val dataUpdateRepository: DataUpdateRepository? = null
+        private val dataUpdateRepository: DataUpdateRepository? = null,
+        private val appUpdateRepository: AppUpdateRepository? = null
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return HomeViewModel(repository, dataUpdateRepository) as T
+            return HomeViewModel(repository, dataUpdateRepository, appUpdateRepository) as T
         }
     }
 }
