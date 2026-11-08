@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 from generate_data_release_metadata import build_metadata
 
 
-def _make_db(path, metadata: dict):
+def _make_db(path: Path, metadata: dict) -> None:
     con = sqlite3.connect(path)
     con.execute("CREATE TABLE db_metadata (key TEXT PRIMARY KEY, value TEXT)")
     con.executemany(

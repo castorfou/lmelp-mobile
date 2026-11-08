@@ -1057,18 +1057,18 @@ def build_onkindle_table(
             "SELECT livre_id, titre, note_moyenne, nb_avis FROM palmares"
         ).fetchall()
         palmares_index: dict[str, tuple[str, float, int]] = {}
-        for livre_id, titre, note_moyenne, nb_avis in palmares_rows:
+        for livre_id, titre, p_note_moyenne, p_nb_avis in palmares_rows:
             norm = _normalize_title(titre)
-            palmares_index[norm] = (livre_id, note_moyenne, nb_avis)
+            palmares_index[norm] = (livre_id, p_note_moyenne, p_nb_avis)
 
         # Index des livres (titre normalisé → row)
         livres_rows = cur.execute(
             "SELECT id, titre, auteur_nom, url_babelio, url_cover FROM livres"
         ).fetchall()
         livres_index: dict[str, tuple[str, str | None, str | None, str | None]] = {}
-        for livre_id, titre, auteur_nom, url_babelio, url_cover in livres_rows:
+        for livre_id, titre, l_auteur_nom, l_url_babelio, l_url_cover in livres_rows:
             norm = _normalize_title(titre)
-            livres_index[norm] = (livre_id, auteur_nom, url_babelio, url_cover)
+            livres_index[norm] = (livre_id, l_auteur_nom, l_url_babelio, l_url_cover)
 
         # Index des avis (livre_id → (note_moyenne, nb_avis)) — fallback pour les livres
         # ayant des avis mais absents de palmares (coups de cœur, nb_avis < 2, etc.)
@@ -1692,7 +1692,7 @@ def main(
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"Connecting to MongoDB: {mongo_uri}")
-    client = MongoClient(mongo_uri)
+    client: MongoClient[dict[str, Any]] = MongoClient(mongo_uri)
     mongo_db = client[MONGO_DB]
 
     logger.info(f"Creating SQLite database: {output_path}")
