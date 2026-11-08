@@ -1,47 +1,12 @@
-## processus d'install
+# Build / Deploy apk
 
-**Le processus complet**
-
-Le parti pris est de dire : nouvelle db = nouvel apk = nouveau deploiement
-
-Nouvelle DB peut etre cause par :
-
-- nouvelle emission -> nouveaux livres
-- potentiellement nouveau palmares (un chef d'oeuvre est apparu)
-- nouvelle lecture -> nouveaux conseils possibles
-- des livres sont lus et disparaissent de la liseuse, d'autres apparaissent
-
-On fait manuellement
+Cette page couvre la boucle de développement : compiler un APK **debug** dans le devcontainer et l'installer en USB sur le téléphone. La publication d'une version de l'appli (APK **release** signé, tag `vX.Y.Z`) et la différence entre les deux sont décrites dans [Développer, livrer, mettre à jour](livrer_appli.md).
 
 ```bash
-# 1. Export DB (rare, uniquement si nouvelle DB)
-python scripts/export_mongo_to_sqlite.py --force
-
-# 2. Build + deploy
-build.sh && deploy.sh
+scripts/build.sh && scripts/deploy.sh
 ```
 
-## mise à jour DB sans rebuild APK (issue #81)
-
-Quand seule la base de données change (nouvelle émission), inutile de recompiler l'APK.
-Le container `lmelp-export` fait tout : export MongoDB → push ADB → restart app.
-
-**Pré-requis :**
-
-- Téléphone branché en USB, mode **Transfert de fichiers**
-- Mode développeur activé (Paramètres → À propos du téléphone, et cliquer 7 fois de suite sur Numéro de version)
-- Débogage USB activé (Paramètres → Options développeur)
-- Stack docker-lmelp démarrée (`docker compose up -d`)
-
-```bash
-# Sur le laptop
-adb -a start-server                          # flag -a obligatoire (écoute sur 0.0.0.0)
-docker exec lmelp-export export-and-push
-```
-
-L'image `ghcr.io/castorfou/lmelp-mobile-export` est publiée automatiquement depuis ce repo (CI/CD sur `Dockerfile.export`). Sur `main`, le workflow appelle ensuite l'API Watchtower du NAS, qui redémarre `lmelp-export` sur la nouvelle image (secret `WATCHTOWER_TOKEN`). Le service `lmelp-export` est configuré dans le repo `castorfou/docker-lmelp` ([issue #41](https://github.com/castorfou/docker-lmelp/issues/41)).
-
-> ⚠️ **Ce mécanisme ADB reste valable pour le déploiement APK en dev/debug**, mais n'est plus la cible pour la seule mise à jour des données : voir l'ADR [0001 — Séparer mise à jour appli / mise à jour données](adr/0001-separation-maj-appli-donnees.md) ([issue #116](https://github.com/castorfou/lmelp-mobile/issues/116)), qui décrit le passage à une publication `lmelp.db` en GitHub Release téléchargeable en HTTP, sans ADB.
+Les données ne passent pas par l'APK : l'app télécharge la base publiée sur la release `data-v{N}` (voir l'[ADR 0001](adr/0001-separation-maj-appli-donnees.md)). L'APK n'embarque qu'un extrait minimal (voir [plus bas](#regenerer-la-db-asset)).
 
 ## build apk depuis vscode
 
@@ -85,15 +50,36 @@ deploy.sh
 
 ## desinstaller (INSTALL_FAILED_UPDATE_INCOMPATIBLE Existing package com.lmelp.mobile signatures do not match newer version; ignoring!)
 
+L'APK installé a été signé avec une autre clé : un APK de release, ou un APK debug compilé sur une autre machine (voir [La signature des APK](livrer_appli.md#la-signature-des-apk)). Désinstaller d'abord, ce qui efface l'état local de l'app :
+
 ```bash
 ~/android-sdk/platform-tools/adb uninstall com.lmelp.mobile
 ```
+
+## pousser une base en USB, sans passer par la release (dev)
+
+Pour tester une base avant qu'elle soit publiée sur la release `data-v{N}`, le container `lmelp-export` peut la pousser directement sur un téléphone branché au laptop : export MongoDB → push ADB → redémarrage de l'app.
+
+**Pré-requis :**
+
+- Téléphone branché en USB, mode **Transfert de fichiers**
+- Mode développeur activé (Paramètres → À propos du téléphone, et cliquer 7 fois de suite sur Numéro de version)
+- Débogage USB activé (Paramètres → Options développeur)
+- Stack docker-lmelp démarrée (`docker compose up -d`)
+
+```bash
+# Sur le laptop
+adb -a start-server                          # flag -a obligatoire (écoute sur 0.0.0.0)
+docker exec lmelp-export export-and-push
+```
+
+L'image `ghcr.io/castorfou/lmelp-mobile-export` est publiée automatiquement depuis ce repo (CI/CD sur `Dockerfile.export`). Sur `main`, le workflow appelle ensuite l'API Watchtower du NAS, qui redémarre `lmelp-export` sur la nouvelle image (secret `WATCHTOWER_TOKEN`). Le service `lmelp-export` est configuré dans le repo `castorfou/docker-lmelp` ([issue #41](https://github.com/castorfou/docker-lmelp/issues/41)).
 
 ## regenerer la DB asset
 
 `app/src/main/assets/lmelp.db`
 
-⚠️ **Depuis l'ADR [0002](adr/0002-distribution-app-mini-db-embarquee.md) (issue #119), cet asset committé est volontairement un extrait minimal (3 émissions), pas la base complète.** La vraie base est téléchargée par l'app elle-même au lancement (voir plus haut, issue #118). Ne jamais committer une base complète ici — voir plus bas.
+⚠️ **Depuis l'ADR [0002](adr/0002-distribution-app-mini-db-embarquee.md) (issue #119), cet asset committé est volontairement un extrait minimal (3 émissions), pas la base complète.** La vraie base est téléchargée par l'app depuis la release `data-v{N}` (voir [Développer, livrer, mettre à jour](livrer_appli.md)). Ne jamais committer une base complète ici — voir plus bas.
 
 ### régénérer une base complète locale (pour dev/debug, PAS pour l'asset committé)
 

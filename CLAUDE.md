@@ -37,8 +37,8 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 │   └── export_mongo_to_sqlite.py
 ├── docs/
 │   ├── architecture.md
-│   ├── data-schema.md
-│   ├── ci-cd.md
+│   ├── dev/                         # Doc développeur (livrer_appli.md : cycle debug/release, keystore)
+│   ├── user/                        # Doc utilisateur
 │   └── agents/                      # Config des skills Matt Pocock (issues, labels, domaine)
 ├── .claude/
 │   ├── commands/                    # Commandes slash personnalisées
@@ -331,8 +331,8 @@ val db = Room.databaseBuilder(context, LmelpDatabase::class.java, "lmelp.db")
 
 ### Versioning de la base
 
-- Chaque export SQLite incrémente `PRAGMA user_version` dans le fichier
-- L'appli affiche la date du dernier export dans les paramètres
+- `PRAGMA user_version` = numéro de schéma Room, fixe entre deux migrations ; la fraîcheur des données est dans `db_metadata` (voir plus haut)
+- L'appli affiche la date du dernier export dans l'écran À propos
 - En cas de mismatch de version : `fallbackToDestructiveMigration()` acceptable (données readonly)
 
 ### ⚠️ Erreur fréquente : "Room cannot verify the data integrity"
@@ -476,12 +476,15 @@ Le script `scripts/export_mongo_to_sqlite.py` :
 
 ## CI/CD — GitHub Actions
 
-Workflow `release.yml` déclenché sur tag `v*.*.*` :
-1. Export MongoDB → SQLite (si secret `MONGO_URI` configuré)
-2. Build APK signé
-3. Création GitHub Release avec l'APK en asset
+- `ci.yml` : tests Python, pre-commit, build du paquet (jobs du template PyFoundry) + job `android` (tests unitaires, APK debug), propre au projet.
+- `build-export-image.yml` : image `lmelp-mobile-export`, puis Watchtower sur le NAS (#152).
+- `release.yml`, sur tag `v*.*.*` : vérifie la mini-DB, compile l'APK release **signé par Gradle** (`signingConfigs` de `app/build.gradle.kts`, variables `LMELP_KEYSTORE_FILE`/`LMELP_KEYSTORE_PASSWORD`/`LMELP_KEY_ALIAS`/`LMELP_KEY_PASSWORD`, keystore décodé du secret `KEYSTORE_BASE64`), vérifie la signature avec `apksigner`, publie `lmelp-mobile-vX.Y.Z.apk`. Tag avec tiret (`v0.0.0-test`) = pré-release, pour tester le workflow. Jamais d'export MongoDB ici (ADR 0002).
 
-Voir [docs/ci-cd.md](docs/ci-cd.md) pour la configuration complète.
+Cycle debug/release, signature, keystore : [docs/dev/livrer_appli.md](docs/dev/livrer_appli.md).
+
+⚠️ **Toute action doit tourner sous Node 24** (#159) : `tests/test_github_workflows.py` échoue sur une version majeure trop ancienne ou une action absente de `NODE24_MIN_MAJOR`. Dependabot (`.github/dependabot.yml`) suit les actions propres au projet ; celles qui ne servent qu'aux parties du template (`setup-uv`, actions Pages) sont ignorées pour ne pas créer de rejets au `cruft update`.
+
+⚠️ **Keystore de release** : mot de passe **ASCII obligatoire** (l'Android Gradle Plugin échoue sur une clé PKCS12 à mot de passe non ASCII : `Password is not ASCII`) ; ne jamais le changer avec `keytool -storepasswd` (PKCS12 : la clé reste chiffrée avec l'ancien mot de passe → `keystore password was incorrect`). Les secrets GitHub sont en écriture seule : la seule sauvegarde du `.jks` est celle du gestionnaire de mots de passe de l'utilisateur.
 
 ## Anti-patterns à éviter
 

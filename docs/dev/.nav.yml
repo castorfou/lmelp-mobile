@@ -1,5 +1,6 @@
 nav:
   - Contenu: README.md
+  - Développer, livrer, mettre à jour: livrer_appli.md
   - Configuration environnement Android: setup-mobile.md
   - Build / Deploy apk: build_deploy_apk.md
   - Schéma des données: data-schema.md
