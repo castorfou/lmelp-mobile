@@ -34,16 +34,9 @@ import com.lmelp.mobile.data.repository.MetadataRepository
 import com.lmelp.mobile.data.update.ApkInstallOutcome
 import com.lmelp.mobile.viewmodel.AboutViewModel
 import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-/** Commit de l'historique ; [versionName] = version de l'appli taguée sur ce commit, s'il y en a une. */
-data class ChangelogEntry(
-    val hash: String,
-    val message: String,
-    val date: String,
-    val versionName: String? = null
-)
 
 /** Résumé lisible des infos DB pour AboutScreen (issue #116). */
 fun formatDbInfoSummary(dbInfo: DbInfoUi): String =
@@ -88,85 +81,6 @@ fun formatAppUpdateButtonLabel(state: AppUpdateState): String = when (state) {
     is AppUpdateState.Error -> "Erreur : ${state.message} — réessayer"
 }
 
-/** Asset généré au build par la tâche `generateChangelog` (app/build.gradle.kts). */
-const val CHANGELOG_ASSET = "changelog.txt"
-
-/** Séparateur de champs de l'historique généré au build (U+001F, absent des sujets de commit). */
-const val CHANGELOG_FIELD_SEPARATOR = "\u001F"
-
-/**
- * Parse l'historique généré au build (issue #170) : une ligne par commit,
- * `hash␟sujet␟date␟refs` où refs est le `%D` de git log (ex. "tag: v1.1.0, tag: data-v9").
- */
-fun parseChangelog(raw: String): List<ChangelogEntry> =
-    raw.lines()
-        .filter { it.isNotBlank() }
-        .mapNotNull { line ->
-            val parts = line.split(CHANGELOG_FIELD_SEPARATOR)
-            if (parts.size < 3) return@mapNotNull null
-            ChangelogEntry(
-                hash = parts[0],
-                message = parts[1],
-                date = parts[2],
-                versionName = parts.getOrNull(3)?.let(::versionNameFromRefs)
-            )
-        }
-
-/**
- * Bloc de l'historique : une version de l'appli et son contenu, ou les commits
- * « Pas encore publié » quand [versionName] est null (issue #170, voir CONTEXT.md).
- */
-data class ChangelogSection(
-    val versionName: String?,
-    val date: String?,
-    val installed: Boolean,
-    val entries: List<ChangelogEntry>
-)
-
-/**
- * Regroupe l'historique (du plus récent au plus ancien) par version de l'appli : chaque version
- * contient son commit tagué et les commits en dessous, jusqu'au tag précédent. Les commits
- * au-dessus du dernier tag forment la section « Pas encore publié ».
- */
-fun groupChangelogByVersion(
-    entries: List<ChangelogEntry>,
-    installedVersionName: String
-): List<ChangelogSection> {
-    val sections = mutableListOf<ChangelogSection>()
-    for (entry in entries) {
-        val current = sections.lastOrNull()
-        if (current == null || entry.versionName != null) {
-            sections += ChangelogSection(
-                versionName = entry.versionName,
-                date = entry.versionName?.let { entry.date },
-                installed = entry.versionName == installedVersionName,
-                entries = listOf(entry)
-            )
-        } else {
-            sections[sections.lastIndex] = current.copy(entries = current.entries + entry)
-        }
-    }
-    return sections
-}
-
-/** En-tête d'une section de l'historique : « Version X.Y.Z · jj/mm/aa » ou « Pas encore publié ». */
-fun formatChangelogSectionHeader(section: ChangelogSection): String =
-    if (section.versionName == null) "Pas encore publié"
-    else "Version ${section.versionName} · ${section.date}"
-
-private val STABLE_TAG = Regex("""v(\d+)\.(\d+)\.(\d+)""")
-
-/**
- * Version de l'appli portée par les refs d'un commit : seuls les tags stables `vX.Y.Z` comptent
- * (ni `data-*`, ni pré-release), la plus grande l'emporte s'il y en a plusieurs.
- */
-private fun versionNameFromRefs(refs: String): String? =
-    refs.split(",")
-        .mapNotNull { STABLE_TAG.matchEntire(it.trim().removePrefix("tag: ")) }
-        .map { match -> match.groupValues.drop(1).map(String::toInt) }
-        .maxWithOrNull(compareBy<List<Int>>({ it[0] }, { it[1] }, { it[2] }))
-        ?.joinToString(".")
-
 @Composable
 fun AboutScreen(
     repository: MetadataRepository,
@@ -186,18 +100,21 @@ fun AboutScreen(
     val appUpdateState by viewModel.appUpdateState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     // Historique généré au build dans un asset (issue #170) : pas de plafond de 64 Ko comme BuildConfig
-    val changelog by produceState(initialValue = "") {
+    val historique by produceState(initialValue = "") {
         value = withContext(Dispatchers.IO) {
-            runCatching {
-                context.assets.open(CHANGELOG_ASSET).bufferedReader().use { it.readText() }
-            }.getOrDefault("")
+            // IOException seulement : une CancellationException doit se propager
+            try {
+                context.assets.open(HISTORIQUE_ASSET).bufferedReader().use { it.readText() }
+            } catch (e: IOException) {
+                ""
+            }
         }
     }
     AboutContent(
         versionName = BuildConfig.VERSION_NAME,
         gitCommit = BuildConfig.GIT_COMMIT,
         buildDate = BuildConfig.BUILD_DATE,
-        changelog = changelog,
+        historique = historique,
         dbInfo = uiState.dbInfo,
         dataUpdateState = dataUpdateState,
         onCheckForUpdate = { viewModel.checkForUpdateManually() },
@@ -215,7 +132,7 @@ fun AboutContent(
     versionName: String,
     gitCommit: String,
     buildDate: String,
-    changelog: String,
+    historique: String,
     dbInfo: DbInfoUi? = null,
     dataUpdateState: DataUpdateState = DataUpdateState.Idle,
     onCheckForUpdate: () -> Unit = {},
@@ -224,8 +141,8 @@ fun AboutContent(
     onInstallAppUpdate: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val sections = remember(changelog, versionName) {
-        groupChangelogByVersion(parseChangelog(changelog), installedVersionName = versionName)
+    val sections = remember(historique, versionName) {
+        groupHistoriqueByVersion(parseHistorique(historique), installedVersionName = versionName)
     }
 
     LazyColumn(
@@ -322,10 +239,10 @@ fun AboutContent(
             }
             sections.forEach { section ->
                 item(key = "section-${section.versionName}") {
-                    ChangelogSectionHeader(section)
+                    ContenuVersionHeader(section)
                 }
-                items(section.entries, key = { it.hash }) { entry ->
-                    ChangelogRow(entry)
+                items(section.commits, key = { it.hash }) { entry ->
+                    HistoriqueRow(entry)
                     HorizontalDivider()
                 }
             }
@@ -334,7 +251,7 @@ fun AboutContent(
 }
 
 @Composable
-private fun ChangelogSectionHeader(section: ChangelogSection) {
+private fun ContenuVersionHeader(section: ContenuVersion) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -343,7 +260,7 @@ private fun ChangelogSectionHeader(section: ChangelogSection) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = formatChangelogSectionHeader(section),
+            text = formatContenuVersionHeader(section),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary
         )
@@ -365,7 +282,7 @@ private fun ChangelogSectionHeader(section: ChangelogSection) {
 }
 
 @Composable
-private fun ChangelogRow(entry: ChangelogEntry) {
+private fun HistoriqueRow(entry: HistoriqueCommit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

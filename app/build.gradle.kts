@@ -32,30 +32,32 @@ val buildDate: String by lazy {
     SimpleDateFormat("dd/MM/yy").format(Date())
 }
 
-// Historique complet des commits (hors merges), issue #170 : une ligne par commit,
+// Historique complet des commits (hors merges, ordre topologique pour que chaque
+// commit tombe sous la version qui le contient), issue #170 : une ligne par commit,
 // "hash␟sujet␟date␟tags" (séparateur U+001F, jamais présent dans un sujet ; tags = %D restreint
 // à refs/tags/). Écrit dans un asset généré et non dans BuildConfig : une constante de chaîne
-// Java est plafonnée à 65 535 octets. Format lu par parseChangelog (ui/about/AboutScreen.kt).
-val gitChangelog: Provider<String> = provider {
+// Java est plafonnée à 65 535 octets. Format lu par parseHistorique (ui/about/Historique.kt).
+val gitHistorique: Provider<String> = provider {
     gitOutput(
         "log",
         "--no-merges",
+        "--topo-order",
         "--pretty=format:%h%x1f%s%x1f%ad%x1f%D",
         "--date=format:%d/%m/%y",
         "--decorate-refs=refs/tags/"
     ) ?: ""
 }
 
-abstract class GenerateChangelogTask : DefaultTask() {
+abstract class GenerateHistoriqueTask : DefaultTask() {
     @get:Input
-    abstract val changelog: Property<String>
+    abstract val historique: Property<String>
 
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
     @TaskAction
     fun generate() {
-        outputDir.file("changelog.txt").get().asFile.writeText(changelog.get())
+        outputDir.file("historique.txt").get().asFile.writeText(historique.get())
     }
 }
 
@@ -122,15 +124,15 @@ android {
     }
 }
 
-// Asset changelog.txt de l'écran À propos (issue #170), généré pour chaque variante
+// Asset historique.txt de l'écran À propos (issue #170), généré pour chaque variante
 androidComponents {
     onVariants { variant ->
-        val task = tasks.register<GenerateChangelogTask>(
-            "generate${variant.name.replaceFirstChar { it.uppercase() }}Changelog"
+        val task = tasks.register<GenerateHistoriqueTask>(
+            "generate${variant.name.replaceFirstChar { it.uppercase() }}Historique"
         ) {
-            changelog.set(gitChangelog)
+            historique.set(gitHistorique)
         }
-        variant.sources.assets?.addGeneratedSourceDirectory(task, GenerateChangelogTask::outputDir)
+        variant.sources.assets?.addGeneratedSourceDirectory(task, GenerateHistoriqueTask::outputDir)
     }
 }
 
