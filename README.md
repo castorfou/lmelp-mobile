@@ -100,7 +100,7 @@ APK debug (« LMELP debug », icône orange, `com.lmelp.mobile.debug`) et APK re
 
 ### Prérequis
 
-- Android Studio Hedgehog ou supérieur
+- Android Studio récent, compatible AGP 9.5 ([table de compatibilité](https://developer.android.com/build/releases/gradle-plugin#android_gradle_plugin_and_android_studio_compatibility))
 - JDK 17+
 - Python 3.11+ avec `uv` (pour le script d'export)
 - Accès à une instance MongoDB `masque_et_la_plume`

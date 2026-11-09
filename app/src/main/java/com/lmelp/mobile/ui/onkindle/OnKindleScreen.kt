@@ -48,7 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lmelp.mobile.data.model.OnKindleUi
 import com.lmelp.mobile.data.repository.OnKindleRepository
-import com.lmelp.mobile.data.repository.UserPreferencesRepository
+import com.lmelp.mobile.data.repository.PinnedReadingStorage
 import com.lmelp.mobile.ui.components.EmptyState
 import com.lmelp.mobile.ui.components.ErrorMessage
 import com.lmelp.mobile.ui.components.LoadingIndicator
@@ -64,7 +64,7 @@ import com.lmelp.mobile.ui.components.BookListCard
 @Composable
 fun OnKindleScreen(
     repository: OnKindleRepository,
-    userPrefsRepository: UserPreferencesRepository.PinnedReadingStorage? = null,
+    userPrefsRepository: PinnedReadingStorage? = null,
     onLivreClick: (String) -> Unit,
     onBack: () -> Unit
 ) {

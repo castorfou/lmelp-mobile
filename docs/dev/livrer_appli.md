@@ -75,7 +75,7 @@ Android refuse d'installer un APK dont le `versionCode` est inférieur à celui 
 
 Sans `-PversionName` (build local, `scripts/build.sh`), l'APK porte une version de développement : `versionName` `0.0.0-dev+<commit>` (suivi de `-debug` pour l'APK debug), `versionCode` 1.
 
-La règle est dans `buildSrc/src/main/kotlin/AppVersion.kt`, testée par `buildSrc/src/test/kotlin/AppVersionTest.kt`. Gradle 8 ne lance plus les tests de `buildSrc` pendant un build : les lancer avec `./gradlew -p buildSrc test` (la CI le fait).
+La règle est dans `buildSrc/src/main/kotlin/AppVersion.kt`, testée par `buildSrc/src/test/kotlin/AppVersionTest.kt`. Depuis Gradle 8, les tests de `buildSrc` ne sont plus lancés pendant un build : les lancer avec `./gradlew -p buildSrc test` (la CI le fait).
 
 ## En tant qu'utilisateur : mettre à jour
 

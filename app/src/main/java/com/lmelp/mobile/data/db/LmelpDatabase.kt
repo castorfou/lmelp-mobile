@@ -67,7 +67,8 @@ abstract class LmelpDatabase : RoomDatabase() {
                         "lmelp.db"
                     )
                         .createFromAsset("lmelp.db")
-                        .fallbackToDestructiveMigration()
+                        // dropAllTables = false : même comportement que l'ancien appel sans argument (Room 2.6)
+                        .fallbackToDestructiveMigration(dropAllTables = false)
                         .build()
                         .also {
                             INSTANCE = it

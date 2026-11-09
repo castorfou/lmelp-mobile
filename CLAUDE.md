@@ -83,6 +83,16 @@ Application Android **offline-first** pour consulter le contenu de Le Masque et 
 ./gradlew lint
 ```
 
+### Chaîne de build (issue #158)
+
+Gradle 9.9.0, AGP 9.5.1, Kotlin 2.4.21, KSP 2.3.13, Room 2.8.5, JDK 17 (versions dans `gradle/libs.versions.toml`). `tests/test_gradle_versions.py` vérifie les points suivants :
+
+- **Kotlin intégré à AGP 9** : ne jamais réappliquer `org.jetbrains.kotlin.android`. La cible JVM se règle dans le bloc top-level `kotlin { compilerOptions { ... } }` ; `kotlinOptions` n'existe plus. Pas d'opt-out `android.builtInKotlin=false` / `android.newDsl=false`.
+- **Plugin Compose = version Kotlin** (`version.ref = "kotlin"`) : c'est lui qui met KGP sur le classpath.
+- ⚠️ **KSP2 exige Room ≥ 2.7** : avec Room 2.6.1, les `*Dao_Impl.java` générés ne compilent pas (`name clash ... Continuation<? super T>`).
+- ⚠️ **Kotlin 2.4 refuse qu'une classe implémente sa propre interface imbriquée** (`class A : A.I`) : déclarer l'interface au niveau du fichier (cas de `PinnedReadingStorage`).
+- ⚠️ **Pas de `ProcessBuilder` dans les scripts Gradle** : lancer un process à la configuration est déprécié (erreur en Gradle 11). Passer par `providers.exec` (helper `gitOutput` de `app/build.gradle.kts`).
+
 ### Icône de lancement (issue #141)
 
 Icône **adaptive** (`mipmap-anydpi/ic_launcher{,_round}.xml` : fond `drawable/ic_launcher_background.xml`, calques `ic_launcher_foreground` + `ic_launcher_monochrome`) + PNG legacy, tous **générés** par `scripts/generate_launcher_icon.py` depuis `scripts/icon/source_lmelp_green.png` — ne jamais éditer les PNG `mipmap-*` à la main, modifier le script puis relancer `python scripts/generate_launcher_icon.py`. Fond bleu nuit + smartphone : l'icône doit rester distincte de celle de la PWA BO LMELP (fond rose + base de données). Dossier `mipmap-anydpi` et non `-v26` (minSdk = 26, lint `ObsoleteSdkInt`).
@@ -487,7 +497,7 @@ Le script `scripts/export_mongo_to_sqlite.py` :
 - `build-export-image.yml` : image `lmelp-mobile-export`, puis Watchtower sur le NAS (#152).
 - `release.yml`, sur tag `v*.*.*` : vérifie la mini-DB, compile l'APK release **signé par Gradle** (`signingConfigs` de `app/build.gradle.kts`, variables `LMELP_KEYSTORE_FILE`/`LMELP_KEYSTORE_PASSWORD`/`LMELP_KEY_ALIAS`/`LMELP_KEY_PASSWORD`, keystore décodé du secret `KEYSTORE_BASE64`), vérifie la signature avec `apksigner`, publie `lmelp-mobile-vX.Y.Z.apk`. Tag avec tiret (`v0.0.0-test`) = pré-release, pour tester le workflow. Jamais d'export MongoDB ici (ADR 0002).
 
-**Version de l'APK** (issue #161) : `versionName`/`versionCode` ne sont plus fixes, `AppVersion.resolve()` (`buildSrc/src/main/kotlin/AppVersion.kt`) les calcule depuis `-PversionName=X.Y.Z` passé par `release.yml` (tag sans le `v`) ; `versionCode = major*10000 + minor*100 + patch`, donc **minor et patch ≤ 99** (build en échec sinon). Sans propriété : `0.0.0-dev+<sha>`, code 1. ⚠️ Gradle 8 ne lance plus les tests de `buildSrc` pendant un build : `./gradlew -p buildSrc test` (étape dédiée dans `ci.yml`). `-PversionName` s'applique à toutes les variantes d'une même invocation Gradle.
+**Version de l'APK** (issue #161) : `versionName`/`versionCode` ne sont plus fixes, `AppVersion.resolve()` (`buildSrc/src/main/kotlin/AppVersion.kt`) les calcule depuis `-PversionName=X.Y.Z` passé par `release.yml` (tag sans le `v`) ; `versionCode = major*10000 + minor*100 + patch`, donc **minor et patch ≤ 99** (build en échec sinon). Sans propriété : `0.0.0-dev+<sha>`, code 1. ⚠️ Depuis Gradle 8, les tests de `buildSrc` ne sont plus lancés pendant un build : `./gradlew -p buildSrc test` (étape dédiée dans `ci.yml`). `-PversionName` s'applique à toutes les variantes d'une même invocation Gradle.
 
 Cycle debug/release, signature, keystore : [docs/dev/livrer_appli.md](docs/dev/livrer_appli.md).
 

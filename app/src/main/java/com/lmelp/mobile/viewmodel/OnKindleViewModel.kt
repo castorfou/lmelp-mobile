@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.lmelp.mobile.data.model.OnKindleUi
 import com.lmelp.mobile.data.repository.OnKindleRepository
-import com.lmelp.mobile.data.repository.UserPreferencesRepository
+import com.lmelp.mobile.data.repository.PinnedReadingStorage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +28,7 @@ data class OnKindleUiState(
 
 class OnKindleViewModel(
     private val repository: OnKindleRepository,
-    private val pinnedStorage: UserPreferencesRepository.PinnedReadingStorage? = null
+    private val pinnedStorage: PinnedReadingStorage? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnKindleUiState())
@@ -127,7 +127,7 @@ class OnKindleViewModel(
 
     class Factory(
         private val repository: OnKindleRepository,
-        private val pinnedStorage: UserPreferencesRepository.PinnedReadingStorage? = null
+        private val pinnedStorage: PinnedReadingStorage? = null
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")

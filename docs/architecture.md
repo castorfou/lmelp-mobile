@@ -247,18 +247,28 @@ INSERT INTO search_index(type, ref_id, content, display_content) VALUES
 ## Dépendances principales
 
 ### Android (Kotlin)
-```kotlin
-// build.gradle.kts (app)
-dependencies {
-    implementation("androidx.room:room-runtime:2.6.x")
-    implementation("androidx.room:room-ktx:2.6.x")
-    ksp("androidx.room:room-compiler:2.6.x")
 
-    implementation("androidx.compose.ui:ui:1.6.x")
-    implementation("androidx.compose.material3:material3:1.2.x")
-    implementation("androidx.navigation:navigation-compose:2.7.x")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.x")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.x")
+Les versions sont centralisées dans `gradle/libs.versions.toml` (catalogue de versions Gradle). Chaîne de build depuis l'issue #158 :
+
+| Composant | Version |
+|-----------|---------|
+| Gradle (wrapper) | 9.9.0 |
+| Android Gradle Plugin | 9.5.1 (Kotlin intégré : pas de plugin `org.jetbrains.kotlin.android`) |
+| Kotlin + plugin Compose | 2.4.21 |
+| KSP | 2.3.13 (KSP2) |
+| Room | 2.8.5 |
+| JDK | 17 |
+
+```kotlin
+// app/build.gradle.kts (extrait)
+dependencies {
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 }
 ```
 
