@@ -3,6 +3,7 @@ package com.lmelp.mobile.data.repository
 import com.lmelp.mobile.data.model.DataUpdateState
 import com.lmelp.mobile.data.model.UpdateCheckResult
 import com.lmelp.mobile.data.remote.GitHubReleaseApi
+import com.lmelp.mobile.data.remote.updateErrorMessage
 import com.lmelp.mobile.data.update.DatabaseFileReplacer
 import com.lmelp.mobile.data.update.Sha256Verifier
 import kotlinx.coroutines.CancellationException
@@ -23,6 +24,8 @@ import java.io.File
  * La compatibilité de schéma est garantie en amont par le tag data-v{N} lui-même
  * (résolu dynamiquement par GitHubReleaseApi selon le schéma Room local, issue #132),
  * pas par une comparaison ici.
+ *
+ * Les messages d'erreur sont rédigés pour l'utilisateur par updateErrorMessage (issue #156).
  */
 class DataUpdateRepository(
     private val api: GitHubReleaseApi,
@@ -51,7 +54,7 @@ class DataUpdateRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            UpdateCheckResult.Error(e.message ?: e.javaClass.simpleName)
+            UpdateCheckResult.Error(updateErrorMessage(e))
         }
     }
 
@@ -69,7 +72,7 @@ class DataUpdateRepository(
             val actualSha256 = Sha256Verifier.sha256(downloadedFile)
             if (actualSha256 != remote.sha256) {
                 downloadedFile.delete()
-                return@withContext DataUpdateState.Error("Fichier téléchargé corrompu, veuillez réessayer")
+                return@withContext DataUpdateState.Error("Erreur : fichier téléchargé corrompu, veuillez réessayer")
             }
 
             DatabaseFileReplacer.replace(downloadedFile = downloadedFile, targetDbFile = targetDbFile)
@@ -77,7 +80,7 @@ class DataUpdateRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            DataUpdateState.Error(e.message ?: e.javaClass.simpleName)
+            DataUpdateState.Error(updateErrorMessage(e))
         }
     }
 }

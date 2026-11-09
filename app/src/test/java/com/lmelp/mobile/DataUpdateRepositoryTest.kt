@@ -3,6 +3,8 @@ package com.lmelp.mobile
 import com.lmelp.mobile.data.model.DataUpdateState
 import com.lmelp.mobile.data.model.UpdateCheckResult
 import com.lmelp.mobile.data.remote.GitHubReleaseApi
+import com.lmelp.mobile.data.remote.HttpStatusException
+import com.lmelp.mobile.data.remote.ReleaseNotFoundException
 import com.lmelp.mobile.data.remote.RemoteMetadata
 import com.lmelp.mobile.data.repository.DataUpdateRepository
 import com.lmelp.mobile.data.repository.MetadataRepository
@@ -70,5 +72,28 @@ class DataUpdateRepositoryTest {
         val result = repository.checkForUpdate()
 
         assertTrue(result is UpdateCheckResult.Error)
+    }
+
+    @Test
+    fun `checkForUpdate traduit une 5xx persistante en message momentanement indisponible`() = runBlocking {
+        val api = mock<GitHubReleaseApi>()
+        whenever(api.fetchMetadata()).thenAnswer { throw HttpStatusException(504, "HTTP 504") }
+        val repository = DataUpdateRepository(api, mock<MetadataRepository>())
+
+        val result = repository.checkForUpdate() as UpdateCheckResult.Error
+
+        assertTrue(result.message, result.message.contains("momentanément indisponible"))
+        assertTrue(result.message, !result.message.contains("HTTP 504"))
+    }
+
+    @Test
+    fun `checkForUpdate traduit une release absente en message neutre`() = runBlocking {
+        val api = mock<GitHubReleaseApi>()
+        whenever(api.fetchMetadata()).thenAnswer { throw ReleaseNotFoundException("data-v9") }
+        val repository = DataUpdateRepository(api, mock<MetadataRepository>())
+
+        val result = repository.checkForUpdate() as UpdateCheckResult.Error
+
+        assertEquals("Aucune mise à jour disponible pour cette version de l'application.", result.message)
     }
 }

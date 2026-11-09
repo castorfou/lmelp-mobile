@@ -53,7 +53,8 @@ fun formatUpdateStateLabel(state: DataUpdateState): String = when (state) {
     is DataUpdateState.Replacing -> "Mise à jour de la base…"
     is DataUpdateState.Restarting -> "Mise à jour appliquée ! Veuillez rouvrir l'application."
     is DataUpdateState.Success -> "Base à jour"
-    is DataUpdateState.Error -> "Erreur : ${state.message}"
+    // Message déjà rédigé pour l'utilisateur par updateErrorMessage (issue #156)
+    is DataUpdateState.Error -> state.message
 }
 
 /** Titre du bloc « nouvelle version de l'appli », null s'il n'y en a pas (issue #162). */
