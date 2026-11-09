@@ -1,24 +1,30 @@
 import java.text.SimpleDateFormat
 import java.util.Date
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
 
+// Sortie d'une commande git, ou null si git échoue (pas de dépôt, git absent).
+// Via providers.exec et non ProcessBuilder : lancer un process à la configuration
+// est déprécié depuis Gradle 9 et échouera avec Gradle 11 (issue #158).
+fun gitOutput(vararg args: String): String? = try {
+    val result = providers.exec {
+        commandLine("git", *args)
+        workingDir = rootDir
+        isIgnoreExitValue = true
+    }
+    if (result.result.get().exitValue == 0) result.standardOutput.asText.get().trim() else null
+} catch (e: Exception) {
+    null
+}
+
 // Hash court du commit git courant
 val gitCommit: String by lazy {
-    try {
-        val process = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
-            .directory(rootDir)
-            .redirectErrorStream(true)
-            .start()
-        process.inputStream.bufferedReader().readLine()?.trim() ?: "unknown"
-    } catch (e: Exception) {
-        "unknown"
-    }
+    gitOutput("rev-parse", "--short", "HEAD")?.lineSequence()?.firstOrNull() ?: "unknown"
 }
 
 // Date du build au format dd/MM/yy
@@ -28,21 +34,17 @@ val buildDate: String by lazy {
 
 // Changelog des N derniers commits (hors merges), format "hash|message|date" séparé par \n
 val gitChangelog: String by lazy {
-    try {
-        val process = ProcessBuilder(
-            "git", "log",
-            "--pretty=format:%h|%s|%ad",
-            "--date=format:%d/%m/%y",
-            "--no-merges", "-30"
-        ).directory(rootDir).redirectErrorStream(true).start()
-        process.inputStream.bufferedReader().readText().trim()
-            .replace("\\", "\\\\")   // échapper les backslashes
-            .replace("\"", "\\\"")   // échapper les guillemets
-            .replace("\n", "\\n")    // transformer les sauts de ligne réels en \n littéral
-            .replace("\r", "")       // supprimer les CR éventuels
-    } catch (e: Exception) {
-        ""
-    }
+    gitOutput(
+        "log",
+        "--pretty=format:%h|%s|%ad",
+        "--date=format:%d/%m/%y",
+        "--no-merges", "-30"
+    )
+        ?.replace("\\", "\\\\")   // échapper les backslashes
+        ?.replace("\"", "\\\"")   // échapper les guillemets
+        ?.replace("\n", "\\n")    // transformer les sauts de ligne réels en \n littéral
+        ?.replace("\r", "")       // supprimer les CR éventuels
+        ?: ""
 }
 
 // Version de l'APK (issue #161) : release.yml passe -PversionName=X.Y.Z (tag sans le v) ;
@@ -103,12 +105,17 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+// Kotlin intégré à AGP 9 (issue #158) : plus de plugin org.jetbrains.kotlin.android
+// ni d'options Kotlin dans le bloc android : la cible JVM se règle ici.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 

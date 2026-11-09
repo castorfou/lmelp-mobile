@@ -12,20 +12,22 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs")
 
-class UserPreferencesRepository(private val context: Context) : UserPreferencesRepository.PinnedReadingStorage {
+/** Interface extraite pour permettre le test unitaire sans Context/DataStore.
+ * Au niveau du fichier, pas imbriquée : Kotlin 2.4 refuse qu'une classe implémente
+ * sa propre interface imbriquée (issue #158). */
+interface PinnedReadingStorage {
+    val pinnedReading: Flow<Set<String>>
+    suspend fun togglePinnedReading(livreId: String)
+    suspend fun removePinned(livreId: String)
 
-    /** Interface extraite pour permettre le test unitaire sans Context/DataStore. */
-    interface PinnedReadingStorage {
-        val pinnedReading: Flow<Set<String>>
-        suspend fun togglePinnedReading(livreId: String)
-        suspend fun removePinned(livreId: String)
+    /** Livres dont l'auto-épinglage (progression Calibre/KOReader en cours) a été
+     * explicitement refusé par l'utilisateur — voir issue #131. */
+    val autoPinDismissed: Flow<Set<String>>
+    suspend fun dismissAutoPin(livreId: String)
+    suspend fun clearAutoPinDismissed(livreId: String)
+}
 
-        /** Livres dont l'auto-épinglage (progression Calibre/KOReader en cours) a été
-         * explicitement refusé par l'utilisateur — voir issue #131. */
-        val autoPinDismissed: Flow<Set<String>>
-        suspend fun dismissAutoPin(livreId: String)
-        suspend fun clearAutoPinDismissed(livreId: String)
-    }
+class UserPreferencesRepository(private val context: Context) : PinnedReadingStorage {
 
     private val SHOW_HORS_MASQUE = booleanPreferencesKey("show_hors_masque")
     private val PINNED_READING = stringSetPreferencesKey("pinned_reading")

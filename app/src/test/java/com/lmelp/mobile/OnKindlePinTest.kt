@@ -3,7 +3,7 @@ package com.lmelp.mobile
 import com.lmelp.mobile.data.db.OnKindleAvecConseilRow
 import com.lmelp.mobile.data.db.OnKindleDao
 import com.lmelp.mobile.data.repository.OnKindleRepository
-import com.lmelp.mobile.data.repository.UserPreferencesRepository
+import com.lmelp.mobile.data.repository.PinnedReadingStorage
 import com.lmelp.mobile.viewmodel.OnKindleViewModel
 import com.lmelp.mobile.viewmodel.TriMode
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +28,7 @@ import org.mockito.kotlin.whenever
  * Stub en mémoire de UserPreferencesRepository pour les tests unitaires.
  * Évite la dépendance à Context/DataStore dans les tests JVM.
  */
-class FakeUserPreferencesRepository : UserPreferencesRepository.PinnedReadingStorage {
+class FakeUserPreferencesRepository : PinnedReadingStorage {
     private val _pinned = MutableStateFlow<Set<String>>(emptySet())
     override val pinnedReading: Flow<Set<String>> = _pinned
 

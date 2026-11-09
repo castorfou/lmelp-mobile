@@ -67,7 +67,7 @@ interface LivresDao {
     """)
     suspend fun getLivresByEmission(emissionId: String): List<LivreEntity>
 
-    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("""
         SELECT l.id, l.titre, l.auteur_id, l.auteur_nom, l.editeur,
                l.url_babelio, l.url_cover, l.created_at, l.updated_at,
