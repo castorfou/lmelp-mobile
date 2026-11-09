@@ -2,6 +2,7 @@ package com.lmelp.mobile
 
 import com.lmelp.mobile.data.model.DataUpdateState
 import com.lmelp.mobile.data.remote.GitHubReleaseApi
+import com.lmelp.mobile.data.remote.HttpStatusException
 import com.lmelp.mobile.data.remote.RemoteMetadata
 import com.lmelp.mobile.data.repository.DataUpdateRepository
 import com.lmelp.mobile.data.repository.MetadataRepository
@@ -98,6 +99,22 @@ class DataUpdateRepositoryApplyUpdateTest {
         val state = repository.applyUpdate(targetDbFile = targetDb, tempDir = tmpFolder.newFolder("tmp3"))
 
         assertTrue(state is DataUpdateState.Error)
+        assertEquals("ancienne base", targetDb.readText())
+    }
+
+    @Test
+    fun `applyUpdate traduit une 5xx persistante en message momentanement indisponible`() = runBlocking {
+        val targetDb = tmpFolder.newFile("lmelp.db").apply { writeText("ancienne base") }
+
+        val api = mock<GitHubReleaseApi>()
+        whenever(api.fetchMetadata()).thenReturn(remoteMetadata("peu importe", "peu importe"))
+        whenever(api.downloadDatabase(any())).thenAnswer { throw HttpStatusException(503, "HTTP 503") }
+
+        val repository = DataUpdateRepository(api, mock<MetadataRepository>())
+        val state = repository.applyUpdate(targetDbFile = targetDb, tempDir = tmpFolder.newFolder("tmp4"))
+
+        val message = (state as DataUpdateState.Error).message
+        assertTrue(message, message.contains("momentanément indisponible"))
         assertEquals("ancienne base", targetDb.readText())
     }
 }

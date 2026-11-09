@@ -21,6 +21,15 @@ L'application se met à jour en deux temps, indépendants l'un de l'autre :
 2. appuyer sur le bouton de mise à jour (**Vérifier les mises à jour** relance la vérification si aucune n'est proposée) ;
 3. une fois la mise à jour appliquée, l'appli se ferme : la rouvrir.
 
+Si GitHub, qui héberge les données, répond mal, l'appli réessaie d'elle-même deux fois, quelques secondes plus tard. Si le problème persiste, l'écran **À propos** affiche l'un de ces messages :
+
+| Message | Signification |
+|---|---|
+| « Le serveur de mises à jour (GitHub) est momentanément indisponible. Réessayez plus tard. » | Panne passagère de GitHub, rien à corriger sur le téléphone. |
+| « Pas de connexion Internet. » | Le téléphone n'est pas connecté. |
+| « Aucune mise à jour disponible pour cette version de l'application. » | Aucune donnée n'est publiée pour cette version de l'appli, ce qui arrive juste après une évolution de la base. Mettre l'appli à jour (section suivante). |
+| « Erreur : … » | Autre problème, détaillé dans le message. |
+
 Le détail de la publication des données est décrit dans [Mise à jour d'un épisode](mise_a_jour_episode.md).
 
 ## Mettre à jour l'appli

@@ -1,12 +1,15 @@
 package com.lmelp.mobile
 
+import com.lmelp.mobile.data.remote.HttpStatusException
 import com.lmelp.mobile.data.remote.OkHttpGitHubReleaseApi
+import com.lmelp.mobile.data.remote.ReleaseNotFoundException
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -126,5 +129,100 @@ class OkHttpGitHubReleaseApiTest {
         api.downloadDatabase(destination)
 
         assertEquals("contenu binaire de la base", destination.readText())
+    }
+    // --- Réessais sur les erreurs passagères de GitHub (issue #156) ---
+
+    private val recordedDelays = mutableListOf<Long>()
+
+    private fun retryingApi(userVersion: Int = 8) = OkHttpGitHubReleaseApi(
+        localDbFile = localDbFile(userVersion),
+        apiBaseUrl = server.url("/repos/castorfou/lmelp-mobile/releases/tags").toString(),
+        retryDelaysMs = listOf(1000L, 3000L),
+        sleep = { recordedDelays += it }
+    )
+
+    private fun enqueueRelease() {
+        val baseUrl = server.url("").toString().removeSuffix("/")
+        server.enqueue(MockResponse().setBody(releaseTagsResponse.format(baseUrl, baseUrl)))
+    }
+
+    @Test
+    fun `une 504 passagere sur metadata json suivie d'une 200 donne un check reussi`() = runBlocking {
+        enqueueRelease()
+        server.enqueue(MockResponse().setResponseCode(504))
+        server.enqueue(MockResponse().setBody(metadataJson))
+
+        val metadata = retryingApi().fetchMetadata()
+
+        assertEquals("1787168148", metadata.exportVersion)
+        assertEquals(3, server.requestCount)
+        assertEquals(listOf(1000L), recordedDelays)
+    }
+
+    @Test
+    fun `trois 504 consecutives levent HttpStatusException 504 apres 3 tentatives`() = runBlocking {
+        enqueueRelease()
+        repeat(3) { server.enqueue(MockResponse().setResponseCode(504)) }
+
+        try {
+            retryingApi().fetchMetadata()
+            fail("HttpStatusException attendue")
+        } catch (e: HttpStatusException) {
+            assertEquals(504, e.code)
+        }
+        assertEquals("1 requête API + 3 tentatives sur metadata.json", 4, server.requestCount)
+        assertEquals(listOf(1000L, 3000L), recordedDelays)
+    }
+
+    @Test
+    fun `une 503 sur la requete API GitHub est aussi reessayee`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(503))
+        enqueueRelease()
+        server.enqueue(MockResponse().setBody(metadataJson))
+
+        retryingApi().fetchMetadata()
+
+        assertEquals(3, server.requestCount)
+    }
+
+    @Test
+    fun `une 404 sur la release data-v N leve ReleaseNotFoundException sans reessai`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(404))
+
+        try {
+            retryingApi().fetchMetadata()
+            fail("ReleaseNotFoundException attendue")
+        } catch (e: ReleaseNotFoundException) {
+            assertEquals(404, e.code)
+        }
+        assertEquals(1, server.requestCount)
+        assertTrue(recordedDelays.isEmpty())
+    }
+
+    @Test
+    fun `une autre erreur 4xx n'est pas reessayee`() = runBlocking {
+        enqueueRelease()
+        server.enqueue(MockResponse().setResponseCode(403))
+
+        try {
+            retryingApi().fetchMetadata()
+            fail("HttpStatusException attendue")
+        } catch (e: HttpStatusException) {
+            assertEquals(403, e.code)
+        }
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun `downloadDatabase reessaie une 502 sur lmelp db`() = runBlocking {
+        enqueueRelease()
+        server.enqueue(MockResponse().setResponseCode(502))
+        server.enqueue(MockResponse().setBody("contenu binaire de la base"))
+
+        val destination = tmpFolder.newFile("downloaded_retry.db")
+        retryingApi().downloadDatabase(destination)
+
+        assertEquals("contenu binaire de la base", destination.readText())
+        assertEquals(3, server.requestCount)
     }
 }

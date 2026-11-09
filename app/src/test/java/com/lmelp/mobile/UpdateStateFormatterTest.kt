@@ -64,4 +64,10 @@ class UpdateStateFormatterTest {
         val label = formatUpdateStateLabel(DataUpdateState.Restarting)
         assertEquals(true, label.contains("rouvrir"))
     }
+
+    @Test
+    fun `Error affiche le message tel quel, deja redige pour l'utilisateur (issue 156)`() {
+        val message = "Pas de connexion Internet."
+        assertEquals(message, formatUpdateStateLabel(DataUpdateState.Error(message)))
+    }
 }

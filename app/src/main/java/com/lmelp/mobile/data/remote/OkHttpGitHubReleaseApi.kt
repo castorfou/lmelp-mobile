@@ -1,6 +1,7 @@
 package com.lmelp.mobile.data.remote
 
 import com.lmelp.mobile.data.update.SqliteSchemaVersion
+import kotlinx.coroutines.delay
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -14,6 +15,9 @@ import java.util.concurrent.TimeUnit
  * DB local (lmelp.db + metadata.json). Le tag est résolu dynamiquement à partir
  * du schéma Room local, jamais un tag fixe : ainsi le fichier téléchargé est
  * toujours au même schéma que l'app qui le demande (issue #132).
+ *
+ * Chaque requête est réessayée sur les erreurs passagères de GitHub (502/503/504,
+ * coupure réseau), jamais sur une 404 (issue #156, voir [withRetry]).
  */
 class OkHttpGitHubReleaseApi(
     private val localDbFile: File,
@@ -22,40 +26,53 @@ class OkHttpGitHubReleaseApi(
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+        .build(),
+    private val retryDelaysMs: List<Long> = DEFAULT_RETRY_DELAYS_MS,
+    private val sleep: suspend (Long) -> Unit = { delay(it) }
 ) : GitHubReleaseApi {
 
-    private fun releaseApiUrl(): String {
-        val schemaVersion = SqliteSchemaVersion.read(localDbFile)
-        return "$apiBaseUrl/data-v$schemaVersion"
+    private fun releaseTag(): String = "data-v${SqliteSchemaVersion.read(localDbFile)}"
+
+    private suspend fun <T> retrying(block: () -> T): T =
+        withRetry(delaysMs = retryDelaysMs, sleep = sleep, block = block)
+
+    private suspend fun fetchAssetUrls(): Map<String, String> {
+        val tag = releaseTag()
+        val request = Request.Builder().url("$apiBaseUrl/$tag").build()
+        return retrying { fetchAssetUrls(request, tag) }
     }
 
-    private fun fetchAssetUrls(): Map<String, String> {
-        val request = Request.Builder().url(releaseApiUrl()).build()
+    private fun fetchAssetUrls(request: Request, tag: String): Map<String, String> =
         client.newCall(request).execute().use { response ->
+            if (response.code == 404) throw ReleaseNotFoundException(tag)
             if (!response.isSuccessful) {
-                throw IOException("Échec de la requête GitHub Releases : HTTP ${response.code}")
+                throw HttpStatusException(
+                    response.code, "Échec de la requête GitHub Releases : HTTP ${response.code}"
+                )
             }
             val body = response.body?.string() ?: throw IOException("Réponse vide de GitHub Releases")
             val assets = org.json.JSONObject(body).getJSONArray("assets")
-            return (0 until assets.length()).associate { i ->
+            (0 until assets.length()).associate { i ->
                 val asset = assets.getJSONObject(i)
                 asset.getString("name") to asset.getString("browser_download_url")
             }
         }
-    }
 
     override suspend fun fetchMetadata(): RemoteMetadata {
         val assetUrls = fetchAssetUrls()
         val metadataUrl = assetUrls["metadata.json"]
             ?: throw IOException("metadata.json absent des assets de la release")
         val request = Request.Builder().url(metadataUrl).build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw IOException("Échec du téléchargement de metadata.json : HTTP ${response.code}")
+        return retrying {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw HttpStatusException(
+                        response.code, "Échec du téléchargement de metadata.json : HTTP ${response.code}"
+                    )
+                }
+                val body = response.body?.string() ?: throw IOException("metadata.json vide")
+                RemoteMetadata.parse(body)
             }
-            val body = response.body?.string() ?: throw IOException("metadata.json vide")
-            return RemoteMetadata.parse(body)
         }
     }
 
@@ -64,13 +81,19 @@ class OkHttpGitHubReleaseApi(
         val dbUrl = assetUrls["lmelp.db"]
             ?: throw IOException("lmelp.db absent des assets de la release")
         val request = Request.Builder().url(dbUrl).build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw IOException("Échec du téléchargement de lmelp.db : HTTP ${response.code}")
-            }
-            val body = response.body ?: throw IOException("lmelp.db vide")
-            destination.outputStream().use { output ->
-                body.byteStream().copyTo(output)
+        // Une coupure en cours de copie relance le téléchargement complet : outputStream()
+        // réécrit destination depuis le début.
+        retrying {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw HttpStatusException(
+                        response.code, "Échec du téléchargement de lmelp.db : HTTP ${response.code}"
+                    )
+                }
+                val body = response.body ?: throw IOException("lmelp.db vide")
+                destination.outputStream().use { output ->
+                    body.byteStream().copyTo(output)
+                }
             }
         }
     }
