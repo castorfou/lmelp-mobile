@@ -68,12 +68,59 @@ $ADB uninstall com.lmelp.mobile.debug      # désinstaller l'app debug
 
 ### Le téléphone n'apparaît pas dans `adb devices`
 
+Commencer par regarder si le laptop voit le téléphone au niveau USB :
+
+```bash
+lsusb | grep -i google
+```
+
+Pour suivre les branchements en direct : `journalctl -kf | grep -i usb`. Un branchement réussi affiche `New USB device found, idVendor=18d1` puis `Product: Pixel 9 Pro`.
+
+#### `lsusb` ne voit pas le téléphone
+
+Le téléphone peut charger sans qu'aucune connexion de données ne passe. Dans ce cas, ni le redémarrage du téléphone, ni `adb kill-server`, ni le redémarrage du laptop n'y changent quoi que ce soit. Le problème est physique :
+
+1. changer de câble : utiliser un câble qui transmet les données, pas un câble de charge seule ;
+2. nettoyer le port USB-C du téléphone (les peluches de poche bloquent souvent les données alors que la charge passe) ;
+3. essayer un autre port du laptop, branché directement et non via un hub.
+
+Si le lien USB reste instable, passer au [débogage sans fil](#debogage-sans-fil).
+
+#### `lsusb` voit le téléphone mais `adb devices` reste vide
+
 Dans l'ordre :
 
-1. vérifier que le mode USB est sur **Transfert de fichiers** et que le débogage USB est activé ;
-2. révoquer les autorisations de débogage USB sur le téléphone, puis relancer `adb devices` : la popup d'autorisation doit réapparaître ;
-3. `adb kill-server && adb -a start-server` ;
-4. si `lsusb` voit le téléphone mais que `adb devices` reste vide : redémarrer le téléphone, ce qui résout le problème dans la plupart des cas.
+1. déverrouiller le téléphone : la popup « Autoriser le débogage USB » n'apparaît qu'écran déverrouillé ;
+2. vérifier que le débogage USB est activé et ne pas changer de mode USB pendant la manipulation, car chaque changement déconnecte puis reconnecte le téléphone ;
+3. révoquer les autorisations de débogage USB sur le téléphone, puis relancer `adb devices` : la popup d'autorisation doit réapparaître ;
+4. `adb kill-server && adb -a start-server` ;
+5. redémarrer le téléphone.
+
+### Débogage sans fil
+
+Le débogage sans fil évite complètement le câble. Le téléphone et le laptop doivent être sur le même réseau Wi-Fi, et **le VPN du téléphone doit être coupé** (icône de clé dans la barre d'état). Sinon, l'écran affiche l'IP du tunnel VPN (par exemple `10.111.222.1`), qui n'est pas joignable depuis le laptop.
+
+Sur le téléphone : Options pour les développeurs → **Débogage sans fil** → activer, puis **Associer l'appareil avec un code d'association**. L'écran affiche une adresse `IP:port` et un code à 6 chiffres.
+
+```bash
+adb pair 192.168.50.156:PORT_ASSOCIATION CODE
+```
+
+Après l'association, adb se connecte en général tout seul. `adb devices` liste alors un appareil `adb-<série>-xxxx._adb-tls-connect._tcp`. Sinon, se connecter avec l'adresse « Adresse IP et port » de l'écran principal, dont le port est différent de celui de l'association :
+
+```bash
+adb connect 192.168.50.156:PORT
+```
+
+L'association est mémorisée. Les fois suivantes, il suffit de réactiver le débogage sans fil sur le téléphone, mais le port change à chaque activation.
+
+`adb mdns services` ne trouve rien avec l'adb du paquet Debian. Pour retrouver l'IP du téléphone, résoudre plutôt le nom mDNS affiché à l'écran :
+
+```bash
+getent hosts Android_XXXXXXXX.local
+```
+
+`deploy.sh` fonctionne de la même façon en Wi-Fi.
 
 ## Tester avec une base complète
 

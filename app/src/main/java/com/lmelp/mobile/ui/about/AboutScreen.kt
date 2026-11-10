@@ -1,5 +1,6 @@
 package com.lmelp.mobile.ui.about
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,15 +9,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -30,8 +34,9 @@ import com.lmelp.mobile.data.repository.MetadataRepository
 import com.lmelp.mobile.data.update.ApkInstallOutcome
 import com.lmelp.mobile.viewmodel.AboutViewModel
 import java.io.File
-
-data class ChangelogEntry(val hash: String, val message: String, val date: String)
+import java.io.IOException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Résumé lisible des infos DB pour AboutScreen (issue #116). */
 fun formatDbInfoSummary(dbInfo: DbInfoUi): String =
@@ -76,17 +81,6 @@ fun formatAppUpdateButtonLabel(state: AppUpdateState): String = when (state) {
     is AppUpdateState.Error -> "Erreur : ${state.message} — réessayer"
 }
 
-fun parseChangelog(raw: String): List<ChangelogEntry> {
-    if (raw.isBlank()) return emptyList()
-    return raw.split("\n")
-        .filter { it.isNotBlank() }
-        .mapNotNull { line ->
-            val parts = line.split("|")
-            if (parts.size >= 3) ChangelogEntry(parts[0], parts[1], parts[2])
-            else null
-        }
-}
-
 @Composable
 fun AboutScreen(
     repository: MetadataRepository,
@@ -104,11 +98,23 @@ fun AboutScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val dataUpdateState by viewModel.dataUpdateState.collectAsStateWithLifecycle()
     val appUpdateState by viewModel.appUpdateState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    // Historique généré au build dans un asset (issue #170) : pas de plafond de 64 Ko comme BuildConfig
+    val historique by produceState(initialValue = "") {
+        value = withContext(Dispatchers.IO) {
+            // IOException seulement : une CancellationException doit se propager
+            try {
+                context.assets.open(HISTORIQUE_ASSET).bufferedReader().use { it.readText() }
+            } catch (e: IOException) {
+                ""
+            }
+        }
+    }
     AboutContent(
         versionName = BuildConfig.VERSION_NAME,
         gitCommit = BuildConfig.GIT_COMMIT,
         buildDate = BuildConfig.BUILD_DATE,
-        changelog = BuildConfig.CHANGELOG,
+        historique = historique,
         dbInfo = uiState.dbInfo,
         dataUpdateState = dataUpdateState,
         onCheckForUpdate = { viewModel.checkForUpdateManually() },
@@ -126,7 +132,7 @@ fun AboutContent(
     versionName: String,
     gitCommit: String,
     buildDate: String,
-    changelog: String,
+    historique: String,
     dbInfo: DbInfoUi? = null,
     dataUpdateState: DataUpdateState = DataUpdateState.Idle,
     onCheckForUpdate: () -> Unit = {},
@@ -135,7 +141,9 @@ fun AboutContent(
     onInstallAppUpdate: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val entries = remember(changelog) { parseChangelog(changelog) }
+    val sections = remember(historique, versionName) {
+        groupHistoriqueByVersion(parseHistorique(historique), installedVersionName = versionName)
+    }
 
     LazyColumn(
         modifier = modifier
@@ -221,7 +229,7 @@ fun AboutContent(
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
         }
 
-        if (entries.isNotEmpty()) {
+        if (sections.isNotEmpty()) {
             item {
                 Text(
                     text = "Historique",
@@ -229,16 +237,52 @@ fun AboutContent(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
-            items(entries) { entry ->
-                ChangelogRow(entry)
-                HorizontalDivider()
+            sections.forEach { section ->
+                item(key = "section-${section.versionName}") {
+                    ContenuVersionHeader(section)
+                }
+                items(section.commits, key = { it.hash }) { entry ->
+                    HistoriqueRow(entry)
+                    HorizontalDivider()
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ChangelogRow(entry: ChangelogEntry) {
+private fun ContenuVersionHeader(section: ContenuVersion) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = formatContenuVersionHeader(section),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+        if (section.installed) {
+            Text(
+                text = "installée",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        RoundedCornerShape(50)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            )
+        }
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.primary)
+}
+
+@Composable
+private fun HistoriqueRow(entry: HistoriqueCommit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

@@ -32,19 +32,33 @@ val buildDate: String by lazy {
     SimpleDateFormat("dd/MM/yy").format(Date())
 }
 
-// Changelog des N derniers commits (hors merges), format "hash|message|date" séparé par \n
-val gitChangelog: String by lazy {
+// Historique complet des commits (hors merges, ordre topologique pour que chaque
+// commit tombe sous la version qui le contient), issue #170 : une ligne par commit,
+// "hash␟sujet␟date␟tags" (séparateur U+001F, jamais présent dans un sujet ; tags = %D restreint
+// à refs/tags/). Écrit dans un asset généré et non dans BuildConfig : une constante de chaîne
+// Java est plafonnée à 65 535 octets. Format lu par parseHistorique (ui/about/Historique.kt).
+val gitHistorique: Provider<String> = provider {
     gitOutput(
         "log",
-        "--pretty=format:%h|%s|%ad",
+        "--no-merges",
+        "--topo-order",
+        "--pretty=format:%h%x1f%s%x1f%ad%x1f%D",
         "--date=format:%d/%m/%y",
-        "--no-merges", "-30"
-    )
-        ?.replace("\\", "\\\\")   // échapper les backslashes
-        ?.replace("\"", "\\\"")   // échapper les guillemets
-        ?.replace("\n", "\\n")    // transformer les sauts de ligne réels en \n littéral
-        ?.replace("\r", "")       // supprimer les CR éventuels
-        ?: ""
+        "--decorate-refs=refs/tags/"
+    ) ?: ""
+}
+
+abstract class GenerateHistoriqueTask : DefaultTask() {
+    @get:Input
+    abstract val historique: Property<String>
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        outputDir.file("historique.txt").get().asFile.writeText(historique.get())
+    }
 }
 
 // Version de l'APK (issue #161) : release.yml passe -PversionName=X.Y.Z (tag sans le v) ;
@@ -66,7 +80,6 @@ android {
 
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
         buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
-        buildConfigField("String", "CHANGELOG", "\"$gitChangelog\"")
     }
 
     // Signature de l'APK de release (issue #159) : keystore fourni par l'environnement
@@ -108,6 +121,18 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+// Asset historique.txt de l'écran À propos (issue #170), généré pour chaque variante
+androidComponents {
+    onVariants { variant ->
+        val task = tasks.register<GenerateHistoriqueTask>(
+            "generate${variant.name.replaceFirstChar { it.uppercase() }}Historique"
+        ) {
+            historique.set(gitHistorique)
+        }
+        variant.sources.assets?.addGeneratedSourceDirectory(task, GenerateHistoriqueTask::outputDir)
     }
 }
 
