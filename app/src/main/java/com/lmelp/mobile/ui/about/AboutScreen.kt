@@ -78,7 +78,9 @@ fun formatAppUpdateButtonLabel(state: AppUpdateState): String = when (state) {
     is AppUpdateState.Downloading -> "Téléchargement en cours…"
     is AppUpdateState.NeedsPermission -> "Autoriser LMELP à installer des applications, puis réessayer"
     is AppUpdateState.Installing -> "Relancer l'installation"
-    is AppUpdateState.Error -> "Erreur : ${state.message} — réessayer"
+    // Message déjà rédigé pour l'utilisateur par updateErrorMessage (issue #168) ;
+    // le bouton reste actif et relance le téléchargement.
+    is AppUpdateState.Error -> state.message
 }
 
 @Composable

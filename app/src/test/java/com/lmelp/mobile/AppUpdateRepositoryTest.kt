@@ -3,6 +3,7 @@ package com.lmelp.mobile
 import com.lmelp.mobile.data.model.AppRelease
 import com.lmelp.mobile.data.model.AppUpdateCheckResult
 import com.lmelp.mobile.data.remote.AppReleaseApi
+import com.lmelp.mobile.data.remote.HttpStatusException
 import com.lmelp.mobile.data.repository.AppUpdateRepository
 import com.lmelp.mobile.data.update.Sha256Verifier
 import kotlinx.coroutines.runBlocking
@@ -87,7 +88,19 @@ class AppUpdateRepositoryTest {
             installedVersionName = "1.2.0"
         )
         val result = repo.checkForUpdate()
-        assertEquals(AppUpdateCheckResult.Error("pas de réseau"), result)
+        assertEquals(AppUpdateCheckResult.Error("Erreur : pas de réseau"), result)
+    }
+
+    @Test
+    fun `GitHub indisponible donne un message clair sans code HTTP brut`() = runBlocking {
+        val repo = AppUpdateRepository(
+            FakeApi(failure = HttpStatusException(504, "Échec de la requête GitHub Releases : HTTP 504")),
+            installedVersionCode = 10200,
+            installedVersionName = "1.2.0"
+        )
+        val result = repo.checkForUpdate() as AppUpdateCheckResult.Error
+        assertTrue(result.message, result.message.contains("momentanément indisponible"))
+        assertFalse(result.message, result.message.contains("HTTP 504"))
     }
 
     @Test

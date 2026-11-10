@@ -96,6 +96,8 @@ Introduite par l'[issue #162](https://github.com/castorfou/lmelp-mobile/issues/1
 | Télécharger | `AppUpdateRepository.downloadApk` | vers `cacheDir/updates/`, SHA-256 vérifié si GitHub fournit le champ `digest` de l'asset |
 | Installer | `ApkInstaller` | `FileProvider` + `ACTION_VIEW` ; permission `REQUEST_INSTALL_PACKAGES`, réglage « sources inconnues » ouvert si l'autorisation manque |
 
+La liste des releases et le téléchargement de l'APK sont réessayés sur les 502/503/504 et les coupures réseau, comme pour les données ([issue #168](https://github.com/castorfou/lmelp-mobile/issues/168), `withRetry` de `data/remote/HttpRetry.kt`). Les erreurs sont traduites par `updateErrorMessage`, et le bouton de l'écran À propos les affiche telles quelles.
+
 `releases/latest` n'est pas utilisable : GitHub marque les releases de données `data-v{N}` comme « Latest ». Une version de dev (`0.0.0-dev…`) ne vérifie jamais. Pour tester le parcours complet, installer un debug « non dev » face à une release publiée plus récente :
 
 ```bash

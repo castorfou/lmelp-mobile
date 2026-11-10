@@ -56,7 +56,9 @@ suspend fun <T> withRetry(
 
 /**
  * Message affiché sur l'écran À propos quand la vérification ou l'application d'une
- * mise à jour de données échoue (issue #156). Seul le cas générique garde le préfixe
+ * mise à jour échoue : données (issue #156) comme nouvelle version de l'appli (issue #168).
+ * Le cas 404 ne vise que [ReleaseNotFoundException] (`data-v{N}` absente) : une 404 sur la
+ * liste des releases de l'appli reste dans le cas générique. Seul le cas générique garde le préfixe
  * « Erreur : » et le message technique d'origine.
  */
 fun updateErrorMessage(e: Throwable): String = when {

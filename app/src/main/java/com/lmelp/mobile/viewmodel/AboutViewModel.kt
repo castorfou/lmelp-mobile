@@ -8,6 +8,7 @@ import com.lmelp.mobile.data.model.AppUpdateState
 import com.lmelp.mobile.data.model.DataUpdateState
 import com.lmelp.mobile.data.model.DbInfoUi
 import com.lmelp.mobile.data.model.UpdateCheckResult
+import com.lmelp.mobile.data.remote.updateErrorMessage
 import com.lmelp.mobile.data.repository.AppUpdateRepository
 import com.lmelp.mobile.data.repository.DataUpdateRepository
 import com.lmelp.mobile.data.repository.MetadataRepository
@@ -177,7 +178,7 @@ class AboutViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _appUpdateState.update { AppUpdateState.Error(release, e.message ?: e.javaClass.simpleName) }
+                _appUpdateState.update { AppUpdateState.Error(release, updateErrorMessage(e)) }
             }
         }
     }

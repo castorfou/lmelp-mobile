@@ -1,5 +1,6 @@
 package com.lmelp.mobile
 
+import com.lmelp.mobile.data.remote.HttpStatusException
 import com.lmelp.mobile.data.remote.OkHttpAppReleaseApi
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
@@ -9,6 +10,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -117,5 +119,82 @@ class OkHttpAppReleaseApiTest {
         api.downloadApk(server.url("/download/app.apk").toString(), destination)
 
         assertEquals("contenu de l'APK", destination.readText())
+    }
+
+    // --- Réessais sur les erreurs passagères de GitHub (issue #168, même règle que #156) ---
+
+    private val recordedDelays = mutableListOf<Long>()
+
+    private fun retryingApi() = OkHttpAppReleaseApi(
+        releasesUrl = server.url("/releases").toString(),
+        retryDelaysMs = listOf(1000L, 3000L),
+        sleep = { recordedDelays += it }
+    )
+
+    @Test
+    fun `une 504 passagere suivie d'une 200 donne un check APK reussi`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(504))
+        server.enqueue(MockResponse().setBody(releasesJson))
+
+        val releases = retryingApi().fetchReleases()
+
+        assertEquals(3, releases.size)
+        assertEquals(2, server.requestCount)
+        assertEquals(listOf(1000L), recordedDelays)
+    }
+
+    @Test
+    fun `trois 504 consecutives levent HttpStatusException 504 apres 3 tentatives`() = runBlocking {
+        repeat(3) { server.enqueue(MockResponse().setResponseCode(504)) }
+
+        try {
+            retryingApi().fetchReleases()
+            fail("HttpStatusException attendue")
+        } catch (e: HttpStatusException) {
+            assertEquals(504, e.code)
+        }
+        assertEquals(3, server.requestCount)
+        assertEquals(listOf(1000L, 3000L), recordedDelays)
+    }
+
+    @Test
+    fun `une 404 sur la liste des releases n'est pas reessayee`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(404))
+
+        try {
+            retryingApi().fetchReleases()
+            fail("HttpStatusException attendue")
+        } catch (e: HttpStatusException) {
+            assertEquals(404, e.code)
+        }
+        assertEquals(1, server.requestCount)
+        assertTrue(recordedDelays.isEmpty())
+    }
+
+    @Test
+    fun `le telechargement de l'APK est reessaye sur une 503 passagere`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(503))
+        server.enqueue(MockResponse().setBody("contenu de l'APK"))
+        val destination = tmpFolder.newFile("retry.apk")
+
+        retryingApi().downloadApk(server.url("/download/app.apk").toString(), destination)
+
+        assertEquals("contenu de l'APK", destination.readText())
+        assertEquals(2, server.requestCount)
+        assertEquals(listOf(1000L), recordedDelays)
+    }
+
+    @Test
+    fun `trois 502 sur le telechargement de l'APK levent HttpStatusException 502`() = runBlocking {
+        repeat(3) { server.enqueue(MockResponse().setResponseCode(502)) }
+        val destination = tmpFolder.newFile("fail.apk")
+
+        try {
+            retryingApi().downloadApk(server.url("/download/app.apk").toString(), destination)
+            fail("HttpStatusException attendue")
+        } catch (e: HttpStatusException) {
+            assertEquals(502, e.code)
+        }
+        assertEquals(3, server.requestCount)
     }
 }

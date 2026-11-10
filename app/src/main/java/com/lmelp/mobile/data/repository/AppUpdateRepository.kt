@@ -3,6 +3,7 @@ package com.lmelp.mobile.data.repository
 import com.lmelp.mobile.data.model.AppRelease
 import com.lmelp.mobile.data.model.AppUpdateCheckResult
 import com.lmelp.mobile.data.remote.AppReleaseApi
+import com.lmelp.mobile.data.remote.updateErrorMessage
 import com.lmelp.mobile.data.update.Sha256Verifier
 import com.lmelp.mobile.data.update.isDevVersion
 import com.lmelp.mobile.data.update.selectLatestAppRelease
@@ -20,6 +21,7 @@ import java.io.IOException
  * de DataUpdateRepository. Compare le versionCode installé à celui recalculé depuis le tag
  * des releases `vX.Y.Z`. Une version de dev (`0.0.0-dev+…`, APK debug) ne vérifie jamais :
  * son versionCode vaut 1 et toute release paraîtrait plus récente.
+ * Les messages d'erreur sont rédigés pour l'utilisateur par updateErrorMessage (issue #168).
  */
 class AppUpdateRepository(
     private val api: AppReleaseApi,
@@ -45,7 +47,7 @@ class AppUpdateRepository(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                AppUpdateCheckResult.Error(e.message ?: e.javaClass.simpleName)
+                AppUpdateCheckResult.Error(updateErrorMessage(e))
             }
         }
     }
