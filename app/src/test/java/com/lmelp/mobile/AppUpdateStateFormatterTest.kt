@@ -45,9 +45,11 @@ class AppUpdateStateFormatterTest {
             formatAppUpdateButtonLabel(AppUpdateState.NeedsPermission(release))
         )
         assertEquals("Relancer l'installation", formatAppUpdateButtonLabel(AppUpdateState.Installing(release)))
+        // Message déjà rédigé par updateErrorMessage (issue #168) : affiché tel quel,
+        // sans « Erreur : » doublé.
         assertEquals(
-            "Erreur : HTTP 500 — réessayer",
-            formatAppUpdateButtonLabel(AppUpdateState.Error(release, "HTTP 500"))
+            "Pas de connexion Internet.",
+            formatAppUpdateButtonLabel(AppUpdateState.Error(release, "Pas de connexion Internet."))
         )
     }
 

@@ -40,6 +40,8 @@ Le détail de la publication des données est décrit dans [Mise à jour d'un é
 2. la première fois, Android ouvre le réglage « Installer des applis inconnues » : autoriser l'appli, revenir, puis appuyer sur **Autoriser LMELP à installer des applications, puis réessayer** ;
 3. dans l'installateur Android, choisir **Mettre à jour**.
 
+Comme pour les données, l'appli réessaie d'elle-même si GitHub répond mal. Si le téléchargement échoue, le bouton affiche l'un des messages du tableau ci-dessus (par exemple « Pas de connexion Internet. ») ; appuyer dessus relance le téléchargement.
+
 L'appli installée est remplacée, les données et les réglages sont conservés. Le bouton **Vérifier les mises à jour** relance la vérification des données et de l'appli.
 
 Sans passer par l'appli, on peut aussi refaire les étapes 1 à 4 de l'installation avec la nouvelle version, puis choisir **Mettre à jour**.

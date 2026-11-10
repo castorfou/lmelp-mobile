@@ -5,6 +5,7 @@ import com.lmelp.mobile.data.model.AppUpdateCheckResult
 import com.lmelp.mobile.data.model.AppUpdateState
 import com.lmelp.mobile.data.model.DbInfoUi
 import com.lmelp.mobile.data.model.UpdateCheckResult
+import com.lmelp.mobile.data.remote.HttpStatusException
 import com.lmelp.mobile.data.repository.AppUpdateRepository
 import com.lmelp.mobile.data.repository.DataUpdateRepository
 import com.lmelp.mobile.data.repository.MetadataRepository
@@ -145,6 +146,23 @@ class AboutViewModelAppUpdateTest {
         val state = vm.appUpdateState.value
         assertTrue(state is AppUpdateState.Error)
         assertEquals(release, (state as AppUpdateState.Error).release)
+    }
+
+    @Test
+    fun `GitHub indisponible au telechargement donne un message clair sans code HTTP brut`() = runTest {
+        val repo = appRepo(AppUpdateCheckResult.UpdateAvailable(release))
+        whenever(repo.downloadApk(any(), any())).thenAnswer {
+            throw HttpStatusException(504, "Échec du téléchargement de l'APK : HTTP 504")
+        }
+        val vm = viewModel(repo)
+        advanceUntilIdle()
+
+        vm.installAppUpdate(downloadDir) { ApkInstallOutcome.InstallerLaunched }
+        advanceUntilIdle()
+
+        val message = (vm.appUpdateState.value as AppUpdateState.Error).message
+        assertTrue(message, message.contains("momentanément indisponible"))
+        assertTrue(message, !message.contains("HTTP 504"))
     }
 
     @Test
