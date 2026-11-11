@@ -62,7 +62,7 @@ class AppUpdateRepositoryTest {
     @Test
     fun `une release v plus recente est signalee`() = runBlocking {
         val api = FakeApi(releases = listOf(release("data-v9"), release("v1.3.0"), release("v1.2.0")))
-        val repo = AppUpdateRepository(api, installedVersionCode = 10200, installedVersionName = "1.2.0")
+        val repo = AppUpdateRepository(api, installedVersionCode = 10_200_000, installedVersionName = "1.2.0")
 
         val result = repo.checkForUpdate()
 
@@ -70,11 +70,53 @@ class AppUpdateRepositoryTest {
         assertEquals("v1.3.0", (result as AppUpdateCheckResult.UpdateAvailable).release.tag)
     }
 
+    private val preview = AppRelease(
+        tag = "app-preview",
+        name = "1.2.0+3",
+        prerelease = true,
+        draft = false,
+        apkUrl = "https://example.org/lmelp-mobile-preview-1.2.0.3.apk",
+        apkSha256 = null,
+        htmlUrl = "https://github.com/castorfou/lmelp-mobile/releases/tag/app-preview"
+    )
+
+    @Test
+    fun `la version 1_2_0 installee se voit proposer la preversion 1_2_0+3`() = runBlocking {
+        val api = FakeApi(releases = listOf(release("data-v9"), preview, release("v1.2.0")))
+        val repo = AppUpdateRepository(api, installedVersionCode = 10_200_000, installedVersionName = "1.2.0")
+
+        val result = repo.checkForUpdate() as AppUpdateCheckResult.UpdateAvailable
+
+        assertEquals("app-preview", result.release.tag)
+        assertEquals("1.2.0+3", result.release.versionName)
+    }
+
+    @Test
+    fun `une preversion installee verifie les mises a jour et se voit proposer la version suivante`() = runBlocking {
+        val api = FakeApi(releases = listOf(preview, release("v1.2.1"), release("v1.2.0")))
+        val repo = AppUpdateRepository(api, installedVersionCode = 10_200_003, installedVersionName = "1.2.0+3")
+
+        val result = repo.checkForUpdate() as AppUpdateCheckResult.UpdateAvailable
+
+        assertEquals("v1.2.1", result.release.tag)
+        assertEquals(1, api.fetchCalls)
+    }
+
+    @Test
+    fun `une preversion installee identique a app-preview est a jour`() = runBlocking {
+        val repo = AppUpdateRepository(
+            FakeApi(releases = listOf(preview, release("v1.2.0"))),
+            installedVersionCode = 10_200_003,
+            installedVersionName = "1.2.0+3"
+        )
+        assertEquals(AppUpdateCheckResult.UpToDate, repo.checkForUpdate())
+    }
+
     @Test
     fun `aucune release plus recente donne UpToDate`() = runBlocking {
         val repo = AppUpdateRepository(
             FakeApi(releases = listOf(release("v1.2.0"))),
-            installedVersionCode = 10200,
+            installedVersionCode = 10_200_000,
             installedVersionName = "1.2.0"
         )
         assertEquals(AppUpdateCheckResult.UpToDate, repo.checkForUpdate())
@@ -84,7 +126,7 @@ class AppUpdateRepositoryTest {
     fun `une erreur reseau donne Error sans propager l'exception`() = runBlocking {
         val repo = AppUpdateRepository(
             FakeApi(failure = RuntimeException("pas de réseau")),
-            installedVersionCode = 10200,
+            installedVersionCode = 10_200_000,
             installedVersionName = "1.2.0"
         )
         val result = repo.checkForUpdate()
@@ -95,7 +137,7 @@ class AppUpdateRepositoryTest {
     fun `GitHub indisponible donne un message clair sans code HTTP brut`() = runBlocking {
         val repo = AppUpdateRepository(
             FakeApi(failure = HttpStatusException(504, "Échec de la requête GitHub Releases : HTTP 504")),
-            installedVersionCode = 10200,
+            installedVersionCode = 10_200_000,
             installedVersionName = "1.2.0"
         )
         val result = repo.checkForUpdate() as AppUpdateCheckResult.Error
@@ -107,7 +149,7 @@ class AppUpdateRepositoryTest {
     fun `checkForUpdateAndCache met le resultat a disposition dans lastCheckResult`() = runBlocking {
         val repo = AppUpdateRepository(
             FakeApi(releases = listOf(release("v1.3.0"))),
-            installedVersionCode = 10200,
+            installedVersionCode = 10_200_000,
             installedVersionName = "1.2.0"
         )
         repo.checkForUpdateAndCache()
@@ -116,7 +158,7 @@ class AppUpdateRepositoryTest {
 
     @Test
     fun `downloadApk ecrit l'APK dans le dossier updates sous le nom de la release`() = runBlocking {
-        val repo = AppUpdateRepository(FakeApi(apkContent = "binaire"), 10200, "1.2.0")
+        val repo = AppUpdateRepository(FakeApi(apkContent = "binaire"), 10_200_000, "1.2.0")
         val dir = tmpFolder.newFolder("cache")
 
         val file = repo.downloadApk(release("v1.3.0"), dir)
@@ -128,7 +170,7 @@ class AppUpdateRepositoryTest {
     @Test
     fun `downloadApk accepte un APK dont l'empreinte correspond`() = runBlocking {
         val reference = tmpFolder.newFile("ref").apply { writeText("binaire") }
-        val repo = AppUpdateRepository(FakeApi(apkContent = "binaire"), 10200, "1.2.0")
+        val repo = AppUpdateRepository(FakeApi(apkContent = "binaire"), 10_200_000, "1.2.0")
 
         val file = repo.downloadApk(release("v1.3.0", sha256 = Sha256Verifier.sha256(reference)), tmpFolder.newFolder())
 
@@ -137,7 +179,7 @@ class AppUpdateRepositoryTest {
 
     @Test
     fun `downloadApk rejette et supprime un APK dont l'empreinte ne correspond pas`() {
-        val repo = AppUpdateRepository(FakeApi(apkContent = "corrompu"), 10200, "1.2.0")
+        val repo = AppUpdateRepository(FakeApi(apkContent = "corrompu"), 10_200_000, "1.2.0")
         val dir = tmpFolder.newFolder()
         val error = runCatching {
             runBlocking { repo.downloadApk(release("v1.3.0", sha256 = "0".repeat(64)), dir) }

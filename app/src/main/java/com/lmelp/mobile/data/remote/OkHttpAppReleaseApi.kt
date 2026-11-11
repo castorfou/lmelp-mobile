@@ -60,6 +60,8 @@ class OkHttpAppReleaseApi(
         val digest = apk?.takeUnless { it.isNull("digest") }?.optString("digest")
         return AppRelease(
             tag = json.getString("tag_name"),
+            // Version d'une préversion `X.Y.Z+N` (issue #173) : GitHub réécrit le `+` des noms d'assets
+            name = json.optString("name"),
             prerelease = json.optBoolean("prerelease", false),
             draft = json.optBoolean("draft", false),
             apkUrl = apk?.getString("browser_download_url"),

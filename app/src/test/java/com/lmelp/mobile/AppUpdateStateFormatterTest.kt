@@ -37,6 +37,22 @@ class AppUpdateStateFormatterTest {
     }
 
     @Test
+    fun `le titre annonce une preversion comme telle`() {
+        val preview = AppRelease(
+            tag = "app-preview",
+            name = "1.2.0+3",
+            prerelease = true,
+            draft = false,
+            apkUrl = "https://example.org/p.apk",
+            apkSha256 = null,
+            htmlUrl = "https://example.org/app-preview"
+        )
+        assertEquals("Préversion 1.2.0+3 disponible", formatAppUpdateTitle(AppUpdateState.UpdateAvailable(preview)))
+        assertEquals("Préversion 1.2.0+3 disponible", formatAppUpdateTitle(AppUpdateState.Downloading(preview)))
+        assertEquals("Préversion 1.2.0+3 disponible", formatAppUpdateTitle(AppUpdateState.Error(preview, "x")))
+    }
+
+    @Test
     fun `le bouton suit l'etat du telechargement et de l'installation`() {
         assertEquals("Télécharger et installer", formatAppUpdateButtonLabel(AppUpdateState.UpdateAvailable(release)))
         assertEquals("Téléchargement en cours…", formatAppUpdateButtonLabel(AppUpdateState.Downloading(release)))
