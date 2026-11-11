@@ -7,8 +7,8 @@ Cette page décrit le cycle de vie complet de l'application : comment on la dév
 | | **Les données** (émissions, avis, palmarès…) | **L'appli** (écrans, fonctions, code Kotlin) |
 |---|---|---|
 | Change | à chaque nouvelle émission | à chaque évolution du code |
-| Publiée par | le container `lmelp-export` du NAS, automatiquement, toutes les heures | le développeur, en poussant un tag `vX.Y.Z` |
-| Release GitHub | `data-v{N}` (`N` = version du schéma Room) | `vX.Y.Z` |
+| Publiée par | le container `lmelp-export` du NAS, automatiquement, toutes les heures | le développeur, en poussant un tag `vX.Y.Z` (version) ; automatiquement à chaque merge sur `main` (préversion) |
+| Release GitHub | `data-v{N}` (`N` = version du schéma Room) | `vX.Y.Z` (version), `app-preview` (préversion) |
 | Arrive sur le téléphone | l'app la détecte au lancement, l'utilisateur l'applique depuis À propos | l'utilisateur installe le nouvel APK |
 
 La mise à jour des données est décrite dans l'[ADR 0001](adr/0001-separation-maj-appli-donnees.md) et dans le guide utilisateur [Mise à jour d'un épisode](../user/mise_a_jour_episode.md). Le reste de cette page concerne l'appli.
@@ -19,7 +19,7 @@ Android n'accepte de mettre à jour une app installée que si le nouvel APK port
 
 | | APK **debug** | APK **release** |
 |---|---|---|
-| Produit par | `scripts/build.sh` (`./gradlew assembleDebug`) | `release.yml`, sur un tag `vX.Y.Z` |
+| Produit par | `scripts/build.sh` (`./gradlew assembleDebug`) | `release.yml`, sur un tag `vX.Y.Z` ; `app-preview.yml`, sur un merge dans `main` |
 | Signé avec | une clé debug générée automatiquement par la machine qui compile | la clé de release `lmelp-release.jks` |
 | Usage | tester une modification sur le téléphone, en USB | distribuer une version |
 | Identifiant | `com.lmelp.mobile.debug` | `com.lmelp.mobile` |
@@ -36,6 +36,28 @@ coder → scripts/build.sh && scripts/deploy.sh → tester sur le téléphone (U
 ```
 
 `build.sh` compile un APK debug dans le devcontainer, `deploy.sh` l'installe en USB via `adb` et relance l'app. Rien n'est publié. Les détails (connexion `adb`, dépannage, base locale complète) sont dans [Build / Deploy apk](build_deploy_apk.md).
+
+## En tant que développeur : une préversion à chaque merge
+
+Introduites par l'[issue #173](https://github.com/castorfou/lmelp-mobile/issues/173). Une **version** reste une décision humaine, qui regroupe une ou plusieurs fonctionnalités. Entre deux versions, chaque merge dans `main` qui modifie l'appli publie une **préversion**, que l'appli release installée propose comme une version :
+
+```
+merge dans main → app-preview.yml → pré-release app-preview « 1.2.0+3 » → À propos : « Préversion 1.2.0+3 disponible »
+```
+
+Le workflow `.github/workflows/app-preview.yml` :
+
+1. ne se déclenche que si le push modifie `app/`, `buildSrc/`, `gradle/`, `*.gradle.kts`, `gradle.properties`, `scripts/preview_version.sh` ou le workflow lui-même. Un merge qui ne touche que la doc ne publie rien ;
+2. calcule le numéro `X.Y.Z+N` avec `scripts/preview_version.sh` : X.Y.Z est la dernière version `vX.Y.Z` (les tags avec tiret, comme `v0.0.0-test`, ne comptent pas), N le nombre de commits depuis. Sur le commit tagué lui-même (N = 0), ou sans aucune version, il s'arrête : ce serait un doublon de la version ;
+3. compile et signe l'APK comme `release.yml` (même keystore, donc installable par-dessus une version), avec `-PversionName=X.Y.Z+N` ;
+4. supprime la pré-release `app-preview` et son tag, puis la recrée sur le commit courant, titrée `X.Y.Z+N`, avec `lmelp-mobile-preview-X.Y.Z.N.apk`.
+
+Il n'y a qu'**une seule préversion publiée à la fois**, sous le tag fixe `app-preview`. L'appli lit son numéro dans le **titre de la release** : GitHub remplace le `+` dans les noms de fichiers joints. De deux merges rapprochés, seul le dernier est publié (`concurrency` avec `cancel-in-progress`).
+
+!!! note "Première préversion"
+    Une version antérieure à la 1.3.0 ignore toutes les pré-releases : elle ne propose jamais de préversion. Il faut d'abord installer une version qui contient ce mécanisme (v1.3.0 ou plus), puis les préversions `1.3.0+N` suivent.
+
+Pas de préversion depuis une branche de feature : l'APK debug reste l'outil pour tester avant de merger.
 
 ## En tant que développeur : publier une nouvelle version de l'appli
 
@@ -64,14 +86,17 @@ git tag -d v0.0.0-test
 
 ### Numéro de version de l'APK
 
-Le tag fixe les deux numéros de version de l'APK (issue #161) :
+Le tag fixe les deux numéros de version de l'APK (issue #161), et la préversion y ajoute son nombre de commits N (issue #173) :
 
-| | Valeur | Exemple, tag `v1.2.3` |
-|---|---|---|
-| `versionName` (affiché par Android et par l'écran À propos) | le tag sans le `v` | `1.2.3` |
-| `versionCode` (comparé par Android pour une mise à jour) | `major*10000 + minor*100 + patch` | `10203` |
+| | Valeur | Tag `v1.2.3` | Préversion `1.2.3+4` |
+|---|---|---|---|
+| `versionName` (affiché par Android et par l'écran À propos) | le tag sans le `v` | `1.2.3` | `1.2.3+4` |
+| `versionCode` (comparé par Android pour une mise à jour) | `(major*10000 + minor*100 + patch)*1000 + N` | `10203000` | `10203004` |
 
-Android refuse d'installer un APK dont le `versionCode` est inférieur à celui de l'app installée. La formule le fait croître d'une version à la suivante, à condition que **minor et patch restent ≤ 99** : un tag `v1.100.0` fait échouer le build, comme un tag mal formé (`v1.2`). Un suffixe de pré-release est conservé dans `versionName` (`v1.2.3-rc1` → `1.2.3-rc1`, `versionCode` 10203).
+Android refuse d'installer un APK dont le `versionCode` est inférieur à celui de l'app installée. La formule le fait croître d'une version à la suivante, à condition que **minor et patch restent ≤ 99** et que **N reste ≤ 999** : un tag `v1.100.0` ou une préversion `1.2.0+1000` font échouer le build, comme un tag mal formé (`v1.2`). Une version passe toujours devant les préversions qui la précèdent : `1.2.0` (10200000) < `1.2.0+3` (10200003) < `1.2.1` (10201000). Un suffixe de pré-release est conservé dans `versionName` (`v1.2.3-rc1` → `1.2.3-rc1`, `versionCode` 10203000).
+
+!!! warning "Changement de formule sans retour"
+    Jusqu'à la 1.2.0, le `versionCode` valait `major*10000 + minor*100 + patch` (10200 pour la 1.2.0). Le nouveau est toujours plus grand, la mise à jour passe donc ; revenir à l'ancienne formule bloquerait toutes les mises à jour.
 
 Sans `-PversionName` (build local, `scripts/build.sh`), l'APK porte une version de développement : `versionName` `0.0.0-dev+<commit>` (suivi de `-debug` pour l'APK debug), `versionCode` 1.
 
@@ -80,7 +105,7 @@ La règle est dans `buildSrc/src/main/kotlin/AppVersion.kt`, testée par `buildS
 ## En tant qu'utilisateur : mettre à jour
 
 - **Les données** : l'app vérifie au lancement et affiche un badge sur l'icône des réglages quand une mise à jour est disponible ; l'utilisateur l'applique depuis l'écran À propos, puis rouvre l'app.
-- **L'appli** : l'app vérifie aussi au lancement si une release `vX.Y.Z` plus récente existe (même badge) ; l'écran À propos propose alors **Télécharger et installer**, qui télécharge l'APK et ouvre l'installateur Android. La signature est la même, l'état local est conservé. À défaut, télécharger le dernier `lmelp-mobile-vX.Y.Z.apk` depuis la page [Releases](https://github.com/castorfou/lmelp-mobile/releases).
+- **L'appli** : l'app vérifie aussi au lancement si une version `vX.Y.Z` ou une préversion `app-preview` plus récente existe (même badge) ; l'écran À propos propose alors **Télécharger et installer**, qui télécharge l'APK et ouvre l'installateur Android. La signature est la même, l'état local est conservé. À défaut, télécharger le dernier `lmelp-mobile-vX.Y.Z.apk` depuis la page [Releases](https://github.com/castorfou/lmelp-mobile/releases).
 
 Le guide utilisateur [Installer et mettre à jour l'appli](../user/installer_mettre_a_jour.md) reprend ces étapes pas à pas.
 
@@ -91,17 +116,18 @@ Introduite par l'[issue #162](https://github.com/castorfou/lmelp-mobile/issues/1
 | Étape | Code | Règle |
 |---|---|---|
 | Lister les releases | `OkHttpAppReleaseApi` | `GET /repos/castorfou/lmelp-mobile/releases?per_page=30`, sans authentification |
-| Choisir la release | `selectLatestAppRelease` (`data/update/AppReleaseVersion.kt`) | tag `vX.Y.Z` strict, ni brouillon ni pré-release, avec un asset `.apk`, `versionCode` strictement supérieur à celui installé |
-| Comparer | `appVersionCodeFromTag` | même formule que `buildSrc/AppVersion.kt`, dupliquée car `buildSrc` n'existe qu'au build |
+| Choisir la release | `selectLatestAppRelease` (`data/update/AppReleaseVersion.kt`) | tag `vX.Y.Z` strict, ou la pré-release `app-preview` ; aucune autre pré-release (`v0.0.0-test`…), pas de brouillon ; un asset `.apk` ; le plus grand `versionCode` strictement supérieur à celui installé |
+| Comparer | `appVersionCodeFromTag` (tag `vX.Y.Z`), `appVersionCodeFromPreviewName` (titre `X.Y.Z+N` de `app-preview`) | même formule que `buildSrc/AppVersion.kt`, dupliquée car `buildSrc` n'existe qu'au build |
 | Télécharger | `AppUpdateRepository.downloadApk` | vers `cacheDir/updates/`, SHA-256 vérifié si GitHub fournit le champ `digest` de l'asset |
 | Installer | `ApkInstaller` | `FileProvider` + `ACTION_VIEW` ; permission `REQUEST_INSTALL_PACKAGES`, réglage « sources inconnues » ouvert si l'autorisation manque |
 
 La liste des releases et le téléchargement de l'APK sont réessayés sur les 502/503/504 et les coupures réseau, comme pour les données ([issue #168](https://github.com/castorfou/lmelp-mobile/issues/168), `withRetry` de `data/remote/HttpRetry.kt`). Les erreurs sont traduites par `updateErrorMessage`, et le bouton de l'écran À propos les affiche telles quelles.
 
-`releases/latest` n'est pas utilisable : GitHub marque les releases de données `data-v{N}` comme « Latest ». Une version de dev (`0.0.0-dev…`) ne vérifie jamais. Pour tester le parcours complet, installer un debug « non dev » face à une release publiée plus récente :
+`releases/latest` n'est pas utilisable : GitHub marque les releases de données `data-v{N}` comme « Latest ». Une version de dev (`0.0.0-dev…`) ne vérifie jamais ; une préversion installée (`X.Y.Z+N`) vérifie, et l'écran À propos l'affiche « Version 1.2.0+3 (préversion) ». Dans l'historique, aucune version n'est alors marquée « installée » : ses commits sont sous « Pas encore publié ». Pour tester le parcours complet, installer un debug « non dev » face à une release publiée plus récente :
 
 ```bash
 ./gradlew installDebug -PversionName=0.0.1
+./gradlew installDebug -PversionName=1.2.0+3   # se comporte comme une préversion
 ```
 
 L'installateur installe alors la release à côté du debug (identifiants différents) ; une vraie mise à jour se vérifie d'une release à la suivante.
