@@ -22,4 +22,12 @@ class AboutVersionLineTest {
             formatVersionLine("0.0.0-dev+abc1234-debug", "abc1234", "08/11/26")
         )
     }
+
+    @Test
+    fun `preversion signalee comme telle (issue 173)`() {
+        assertEquals(
+            "Version 1.2.0+3 (préversion) · abc1234 (08/11/26)",
+            formatVersionLine("1.2.0+3", "abc1234", "08/11/26")
+        )
+    }
 }

@@ -1,5 +1,5 @@
 # Met à jour les actions des workflows propres à lmelp-mobile (issue #159) :
-# job `android` de ci.yml, release.yml, build-export-image.yml.
+# job `android` de ci.yml, release.yml, app-preview.yml, build-export-image.yml.
 # Les actions qui ne servent qu'aux parties venant du template PyFoundry sont
 # ignorées : le template les met à jour, et une PR Dependabot créerait des rejets
 # au prochain `cruft update`. Les actions partagées (checkout, upload-artifact)

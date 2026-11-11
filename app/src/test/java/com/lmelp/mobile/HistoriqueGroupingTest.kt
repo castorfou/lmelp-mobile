@@ -54,6 +54,15 @@ class HistoriqueGroupingTest {
     }
 
     @Test
+    fun `une preversion installee ne marque aucune version, ses commits restent Pas encore publie`() {
+        // 1.1.0+1 = 1 commit au-dessus de v1.1.0 (issue #173)
+        val sections = groupHistoriqueByVersion(historique, installedVersionName = "1.1.0+1")
+        assertTrue(sections.none { it.installed })
+        assertNull(sections[0].versionName)
+        assertEquals(listOf("b80f3c7"), sections[0].commits.map { it.hash })
+    }
+
+    @Test
     fun `pas de section Pas encore publie quand le dernier commit est tague`() {
         val sections = groupHistoriqueByVersion(historique.drop(1), installedVersionName = "1.1.0")
         assertEquals("1.1.0", sections.first().versionName)

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml  # type: ignore[import-untyped]
@@ -129,23 +130,131 @@ def test_ci_runs_buildsrc_tests():
     assert "-p buildSrc test" in ci
 
 
-def test_release_checkout_fetches_full_history():
+@pytest.mark.parametrize("workflow", ["release.yml", "app-preview.yml"])
+def test_release_checkout_fetches_full_history(workflow: str) -> None:
     """Issue #162 : l'historique de l'écran À propos vient de `git log` au build.
 
     Avec le clone superficiel par défaut d'actions/checkout (fetch-depth 1), l'APK de
-    release (v0.9.0) n'affichait qu'un seul commit.
+    release (v0.9.0) n'affichait qu'un seul commit. La préversion (#173) calcule en plus
+    N par `git describe`, qui a besoin des tags.
     """
-    release = yaml.safe_load(
-        (WORKFLOWS_DIR / "release.yml").read_text(encoding="utf-8")
-    )
+    release = yaml.safe_load((WORKFLOWS_DIR / workflow).read_text(encoding="utf-8"))
     checkouts = [
         step
         for job in release["jobs"].values()
         for step in job["steps"]
         if str(step.get("uses", "")).startswith("actions/checkout@")
     ]
-    assert checkouts, "release.yml doit faire un actions/checkout"
+    assert checkouts, f"{workflow} doit faire un actions/checkout"
     for step in checkouts:
         assert (step.get("with") or {}).get("fetch-depth") == 0, (
-            "release.yml : actions/checkout doit avoir fetch-depth: 0"
+            f"{workflow} : actions/checkout doit avoir fetch-depth: 0"
         )
+
+
+# --- Préversion de l'appli (issue #173) -------------------------------------------
+
+APP_PREVIEW = WORKFLOWS_DIR / "app-preview.yml"
+
+
+def _app_preview() -> dict[Any, Any]:
+    workflow: dict[Any, Any] = yaml.safe_load(APP_PREVIEW.read_text(encoding="utf-8"))
+    return workflow
+
+
+def _app_preview_trigger() -> dict[Any, Any]:
+    wf = _app_preview()
+    # PyYAML lit la clé `on` comme le booléen True
+    trigger: dict[Any, Any] = wf["on"] if "on" in wf else wf[True]
+    return trigger
+
+
+def test_app_preview_on_push_to_main_only():
+    trigger = _app_preview_trigger()
+    assert set(trigger) == {"push"}, "app-preview.yml : déclenché par push uniquement"
+    assert trigger["push"]["branches"] == ["main"]
+    assert "tags" not in trigger["push"]
+
+
+def test_app_preview_paths_limited_to_the_app():
+    paths = set(_app_preview_trigger()["push"]["paths"])
+    for path in (
+        "app/**",
+        "buildSrc/**",
+        "gradle/**",
+        "*.gradle.kts",
+        "gradle.properties",
+    ):
+        assert path in paths, f"app-preview.yml : {path} doit déclencher une préversion"
+    assert not any(p.startswith("docs") for p in paths), (
+        "un merge qui ne touche que la doc ne doit rien publier"
+    )
+
+
+def test_app_preview_only_last_of_close_merges_is_published():
+    concurrency = _app_preview()["concurrency"]
+    assert concurrency["group"] == "app-preview"
+    assert concurrency["cancel-in-progress"] is True
+
+
+def test_app_preview_can_write_releases():
+    wf = _app_preview()
+    permissions = (
+        wf.get("permissions") or next(iter(wf["jobs"].values()))["permissions"]
+    )
+    assert permissions["contents"] == "write"
+
+
+def test_app_preview_version_from_script_and_skipped_when_empty():
+    text = APP_PREVIEW.read_text(encoding="utf-8")
+    assert "scripts/preview_version.sh" in text
+    assert re.search(r"assembleRelease\s+-PversionName=", text)
+    # Rien n'est publié quand le script n'affiche rien (N = 0 ou pas de version)
+    steps = next(iter(_app_preview()["jobs"].values()))["steps"]
+    after_version = steps[
+        [
+            i
+            for i, s in enumerate(steps)
+            if "preview_version.sh" in str(s.get("run", ""))
+        ][0]
+        + 1 :
+    ]
+    assert after_version
+    for step in after_version:
+        assert "if" in step, (
+            f"étape « {step.get('name')} » à sauter quand il n'y a pas de préversion"
+        )
+
+
+def test_app_preview_signed_and_verified_like_release():
+    text = APP_PREVIEW.read_text(encoding="utf-8")
+    assert "KEYSTORE_BASE64" in text
+    assert "LMELP_KEYSTORE_FILE" in text
+    assert "verify --print-certs" in text
+    assert re.search(r"aapt2\"? dump badging", text)
+
+
+def test_app_preview_rotating_prerelease_named_after_version():
+    text = APP_PREVIEW.read_text(encoding="utf-8")
+    assert "gh release delete app-preview" in text
+    assert "--cleanup-tag" in text
+    # Commande complète, lignes continuées par « \ » comprises
+    create = re.search(r"gh release create app-preview(?:[^\n]*\\\n)*[^\n]*", text)
+    assert create, "app-preview.yml doit recréer la release app-preview"
+    cmd = create.group(0)
+    assert "--prerelease" in cmd
+    # La version X.Y.Z+N est lue dans le nom de la release, pas dans l'asset (+ réécrit)
+    assert re.search(
+        r"--title\s+\"?\$\{?\{?\s*(steps\.version\.outputs\.VERSION|VERSION)", cmd
+    )
+    assert "--target" in cmd
+
+
+def test_app_preview_asset_name_has_no_plus():
+    text = APP_PREVIEW.read_text(encoding="utf-8")
+    names = re.findall(r"dist/(lmelp-mobile-[^\s\"']+\.apk)", text)
+    assert names, "l'APK de la préversion doit être copié dans dist/"
+    for name in names:
+        # ${VERSION/+/.} : substitution bash qui remplace le « + » par un point
+        assert "+" not in name.replace("${VERSION/+/.}", "")
+        assert "VERSION" not in name or "${VERSION/+/.}" in name

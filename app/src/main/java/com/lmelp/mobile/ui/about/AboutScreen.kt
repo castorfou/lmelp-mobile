@@ -32,6 +32,7 @@ import com.lmelp.mobile.data.repository.AppUpdateRepository
 import com.lmelp.mobile.data.repository.DataUpdateRepository
 import com.lmelp.mobile.data.repository.MetadataRepository
 import com.lmelp.mobile.data.update.ApkInstallOutcome
+import com.lmelp.mobile.data.update.isPreviewVersion
 import com.lmelp.mobile.viewmodel.AboutViewModel
 import java.io.File
 import java.io.IOException
@@ -44,8 +45,10 @@ fun formatDbInfoSummary(dbInfo: DbInfoUi): String =
         "${dbInfo.nbEmissions} émissions, ${dbInfo.nbLivres} livres, ${dbInfo.nbAvis} avis"
 
 /** Ligne de version de l'en-tête : versionName de l'APK, commit et date de build (issue #161). */
-fun formatVersionLine(versionName: String, gitCommit: String, buildDate: String): String =
-    "Version $versionName · $gitCommit ($buildDate)"
+fun formatVersionLine(versionName: String, gitCommit: String, buildDate: String): String {
+    val preview = if (isPreviewVersion(versionName)) " (préversion)" else ""
+    return "Version $versionName$preview · $gitCommit ($buildDate)"
+}
 
 /** Libellé du bouton/état de mise à jour des données (issue #118). */
 fun formatUpdateStateLabel(state: DataUpdateState): String = when (state) {
@@ -62,14 +65,18 @@ fun formatUpdateStateLabel(state: DataUpdateState): String = when (state) {
     is DataUpdateState.Error -> state.message
 }
 
-/** Titre du bloc « nouvelle version de l'appli », null s'il n'y en a pas (issue #162). */
-fun formatAppUpdateTitle(state: AppUpdateState): String? = when (state) {
-    is AppUpdateState.Idle -> null
-    is AppUpdateState.UpdateAvailable -> "Nouvelle version ${state.release.versionName} disponible"
-    is AppUpdateState.Downloading -> "Nouvelle version ${state.release.versionName} disponible"
-    is AppUpdateState.NeedsPermission -> "Nouvelle version ${state.release.versionName} disponible"
-    is AppUpdateState.Installing -> "Nouvelle version ${state.release.versionName} disponible"
-    is AppUpdateState.Error -> "Nouvelle version ${state.release.versionName} disponible"
+/** Titre du bloc « nouvelle version de l'appli », null s'il n'y en a pas (issues #162 et #173). */
+fun formatAppUpdateTitle(state: AppUpdateState): String? {
+    val release = when (state) {
+        is AppUpdateState.Idle -> return null
+        is AppUpdateState.UpdateAvailable -> state.release
+        is AppUpdateState.Downloading -> state.release
+        is AppUpdateState.NeedsPermission -> state.release
+        is AppUpdateState.Installing -> state.release
+        is AppUpdateState.Error -> state.release
+    }
+    return if (release.isPreview) "Préversion ${release.versionName} disponible"
+    else "Nouvelle version ${release.versionName} disponible"
 }
 
 /** Libellé du bouton du bloc « nouvelle version de l'appli » (issue #162). */

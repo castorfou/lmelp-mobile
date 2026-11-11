@@ -239,12 +239,15 @@ sealed class DataUpdateState {
 }
 
 /**
- * Release GitHub telle que listée par l'API (issue #162) : release d'appli (`vX.Y.Z`, APK
- * `lmelp-mobile-vX.Y.Z.apk`) ou de données (`data-v{N}`, sans APK). versionCode est null
- * pour tout tag qui n'est pas une release d'appli stable.
+ * Release GitHub telle que listée par l'API (issue #162) : version de l'appli (`vX.Y.Z`, APK
+ * `lmelp-mobile-vX.Y.Z.apk`), préversion (tag `app-preview`, issue #173) ou données
+ * (`data-v{N}`, sans APK). Une préversion porte sa version `X.Y.Z+N` dans le [name] de la
+ * release, pas dans son tag fixe. versionCode est null pour toute autre release.
  */
 data class AppRelease(
     val tag: String,
+    /** Nom (titre) de la release GitHub. */
+    val name: String = "",
     val prerelease: Boolean,
     val draft: Boolean,
     val apkUrl: String?,
@@ -252,8 +255,11 @@ data class AppRelease(
     val apkSha256: String?,
     val htmlUrl: String
 ) {
-    val versionName: String get() = tag.removePrefix("v")
-    val versionCode: Int? get() = com.lmelp.mobile.data.update.appVersionCodeFromTag(tag)
+    val isPreview: Boolean get() = tag == com.lmelp.mobile.data.update.APP_PREVIEW_TAG
+    val versionName: String get() = if (isPreview) name else tag.removePrefix("v")
+    val versionCode: Int?
+        get() = if (isPreview) com.lmelp.mobile.data.update.appVersionCodeFromPreviewName(name)
+        else com.lmelp.mobile.data.update.appVersionCodeFromTag(tag)
 }
 
 /** Résultat de la recherche d'une nouvelle version de l'appli (issue #162). */

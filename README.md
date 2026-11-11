@@ -32,7 +32,7 @@ Application mobile **standalone et offline-first** permettant de consulter :
 L'application et ses données sont publiées séparément sur les GitHub Releases du dépôt :
 
 - **les données** (base SQLite) sur la release `data-v{N}`, publiée automatiquement toutes les heures par le NAS quand le contenu change ; l'app la télécharge depuis son écran À propos ;
-- **l'appli** (APK signé) sur une release `vX.Y.Z`, publiée quand on pousse le tag correspondant.
+- **l'appli** (APK signé) sur une release `vX.Y.Z`, publiée quand on pousse le tag correspondant, et en préversion `X.Y.Z+N` sur la pré-release `app-preview`, republiée à chaque merge dans `main` qui touche l'appli.
 
 ## Architecture
 
@@ -49,6 +49,7 @@ lmelp.db  (SQLite snapshot, container lmelp-export sur le NAS)
 Application Android (Kotlin + Jetpack Compose + Room)
         ▲
         │  release GitHub vX.Y.Z (APK signé par release.yml sur tag)
+        │  pré-release app-preview X.Y.Z+N (app-preview.yml, à chaque merge dans main)
 code Kotlin
 ```
 
@@ -91,7 +92,8 @@ code Kotlin
 |---|---|---|
 | Tester une modification | `scripts/build.sh && scripts/deploy.sh` | APK debug installé en USB |
 | Publier une version de l'appli | `git tag vX.Y.Z && git push origin vX.Y.Z` | APK signé sur la release GitHub `vX.Y.Z`, version `X.Y.Z` (À propos) |
-| Mettre à jour l'appli (utilisateur) | À propos → Télécharger et installer (proposé dès qu'une release `vX.Y.Z` plus récente existe) | mise à jour sans perte des données |
+| Publier une préversion | merge dans `main` qui touche l'appli (automatique, `app-preview.yml`) | APK signé sur la pré-release `app-preview`, version `X.Y.Z+N` |
+| Mettre à jour l'appli (utilisateur) | À propos → Télécharger et installer (proposé dès qu'une version `vX.Y.Z` ou une préversion plus récente existe) | mise à jour sans perte des données |
 | Mettre à jour les données (utilisateur) | À propos → mise à jour | nouvelle base téléchargée |
 
 APK debug (« LMELP debug », icône orange, `com.lmelp.mobile.debug`) et APK release (« Le Masque et la Plume », `com.lmelp.mobile`) s'installent côte à côte, chacun avec ses données. Le cycle complet, la signature et le keystore de release sont décrits dans [Développer, livrer, mettre à jour](https://castorfou.github.io/lmelp-mobile/dev/livrer_appli/).

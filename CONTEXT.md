@@ -10,6 +10,10 @@ Application Android hors ligne pour consulter le contenu de l'émission Le Masqu
 Release publiée de l'APK, identifiée par un numéro `X.Y.Z` stable. Le mot « version » employé seul désigne toujours celle-ci.
 _Avoid_ : release, build
 
+**Préversion** :
+APK release publié automatiquement à chaque merge dans `main` qui touche l'appli, numéroté `X.Y.Z+N` (N commits depuis la version X.Y.Z). Une seule à la fois, sur la pré-release `app-preview`. Ce n'est pas une version : ses commits restent « Pas encore publié ».
+_Avoid_ : nightly, build de dev, version beta
+
 **Contenu d'une version** :
 Les commits compris entre la version de l'appli précédente (non comprise) et celle-ci (comprise). Tout ce qui précède la première version (0.9.0) en fait partie.
 

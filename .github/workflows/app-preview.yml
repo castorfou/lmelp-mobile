@@ -1,0 +1,126 @@
+name: Préversion de l'appli
+
+# Issue #173 : chaque push sur main qui touche l'appli publie un APK release signé,
+# numéroté X.Y.Z+N (N commits depuis la dernière version vX.Y.Z), sur la pré-release
+# tournante `app-preview`. L'appli release la propose par sa détection de mise à jour (#162).
+# Créer une version reste manuel : git tag vX.Y.Z && git push --tags (release.yml).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'buildSrc/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'scripts/preview_version.sh'
+      - '.github/workflows/app-preview.yml'
+
+# De deux merges rapprochés, seul le dernier est publié.
+concurrency:
+  group: app-preview
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # suppression/création de la release app-preview
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          # Historique complet et tags : git describe (N) et historique de l'écran À propos (#170)
+          fetch-depth: 0
+
+      - name: Compute preview version
+        id: version
+        run: |
+          VERSION=$(scripts/preview_version.sh)
+          if [ -z "$VERSION" ]; then
+            echo "::notice::Pas de préversion : commit tagué (doublon de la version) ou aucune version vX.Y.Z"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK 17
+        if: steps.version.outputs.VERSION != ''
+        uses: actions/setup-java@v6
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        if: steps.version.outputs.VERSION != ''
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+
+      # Même keystore et mêmes contrôles que release.yml : une préversion doit
+      # s'installer par-dessus une version (même clé de signature).
+      - name: Decode release keystore
+        if: steps.version.outputs.VERSION != ''
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Secret KEYSTORE_BASE64 absent : impossible de signer l'APK de préversion"
+            exit 1
+          fi
+          if printf '%s%s' "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" | LC_ALL=C grep -q '[^ -~]'; then
+            echo "::error::KEYSTORE_PASSWORD ou KEY_PASSWORD contient un caractère non ASCII"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "LMELP_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      # versionCode = (major*10000 + minor*100 + patch)*1000 + N (buildSrc/AppVersion.kt)
+      - name: Build signed preview APK
+        if: steps.version.outputs.VERSION != ''
+        env:
+          LMELP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          LMELP_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          LMELP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease -PversionName="$VERSION"
+
+      # GitHub réécrit le `+` des noms d'assets : l'APK porte X.Y.Z.N, la version
+      # X.Y.Z+N est lue par l'appli dans le titre de la release.
+      - name: Verify signature and rename APK
+        if: steps.version.outputs.VERSION != ''
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)
+          "${BUILD_TOOLS}apksigner" verify --print-certs "$APK"
+          "${BUILD_TOOLS}aapt2" dump badging "$APK" | grep "^package:"
+          if ! "${BUILD_TOOLS}aapt2" dump badging "$APK" | grep -qF "versionName='$VERSION'"; then
+            echo "::error::versionName de l'APK différent de la préversion $VERSION"
+            exit 1
+          fi
+          mkdir -p dist
+          cp "$APK" "dist/lmelp-mobile-preview-${VERSION/+/.}.apk"
+          rm -f "$RUNNER_TEMP/release.jks"
+
+      # Une seule pré-release tournante : l'ancienne est supprimée avec son tag, puis
+      # recréée sur le commit courant. --prerelease : ne devient jamais « Latest »
+      # (réservé à data-v{N}, lu par l'appli pour les données).
+      - name: Publish app-preview pre-release
+        if: steps.version.outputs.VERSION != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          gh release delete app-preview --cleanup-tag --yes || true
+          gh release create app-preview "dist/lmelp-mobile-preview-${VERSION/+/.}.apk" \
+            --prerelease \
+            --title "$VERSION" \
+            --target "$GITHUB_SHA" \
+            --notes "Préversion $VERSION de lmelp-mobile : $(echo "$VERSION" | cut -d+ -f2) commit(s) depuis la version v${VERSION%%+*}, commit ${GITHUB_SHA::7}.
+
+          L'appli la propose dans l'écran À propos (« Préversion $VERSION disponible »). Elle sera remplacée par la prochaine préversion ou version."

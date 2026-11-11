@@ -62,6 +62,17 @@ class OkHttpAppReleaseApiTest {
             ]
           },
           {
+            "tag_name": "app-preview", "name": "1.2.0+3", "draft": false, "prerelease": true,
+            "html_url": "https://github.com/castorfou/lmelp-mobile/releases/tag/app-preview",
+            "assets": [
+              {
+                "name": "lmelp-mobile-preview-1.2.0.3.apk",
+                "browser_download_url": "https://example.org/lmelp-mobile-preview-1.2.0.3.apk",
+                "digest": "sha256:0123"
+              }
+            ]
+          },
+          {
             "tag_name": "v0.0.0-test", "draft": false, "prerelease": true,
             "html_url": "https://github.com/castorfou/lmelp-mobile/releases/tag/v0.0.0-test",
             "assets": [
@@ -78,14 +89,18 @@ class OkHttpAppReleaseApiTest {
 
         val releases = api.fetchReleases()
 
-        assertEquals(listOf("data-v9", "v1.2.0", "v0.0.0-test"), releases.map { it.tag })
+        assertEquals(listOf("data-v9", "v1.2.0", "app-preview", "v0.0.0-test"), releases.map { it.tag })
         val data = releases[0]
         assertNull("une release de données n'a pas d'APK", data.apkUrl)
         val app = releases[1]
         assertEquals("https://example.org/lmelp-mobile-v1.2.0.apk", app.apkUrl)
         assertEquals("abcdef0123", app.apkSha256)
         assertFalse(app.prerelease)
-        val test = releases[2]
+        val preview = releases[2]
+        assertEquals("le nom de la release porte la version d'une préversion", "1.2.0+3", preview.name)
+        assertEquals("1.2.0+3", preview.versionName)
+        assertTrue(preview.prerelease)
+        val test = releases[3]
         assertTrue(test.prerelease)
         assertNull("digest null → pas d'empreinte", test.apkSha256)
     }
@@ -138,7 +153,7 @@ class OkHttpAppReleaseApiTest {
 
         val releases = retryingApi().fetchReleases()
 
-        assertEquals(3, releases.size)
+        assertEquals(4, releases.size)
         assertEquals(2, server.requestCount)
         assertEquals(listOf(1000L), recordedDelays)
     }
