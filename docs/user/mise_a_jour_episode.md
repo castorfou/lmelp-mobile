@@ -29,6 +29,13 @@
 >     - envoie l'audio, attend, rapatrie la transcription, intégre en base
 >     - notifie l'utilisateur via **ntfy.sh**
 
+!!! info "Émission absente du flux RSS"
+    Le flux RSS France Inter ne garde que les épisodes récents. Une émission plus ancienne, absente de lmelp (par exemple signalée par lmelp-pap), ne passe donc pas par Automatisch.
+
+    Depuis ![](img/favicon_lmelp-backoffice.png) **lmelp-backoffice** - frontend, rubrique *Podcast Masque Et La Plume*, page **Ajouter une émission** : coller l'URL de la page radiofrance.fr de l'émission (la page de l'émission, pas le lien audio d'une séquence). Le téléchargement de l'audio, la notification **ntfy.sh** et la transcription PGX (avec réessai toutes les heures si PGX est injoignable) s'enchaînent ensuite comme pour un épisode RSS.
+
+    La suite manuelle ci-dessous est inchangée. Détails dans la doc back-office : [Ajouter une émission](https://castorfou.github.io/back-office-lmelp/user/ajout-emission/).
+
 la suite est manuelle :
 
 > ![](img/favicon_lmelp-backoffice.png) depuis **lmelp-backoffice** - frontend :
