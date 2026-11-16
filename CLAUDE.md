@@ -533,6 +533,12 @@ items(avisDuCritique, key = { it.livreId })   // un critique peut noter 2 fois l
 items(avisDuCritique, key = { it.avisId })
 ```
 
+## Écosystème lmelp : schéma à tenir à jour
+
+[docs/ecosysteme.md](docs/ecosysteme.md) (issue #178) décrit qui alimente qui dans la stack lmelp (Radio France, Automatisch, back-office-lmelp, PGX, Babelio, Calibre, `lmelp-export`, releases GitHub, appli, ntfy) et ce qui déclenche chaque flux : schémas « Mise à jour des données » et « Mise à jour du code », plus le tableau des déclencheurs.
+
+**Toute modification d'un flux de l'écosystème met à jour cette page dans la même PR** : nouvelle brique ou brique retirée, nouveau déclencheur, fréquence (`PUBLISH_INTERVAL`, cron, réessai), notification ntfy, workflow qui publie une image ou une release. back-office-lmelp et docker-lmelp reçoivent la même consigne ([back-office-lmelp#365](https://github.com/castorfou/back-office-lmelp/issues/365), [docker-lmelp#92](https://github.com/castorfou/docker-lmelp/issues/92)) : un changement de flux fait chez eux ouvre une issue ici. Syntaxe des schémas (étiquettes `court@@long`, ordre des flèches avec ELK) : [docs/cheatsheets/mkdocs.md](docs/cheatsheets/mkdocs.md), section mermaid.
+
 ## Mise à jour du template
 
 Le projet est généré depuis le template [PyFoundry](https://github.com/castorfou/PyFoundry) (version dans `TEMPLATE_VERSION`). La skill `/cruft-update` (`.claude/skills/cruft-update/`) applique ses évolutions : `cruft update`, lecture du CHANGELOG et des migrations, résolution des rejets (`.rej`, marqueurs de conflit) selon le propriétaire de chaque fichier, vérifications, commit. Elle vient du template : ne pas la modifier ici, la prochaine mise à jour l'écraserait.
