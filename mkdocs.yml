@@ -72,7 +72,9 @@ plugins:
 
 extra_javascript:
   - javascripts/toc-collapse.js
+  - javascripts/mermaid-fullscreen.js
 
 extra_css:
   - overrides.css/custom-table-header.css
   - overrides.css/toc-collapse.css
+  - overrides.css/mermaid-fullscreen.css
