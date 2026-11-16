@@ -5,7 +5,7 @@ Vue d'ensemble des briques qui alimentent l'application lmelp-mobile : qui alime
 ## Schéma synoptique
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph EXT["Sources externes"]
         RSS["France Inter<br/>flux RSS Le Masque et la Plume"]
         RF["radiofrance.fr<br/>page et audio de l'émission"]
