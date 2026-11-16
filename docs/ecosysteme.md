@@ -64,21 +64,37 @@ flowchart TB
 
 ## Mise à jour du code
 
-Indépendante du flux de données : chaque push sur `main` reconstruit les images Docker, que Watchtower installe sur le NAS.
+Indépendante du flux de données. Chaque push sur `main` reconstruit les images Docker, que Watchtower installe sur le NAS, et publie une préversion de l'appli si le push la modifie ; un tag `vX.Y.Z` publie une version de l'appli. L'appli détecte elle-même les deux (voir [Installer et mettre à jour l'appli](user/installer_mettre_a_jour.md)).
 
 ```mermaid
 flowchart TB
     PUSH["push sur main<br/>back-office-lmelp, lmelp-mobile"]
-    CI["CI GitHub Actions<br/>images ghcr.io"]
+    TAG["tag vX.Y.Z<br/>lmelp-mobile"]
+
+    subgraph GH["GitHub"]
+        CI["CI GitHub Actions<br/>images ghcr.io"]
+        PREV["release app-preview<br/>APK préversion X.Y.Z+N"]
+        APK["release vX.Y.Z<br/>lmelp-mobile-vX.Y.Z.apk"]
+    end
+
     subgraph NAS["NAS Synology (Docker)"]
         WT["Watchtower"]
         BACK["lmelp backend + frontend"]
         EXPORT["lmelp-export"]
     end
+
+    subgraph PHONE["Téléphone"]
+        MOB["app lmelp-mobile"]
+    end
+
     PUSH --> CI
+    PUSH -->|"préversion@@app-preview.yml, si le push touche l'appli :<br/>APK release signé X.Y.Z+N<br/>(N commits depuis le dernier tag stable) ;<br/>la release app-preview est supprimée puis recréée"| PREV
+    TAG -->|"version@@release.yml : APK release signé,<br/>signature vérifiée avec apksigner"| APK
     CI -->|"nouvelles images@@images publiées sur ghcr.io,<br/>puis appel de l'API Watchtower du NAS"| WT
     WT -->|"recrée@@recrée les conteneurs<br/>avec les nouvelles images"| BACK
     WT -->|"redémarre@@redémarre sur la nouvelle image"| EXPORT
+    PREV -->|"nouvelle version@@détection au lancement de l'appli (badge) ;<br/>À propos : Télécharger et installer"| MOB
+    APK -->|"nouvelle version@@détection au lancement de l'appli (badge) ;<br/>À propos : Télécharger et installer"| MOB
 ```
 
 ## Déclencheurs
@@ -98,6 +114,9 @@ Le tableau reprend chaque flux en détail.
 | MongoDB + Calibre (livres lus) → `lmelp-export` → release `data-v{N}` | **toutes les heures** (`PUBLISH_INTERVAL`), publication seulement si le contenu a changé (la release est alors republiée sur place) ; immédiat avec `docker exec lmelp-export export-and-publish-release` |
 | Release → app mobile | détection au lancement de l'app (point vert) ; téléchargement **manuel** (À propos → Vérifier les mises à jour) |
 | Nouvelle version de code | push sur `main` → CI → images ghcr.io → Watchtower recrée les conteneurs (back-office, `lmelp-export`) |
+| Préversion de l'appli → release `app-preview` | push sur `main` qui touche l'appli (`app-preview.yml`), APK `X.Y.Z+N` ; rien si aucun commit depuis le dernier tag |
+| Version de l'appli → release `vX.Y.Z` | tag `vX.Y.Z` (`release.yml`) |
+| Release de l'appli → app mobile | détection au lancement de l'app (badge) ; installation **manuelle** (À propos → Télécharger et installer) |
 | Notifications ntfy | Automatisch : nouvel épisode ; back-office : chaque étape traitée ; `lmelp-export` : nouvelles données publiées, premier échec, puis rétablissement |
 | Sauvegarde MongoDB | **hebdomadaire** (anacron dans `lmelp-mongo`) |
 
