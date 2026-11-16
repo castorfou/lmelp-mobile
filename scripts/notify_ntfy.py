@@ -17,6 +17,11 @@ back-office-lmelp pour partager le même topic (titres préfixés par
   NTFY_STATE_FILE  — dernier statut du job (défaut :
                      /var/lib/lmelp-export/last_status)
 
+Les écarts affichés (« +N ») comparent les compteurs globaux de deux
+publications successives, pas le contenu des nouvelles émissions : des livres
+créés par le back-office avant leur émission partent dans une publication
+antérieure (issue #179).
+
 Une notification ne fait jamais échouer le pipeline : toute erreur réseau est
 signalée sur stderr et ignorée.
 """
