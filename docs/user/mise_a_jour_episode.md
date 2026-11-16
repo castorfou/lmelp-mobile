@@ -67,6 +67,14 @@ Une notification **ntfy.sh** arrive alors sur le même topic que celles de lmelp
 - **lmelp-mobile - échec de publication des données** : envoyée au premier échec seulement, avec la fin du log ;
 - **lmelp-mobile - publication des données rétablie** : quand la publication fonctionne de nouveau.
 
+!!! note "Les écarts sont des totaux de la base, pas le contenu d'une émission"
+    `+N livres` compte tous les livres ajoutés depuis la publication précédente, qu'ils soient rattachés ou non à une émission. Or lmelp-backoffice crée d'abord les livres d'un épisode, puis quelques minutes plus tard l'émission et ses avis. Si l'export horaire passe entre les deux, les livres d'une même émission sont publiés en deux fois (issue #179) :
+
+    - une première notification avec seulement des livres, par exemple `1751 livres (+7)`, sans nouvelle émission ;
+    - puis une seconde avec l'émission et les livres restants, par exemple `187 émissions (+1) · 1753 livres (+2)`, alors que l'émission compte 9 livres.
+
+    Ce comportement est voulu : on est aussi notifié des livres qui ne sont pas (encore) associés à une émission.
+
 !!! note "Publier sans attendre"
     Pour publier immédiatement, sans attendre le prochain run horaire : `docker exec lmelp-export export-and-publish-release`.
 
