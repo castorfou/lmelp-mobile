@@ -94,6 +94,32 @@
     viewport.addEventListener("scroll", function () { tooltip.hidden = true; });
   }
 
+  // Disposition ELK pour la vue plein écran : elle réserve la place des
+  // étiquettes avant de placer les blocs (moins de chevauchements que dagre,
+  // la disposition par défaut). Version 0.2.x = celle compatible mermaid 11,
+  // chargé par Material.
+  const ELK_URL = "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.2.3/dist/mermaid-layout-elk.esm.min.mjs";
+  let elkLoading = null;
+
+  function loadElk() {
+    if (!elkLoading) {
+      elkLoading = import(ELK_URL)
+        .then(function (module) {
+          window.mermaid.registerLayoutLoaders(module.default);
+          return true;
+        })
+        .catch(function (error) {
+          console.warn("Disposition ELK indisponible, retour à dagre :", error);
+          return false;
+        });
+    }
+    return elkLoading;
+  }
+
+  function withLayout(source, layout) {
+    return "---\nconfig:\n  layout: " + layout + "\n---\n" + source.trim();
+  }
+
   async function openOverlay(source, details) {
     if (!window.mermaid) {
       return;
@@ -107,30 +133,68 @@
     overlay.append(toolbar, viewport);
     document.body.append(overlay);
     document.body.classList.add("mermaid-fullscreen-open");
+    if (overlay.requestFullscreen) {
+      overlay.requestFullscreen().catch(function () {});
+    }
 
-    counter += 1;
-    const { svg } = await window.mermaid.render("mermaid-fullscreen-" + counter, source);
-    viewport.innerHTML = svg;
-    attachDetails(overlay, viewport, details);
-    const svgElement = viewport.querySelector("svg");
-    const naturalWidth = svgElement.viewBox.baseVal.width || svgElement.getBBox().width;
-    svgElement.removeAttribute("height");
-    svgElement.style.maxWidth = "none";
-    svgElement.style.height = "auto";
-
+    let svgElement = null;
+    let naturalWidth = 1;
     let scale = 1;
+    let layout = (await loadElk()) ? "elk" : "dagre";
+
     function fitScale() {
       return viewport.clientWidth / naturalWidth;
     }
     function apply() {
-      svgElement.style.width = Math.round(naturalWidth * scale) + "px";
+      if (svgElement) {
+        svgElement.style.width = Math.round(naturalWidth * scale) + "px";
+      }
     }
     function zoom(factor) {
       scale = Math.min(Math.max(scale * factor, 0.2), 8);
       apply();
     }
 
+    async function draw() {
+      counter += 1;
+      const { svg } = await window.mermaid.render(
+        "mermaid-fullscreen-" + counter,
+        withLayout(source, layout)
+      );
+      overlay.querySelectorAll(".mermaid-fullscreen-tooltip").forEach(function (old) { old.remove(); });
+      viewport.innerHTML = svg;
+      attachDetails(overlay, viewport, details);
+      svgElement = viewport.querySelector("svg");
+      naturalWidth = svgElement.viewBox.baseVal.width || svgElement.getBBox().width;
+      svgElement.removeAttribute("height");
+      svgElement.style.maxWidth = "none";
+      svgElement.style.height = "auto";
+      // Par défaut : largeur de l'écran, sans descendre sous la taille réelle du texte.
+      scale = Math.max(fitScale(), 1);
+      apply();
+    }
+
+    const layoutButton = makeButton("", "Changer la disposition du schéma", async function () {
+      layout = layout === "elk" ? "dagre" : "elk";
+      if (layout === "elk" && !(await loadElk())) {
+        layout = "dagre";
+      }
+      updateLayoutLabel();
+      await draw();
+    });
+    function updateLayoutLabel() {
+      layoutButton.textContent = layout === "elk" ? "Disposition : ELK" : "Disposition : classique";
+    }
+    updateLayoutLabel();
+
+    if (details.length > 0) {
+      const hint = document.createElement("span");
+      hint.className = "mermaid-fullscreen-hint";
+      hint.textContent = "Survoler ou toucher une étiquette soulignée pour son détail";
+      toolbar.append(hint);
+    }
     toolbar.append(
+      layoutButton,
       makeButton("−", "Dézoomer", function () { zoom(1 / ZOOM_STEP); }),
       makeButton("+", "Zoomer", function () { zoom(ZOOM_STEP); }),
       makeButton("Ajuster", "Ajuster à la largeur de l'écran", function () {
@@ -139,20 +203,8 @@
       }),
       makeButton("✕", "Fermer (Échap)", function () { closeOverlay(overlay); })
     );
-    if (details.length > 0) {
-      const hint = document.createElement("span");
-      hint.className = "mermaid-fullscreen-hint";
-      hint.textContent = "Survoler ou toucher une étiquette soulignée pour son détail";
-      toolbar.prepend(hint);
-    }
 
-    // Par défaut : largeur de l'écran, sans descendre sous la taille réelle du texte.
-    scale = Math.max(fitScale(), 1);
-    apply();
-
-    if (overlay.requestFullscreen) {
-      overlay.requestFullscreen().catch(function () {});
-    }
+    await draw();
   }
 
   function setup() {
