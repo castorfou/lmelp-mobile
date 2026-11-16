@@ -203,3 +203,14 @@ uv add --active pandas # (1)
       B-->D;
       C-->D;
 ```
+
+Les schémas ne sont pas dessinés par Material mais par `javascripts/mermaid-fullscreen.js` (fence de classe `lmelp-mermaid` dans `mkdocs.yml`) : disposition ELK, bouton **Plein écran** avec zoom, et étiquettes de flèches à deux niveaux. Le texte avant `@@` s'affiche ; survoler ou toucher l'étiquette affiche le texte après `@@` (`<br/>` = retour à la ligne) :
+
+````markdown
+```mermaid
+flowchart TB
+    A -->|"horaire@@toutes les heures<br/>si le contenu a changé"| B
+```
+````
+
+Avec ELK, un bloc se place au-dessus de ceux vers lesquels il pointe : orienter les flèches dans le sens de lecture voulu, et déclarer les blocs dans cet ordre.
