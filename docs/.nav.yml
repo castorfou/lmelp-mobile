@@ -2,6 +2,7 @@ nav:
   - Accueil: index.md
   - Identité Visuelle: visual-identity.md
   - Architecture: architecture.md
+  - Écosystème lmelp: ecosysteme.md
   - Guides utilisateurs: user/
   - Guides développeurs: dev/
   - Cheatsheets: cheatsheets/

@@ -61,6 +61,10 @@ la suite est manuelle :
 
 Une fois la base de données enrichie côté serveur (section précédente), elle est publiée automatiquement sur la GitHub Release dédiée aux données (tag `data-v{N}`, voir [ADR 0001](../dev/adr/0001-separation-maj-appli-donnees.md)) **dans l'heure** : le container `lmelp-export` relance l'export toutes les heures et ne publie que si les données ont changé.
 
+`N` est la version du schéma de la base : la release `data-v{N}` est republiée sur place à chaque export (même nom, fichiers remplacés), et ne change de numéro que lorsque le schéma change. Pour connaître la date réelle de la dernière publication, regarder `export_datetime` dans `metadata.json`, pas la date de la release.
+
+Vue d'ensemble des flux et de leurs déclencheurs : [Écosystème lmelp](../ecosysteme.md).
+
 Une notification **ntfy.sh** arrive alors sur le même topic que celles de lmelp-backoffice :
 
 - **lmelp-mobile - nouvelles données publiées (data-v{N})** : avec le nombre d'émissions, de livres et d'avis, et l'écart par rapport à la publication précédente (par exemple `312 émissions (+1)`) ;

@@ -1,0 +1,89 @@
+/* Schémas mermaid dessinés par javascripts/mermaid-fullscreen.js (issue #178) */
+.lmelp-mermaid-diagram {
+  margin: 1em 0 0;
+  text-align: center;
+}
+
+.lmelp-mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.lmelp-mermaid-fullscreen-button.md-button {
+  margin: 0.4rem 0 1rem;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.7rem;
+}
+
+.lmelp-mermaid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  background: var(--md-default-bg-color, #fff);
+}
+
+.lmelp-mermaid-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  padding: 0.4rem;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest, #ddd);
+}
+
+.lmelp-mermaid-tool {
+  min-width: 2.4rem;
+  padding: 0.35rem 0.7rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--md-primary-fg-color, #3f51b5);
+  color: var(--md-primary-bg-color, #fff);
+  font: 500 0.8rem/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.lmelp-mermaid-hint {
+  margin-right: auto;
+  align-self: center;
+  font-size: 0.7rem;
+  color: var(--md-default-fg-color--light, #666);
+}
+
+.lmelp-mermaid-viewport {
+  flex: 1;
+  overflow: auto;
+  padding: 0.5rem;
+}
+
+.lmelp-mermaid-viewport svg {
+  display: block;
+  margin: 0 auto;
+}
+
+body.lmelp-mermaid-overlay-open {
+  overflow: hidden;
+}
+
+.lmelp-mermaid-has-detail {
+  cursor: help;
+}
+
+.lmelp-mermaid-has-detail p,
+.lmelp-mermaid-has-detail span {
+  text-decoration: underline dotted;
+}
+
+.lmelp-mermaid-tooltip {
+  position: fixed;
+  z-index: 5001;
+  max-width: min(28rem, calc(100vw - 16px));
+  padding: 0.5rem 0.7rem;
+  border-radius: 4px;
+  background: var(--md-default-fg-color, #222);
+  color: var(--md-default-bg-color, #fff);
+  font: 0.8rem/1.4 system-ui, sans-serif;
+  white-space: pre-line;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
