@@ -41,8 +41,10 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.superfences:
       custom_fences:
+        # Classe propre (pas « mermaid ») : Material ne dessine pas ces schémas,
+        # javascripts/mermaid-fullscreen.js s'en charge (disposition ELK, issue #178).
         - name: mermaid
-          class: mermaid
+          class: lmelp-mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true

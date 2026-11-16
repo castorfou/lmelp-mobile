@@ -1,35 +1,65 @@
-/* Bouton « Plein écran » sous chaque diagramme mermaid (issue #178).
+/* Schémas mermaid de la doc : disposition ELK, info-bulles, plein écran (issue #178).
  *
- * Material dessine les diagrammes dans un shadow DOM fermé : le SVG affiché
- * n'est pas accessible. Le source est donc mémorisé au chargement (avant que
- * Material ne remplace le <pre class="mermaid">), puis redessiné avec
- * window.mermaid dans une surcouche qui couvre l'écran, avec zoom et défilement.
+ * Material dessinerait les schémas lui-même, avec la disposition dagre et dans
+ * un shadow DOM fermé (ni info-bulle, ni plein écran possibles). Le fence
+ * mermaid produit donc <pre class="lmelp-mermaid"> (mkdocs.yml), que Material
+ * ignore : ce script charge mermaid + ELK et dessine chaque schéma, dans la page
+ * comme en plein écran, avec la même disposition.
  *
- * Étiquettes de flèches à deux niveaux : |"court@@texte long"|. Le texte long
- * est retiré du source avant que Material ne dessine le diagramme dans la page ;
- * en plein écran, survoler ou toucher l'étiquette courte l'affiche en info-bulle.
+ * Étiquettes de flèches à deux niveaux : |"court@@texte long"|. Le schéma
+ * affiche le texte court ; survoler ou toucher l'étiquette affiche le texte long.
  */
 (function () {
+  // Versions figées : layout-elk 0.2.x est la branche compatible mermaid 11.
+  const MERMAID_URL = "https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.esm.min.mjs";
+  const ELK_URL = "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.2.3/dist/mermaid-layout-elk.esm.min.mjs";
   const ZOOM_STEP = 1.25;
   const DETAIL_SEPARATOR = "@@";
-  let counter = 0;
 
-  function closeOverlay(overlay) {
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(function () {});
+  // Styles des flowcharts repris de Material (variables --md-mermaid-*) :
+  // mêmes couleurs qu'avant, en clair comme en sombre.
+  const THEME_CSS =
+    ".node circle,.node ellipse,.node path,.node polygon,.node rect{fill:var(--md-mermaid-node-bg-color);stroke:var(--md-mermaid-node-fg-color)}" +
+    "marker{fill:var(--md-mermaid-edge-color)!important}" +
+    ".edgeLabel .label rect{fill:#0000}" +
+    ".flowchartTitleText{fill:var(--md-mermaid-label-fg-color)}" +
+    ".label{color:var(--md-mermaid-label-fg-color);font-family:var(--md-mermaid-font-family)}" +
+    ".label foreignObject{line-height:normal;overflow:visible}" +
+    ".label div .edgeLabel{color:var(--md-mermaid-label-fg-color)}" +
+    ".edgeLabel,.edgeLabel p,.label div .edgeLabel{background-color:var(--md-mermaid-label-bg-color)}" +
+    ".edgeLabel,.edgeLabel p{fill:var(--md-mermaid-label-bg-color);color:var(--md-mermaid-edge-color)}" +
+    ".edgePath .path,.flowchart-link{stroke:var(--md-mermaid-edge-color)}" +
+    ".edgePath .arrowheadPath{fill:var(--md-mermaid-edge-color);stroke:none}" +
+    ".cluster rect{fill:var(--md-default-fg-color--lightest);stroke:var(--md-default-fg-color--lighter)}" +
+    ".cluster span{color:var(--md-mermaid-label-fg-color);font-family:var(--md-mermaid-font-family)}" +
+    "g #flowchart-circleEnd,g #flowchart-circleStart,g #flowchart-crossEnd,g #flowchart-crossStart,g #flowchart-pointEnd,g #flowchart-pointStart{stroke:none}";
+
+  let counter = 0;
+  let mermaidLoading = null;
+
+  function loadMermaid() {
+    if (!mermaidLoading) {
+      mermaidLoading = Promise.all([import(MERMAID_URL), import(ELK_URL)]).then(function (modules) {
+        const mermaid = modules[0].default;
+        mermaid.registerLayoutLoaders(modules[1].default);
+        mermaid.initialize({
+          startOnLoad: false,
+          layout: "elk",
+          theme: "base",
+          themeCSS: THEME_CSS,
+        });
+        return mermaid;
+      });
     }
-    overlay.remove();
-    document.body.classList.remove("mermaid-fullscreen-open");
+    return mermaidLoading;
   }
 
-  function makeButton(label, title, onClick) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "mermaid-fullscreen-tool";
-    button.textContent = label;
-    button.title = title;
-    button.addEventListener("click", onClick);
-    return button;
+  async function render(source, container) {
+    const mermaid = await loadMermaid();
+    counter += 1;
+    const { svg } = await mermaid.render("lmelp-mermaid-" + counter, source);
+    container.innerHTML = svg;
+    return container.querySelector("svg");
   }
 
   /* Sépare les étiquettes |"court@@long"| : renvoie le source avec les seules
@@ -49,152 +79,119 @@
     return { source: shortSource, details: details };
   }
 
+  // Une seule info-bulle pour toute la page (position fixe).
+  let tooltip = null;
+
+  function hideTooltip() {
+    if (tooltip) {
+      tooltip.hidden = true;
+    }
+  }
+
+  function showTooltip(label, text) {
+    if (!tooltip) {
+      tooltip = document.createElement("div");
+      tooltip.className = "lmelp-mermaid-tooltip";
+    }
+    // En plein écran du navigateur, seul l'élément en plein écran est visible.
+    const host = document.fullscreenElement || document.body;
+    if (tooltip.parentElement !== host) {
+      host.append(tooltip);
+    }
+    tooltip.textContent = text;
+    tooltip.hidden = false;
+    const box = label.getBoundingClientRect();
+    const width = tooltip.offsetWidth;
+    const left = Math.min(Math.max(box.left + box.width / 2 - width / 2, 8), window.innerWidth - width - 8);
+    tooltip.style.left = left + "px";
+    const below = box.bottom + 8;
+    tooltip.style.top = (below + tooltip.offsetHeight < window.innerHeight
+      ? below
+      : box.top - tooltip.offsetHeight - 8) + "px";
+  }
+
   /* Rattache chaque texte long à son étiquette dessinée. Mermaid dessine les
    * étiquettes dans l'ordre des flèches : à texte court égal (« horaire »
    * deux fois), la première étiquette prend le premier texte long. */
-  function attachDetails(overlay, viewport, details) {
-    if (details.length === 0) {
-      return;
-    }
-    const tooltip = document.createElement("div");
-    tooltip.className = "mermaid-fullscreen-tooltip";
-    tooltip.hidden = true;
-    overlay.append(tooltip);
+  function attachDetails(svgElement, details) {
     const remaining = details.slice();
-
-    function show(label, text) {
-      tooltip.textContent = text;
-      tooltip.hidden = false;
-      const box = label.getBoundingClientRect();
-      const width = tooltip.offsetWidth;
-      const left = Math.min(Math.max(box.left + box.width / 2 - width / 2, 8), window.innerWidth - width - 8);
-      tooltip.style.left = left + "px";
-      const below = box.bottom + 8;
-      tooltip.style.top = (below + tooltip.offsetHeight < window.innerHeight
-        ? below
-        : box.top - tooltip.offsetHeight - 8) + "px";
-    }
-
-    viewport.querySelectorAll("g.edgeLabel").forEach(function (label) {
+    svgElement.querySelectorAll("g.edgeLabel").forEach(function (label) {
       const text = label.textContent.trim();
       const index = remaining.findIndex(function (detail) { return detail.short === text; });
       if (index < 0) {
         return;
       }
       const long = remaining.splice(index, 1)[0].long;
-      label.classList.add("mermaid-fullscreen-has-detail");
-      label.addEventListener("mouseenter", function () { show(label, long); });
-      label.addEventListener("mouseleave", function () { tooltip.hidden = true; });
+      label.classList.add("lmelp-mermaid-has-detail");
+      label.addEventListener("mouseenter", function () { showTooltip(label, long); });
+      label.addEventListener("mouseleave", hideTooltip);
       label.addEventListener("click", function (event) {
         event.stopPropagation();
-        show(label, long);
+        showTooltip(label, long);
       });
     });
-    viewport.addEventListener("click", function () { tooltip.hidden = true; });
-    viewport.addEventListener("scroll", function () { tooltip.hidden = true; });
   }
 
-  // Disposition ELK pour la vue plein écran : elle réserve la place des
-  // étiquettes avant de placer les blocs (moins de chevauchements que dagre,
-  // la disposition par défaut). Version 0.2.x = celle compatible mermaid 11,
-  // chargé par Material.
-  const ELK_URL = "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.2.3/dist/mermaid-layout-elk.esm.min.mjs";
-  let elkLoading = null;
+  function makeButton(label, title, onClick) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "lmelp-mermaid-tool";
+    button.textContent = label;
+    button.title = title;
+    button.addEventListener("click", onClick);
+    return button;
+  }
 
-  function loadElk() {
-    if (!elkLoading) {
-      elkLoading = import(ELK_URL)
-        .then(function (module) {
-          window.mermaid.registerLayoutLoaders(module.default);
-          return true;
-        })
-        .catch(function (error) {
-          console.warn("Disposition ELK indisponible, retour à dagre :", error);
-          return false;
-        });
+  function closeOverlay(overlay) {
+    hideTooltip();
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
     }
-    return elkLoading;
-  }
-
-  function withLayout(source, layout) {
-    return "---\nconfig:\n  layout: " + layout + "\n---\n" + source.trim();
+    overlay.remove();
+    document.body.classList.remove("lmelp-mermaid-overlay-open");
   }
 
   async function openOverlay(source, details) {
-    if (!window.mermaid) {
-      return;
-    }
     const overlay = document.createElement("div");
-    overlay.className = "mermaid-fullscreen-overlay";
+    overlay.className = "lmelp-mermaid-overlay";
     const viewport = document.createElement("div");
-    viewport.className = "mermaid-fullscreen-viewport";
+    viewport.className = "lmelp-mermaid-viewport";
     const toolbar = document.createElement("div");
-    toolbar.className = "mermaid-fullscreen-toolbar";
+    toolbar.className = "lmelp-mermaid-toolbar";
     overlay.append(toolbar, viewport);
     document.body.append(overlay);
-    document.body.classList.add("mermaid-fullscreen-open");
+    document.body.classList.add("lmelp-mermaid-overlay-open");
+    viewport.addEventListener("scroll", hideTooltip);
     if (overlay.requestFullscreen) {
       overlay.requestFullscreen().catch(function () {});
     }
 
-    let svgElement = null;
-    let naturalWidth = 1;
-    let scale = 1;
-    let layout = (await loadElk()) ? "elk" : "dagre";
+    const svgElement = await render(source, viewport);
+    attachDetails(svgElement, details);
+    const naturalWidth = svgElement.viewBox.baseVal.width || svgElement.getBBox().width;
+    svgElement.removeAttribute("height");
+    svgElement.style.maxWidth = "none";
+    svgElement.style.height = "auto";
 
+    let scale = 1;
     function fitScale() {
       return viewport.clientWidth / naturalWidth;
     }
     function apply() {
-      if (svgElement) {
-        svgElement.style.width = Math.round(naturalWidth * scale) + "px";
-      }
+      svgElement.style.width = Math.round(naturalWidth * scale) + "px";
     }
     function zoom(factor) {
       scale = Math.min(Math.max(scale * factor, 0.2), 8);
       apply();
     }
 
-    async function draw() {
-      counter += 1;
-      const { svg } = await window.mermaid.render(
-        "mermaid-fullscreen-" + counter,
-        withLayout(source, layout)
-      );
-      overlay.querySelectorAll(".mermaid-fullscreen-tooltip").forEach(function (old) { old.remove(); });
-      viewport.innerHTML = svg;
-      attachDetails(overlay, viewport, details);
-      svgElement = viewport.querySelector("svg");
-      naturalWidth = svgElement.viewBox.baseVal.width || svgElement.getBBox().width;
-      svgElement.removeAttribute("height");
-      svgElement.style.maxWidth = "none";
-      svgElement.style.height = "auto";
-      // Par défaut : largeur de l'écran, sans descendre sous la taille réelle du texte.
-      scale = Math.max(fitScale(), 1);
-      apply();
-    }
-
-    const layoutButton = makeButton("", "Changer la disposition du schéma", async function () {
-      layout = layout === "elk" ? "dagre" : "elk";
-      if (layout === "elk" && !(await loadElk())) {
-        layout = "dagre";
-      }
-      updateLayoutLabel();
-      await draw();
-    });
-    function updateLayoutLabel() {
-      layoutButton.textContent = layout === "elk" ? "Disposition : ELK" : "Disposition : classique";
-    }
-    updateLayoutLabel();
-
     if (details.length > 0) {
       const hint = document.createElement("span");
-      hint.className = "mermaid-fullscreen-hint";
+      hint.className = "lmelp-mermaid-hint";
       hint.textContent = "Survoler ou toucher une étiquette soulignée pour son détail";
       toolbar.append(hint);
     }
     toolbar.append(
-      layoutButton,
       makeButton("−", "Dézoomer", function () { zoom(1 / ZOOM_STEP); }),
       makeButton("+", "Zoomer", function () { zoom(ZOOM_STEP); }),
       makeButton("Ajuster", "Ajuster à la largeur de l'écran", function () {
@@ -204,31 +201,34 @@
       makeButton("✕", "Fermer (Échap)", function () { closeOverlay(overlay); })
     );
 
-    await draw();
+    // Par défaut : largeur de l'écran, sans descendre sous la taille réelle du texte.
+    scale = Math.max(fitScale(), 1);
+    apply();
   }
 
-  function setup() {
-    document.querySelectorAll("pre.mermaid").forEach(function (pre) {
-      if (pre.dataset.fullscreenReady) {
-        return;
-      }
-      pre.dataset.fullscreenReady = "true";
-      const split = splitLabels(pre.textContent);
-      // Material lit le source plus tard (mermaid se charge en asynchrone) :
-      // il ne dessine dans la page que les étiquettes courtes.
-      pre.textContent = split.source;
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "mermaid-fullscreen-button md-button";
-      button.textContent = "⛶ Plein écran";
-      button.title = "Afficher le diagramme en plein écran";
-      button.addEventListener("click", function () { openOverlay(split.source, split.details); });
-      pre.after(button);
-    });
+  async function setupDiagram(pre) {
+    const split = splitLabels(pre.textContent);
+    const container = document.createElement("div");
+    container.className = "lmelp-mermaid-diagram";
+    try {
+      const svgElement = await render(split.source, container);
+      attachDetails(svgElement, split.details);
+    } catch (error) {
+      // CDN injoignable ou erreur de syntaxe : le source reste affiché tel quel.
+      console.warn("Schéma mermaid non dessiné :", error);
+      return;
+    }
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "lmelp-mermaid-fullscreen-button md-button";
+    button.textContent = "⛶ Plein écran";
+    button.title = "Afficher le schéma en plein écran";
+    button.addEventListener("click", function () { openOverlay(split.source, split.details); });
+    pre.replaceWith(container, button);
   }
 
   function openedOverlay() {
-    return document.querySelector(".mermaid-fullscreen-overlay");
+    return document.querySelector(".lmelp-mermaid-overlay");
   }
 
   document.addEventListener("keydown", function (event) {
@@ -246,5 +246,13 @@
     }
   });
 
-  setup();
+  document.addEventListener("click", hideTooltip);
+  window.addEventListener("scroll", hideTooltip, { passive: true });
+
+  // Un schéma à la fois : mermaid.render n'est pas prévu pour des appels concurrents.
+  (async function () {
+    for (const pre of document.querySelectorAll("pre.lmelp-mermaid")) {
+      await setupDiagram(pre);
+    }
+  })();
 })();

@@ -41,7 +41,7 @@ flowchart LR
         PWA["PWA lmelp"]
     end
 
-    RSS -->|"nouvel épisode@@nouvel épisode publié dans le flux RSS"| AUTO
+    RSS -->|"nouvel épisode@@nouvel épisode publié dans le flux RSS<br/>flux interrogé toutes les 15 minutes"| AUTO
     AUTO -->|"notification@@notification d'un nouvel épisode"| NTFY
     AUTO -->|"sync + transcription@@POST /api/rss/sync<br/>puis /api/pgx/transcription/start"| BACK
     RF -->|"audio@@téléchargement audio : rss/sync<br/>ou manuel, page Ajouter une émission"| BACK
@@ -72,7 +72,7 @@ Le schéma ne garde que des étiquettes courtes. En plein écran, survoler ou to
 
 | Flux | Déclencheur |
 |---|---|
-| RSS → Automatisch → back-office (`POST /api/rss/sync` puis `/api/pgx/transcription/start`) | publication d'un nouvel épisode dans le flux RSS |
+| RSS → Automatisch → back-office (`POST /api/rss/sync` puis `/api/pgx/transcription/start`) | publication d'un nouvel épisode dans le flux RSS, qu'Automatisch interroge **toutes les 15 minutes** (valeur par défaut d'un flux Automatisch, aucun intervalle configuré) |
 | Ajout d'une émission absente du RSS | manuel, page **Ajouter une émission** |
 | Transcription PGX (ssh/scp : envoi de l'audio, retour de la transcription) | lancée par Automatisch ou à la main ; réessai **toutes les heures** si PGX est injoignable |
 | Avis critiques (LLM) | manuel, page **Génération Avis Critiques** |

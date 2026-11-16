@@ -1,11 +1,21 @@
-/* Diagrammes mermaid en plein écran (javascripts/mermaid-fullscreen.js, issue #178) */
-.mermaid-fullscreen-button.md-button {
+/* Schémas mermaid dessinés par javascripts/mermaid-fullscreen.js (issue #178) */
+.lmelp-mermaid-diagram {
+  margin: 1em 0 0;
+  text-align: center;
+}
+
+.lmelp-mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.lmelp-mermaid-fullscreen-button.md-button {
   margin: 0.4rem 0 1rem;
   padding: 0.3rem 0.8rem;
   font-size: 0.7rem;
 }
 
-.mermaid-fullscreen-overlay {
+.lmelp-mermaid-overlay {
   position: fixed;
   inset: 0;
   z-index: 5000;
@@ -14,7 +24,7 @@
   background: var(--md-default-bg-color, #fff);
 }
 
-.mermaid-fullscreen-toolbar {
+.lmelp-mermaid-toolbar {
   display: flex;
   justify-content: flex-end;
   gap: 0.4rem;
@@ -22,7 +32,7 @@
   border-bottom: 1px solid var(--md-default-fg-color--lightest, #ddd);
 }
 
-.mermaid-fullscreen-tool {
+.lmelp-mermaid-tool {
   min-width: 2.4rem;
   padding: 0.35rem 0.7rem;
   border: none;
@@ -33,38 +43,38 @@
   cursor: pointer;
 }
 
-.mermaid-fullscreen-viewport {
-  flex: 1;
-  overflow: auto;
-  padding: 0.5rem;
-}
-
-.mermaid-fullscreen-viewport svg {
-  display: block;
-  margin: 0 auto;
-}
-
-body.mermaid-fullscreen-open {
-  overflow: hidden;
-}
-
-.mermaid-fullscreen-hint {
+.lmelp-mermaid-hint {
   margin-right: auto;
   align-self: center;
   font-size: 0.7rem;
   color: var(--md-default-fg-color--light, #666);
 }
 
-.mermaid-fullscreen-has-detail {
+.lmelp-mermaid-viewport {
+  flex: 1;
+  overflow: auto;
+  padding: 0.5rem;
+}
+
+.lmelp-mermaid-viewport svg {
+  display: block;
+  margin: 0 auto;
+}
+
+body.lmelp-mermaid-overlay-open {
+  overflow: hidden;
+}
+
+.lmelp-mermaid-has-detail {
   cursor: help;
 }
 
-.mermaid-fullscreen-has-detail p,
-.mermaid-fullscreen-has-detail span {
+.lmelp-mermaid-has-detail p,
+.lmelp-mermaid-has-detail span {
   text-decoration: underline dotted;
 }
 
-.mermaid-fullscreen-tooltip {
+.lmelp-mermaid-tooltip {
   position: fixed;
   z-index: 5001;
   max-width: min(28rem, calc(100vw - 16px));
