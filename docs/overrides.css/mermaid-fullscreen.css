@@ -47,3 +47,33 @@
 body.mermaid-fullscreen-open {
   overflow: hidden;
 }
+
+.mermaid-fullscreen-hint {
+  margin-right: auto;
+  align-self: center;
+  font-size: 0.7rem;
+  color: var(--md-default-fg-color--light, #666);
+}
+
+.mermaid-fullscreen-has-detail {
+  cursor: help;
+}
+
+.mermaid-fullscreen-has-detail p,
+.mermaid-fullscreen-has-detail span {
+  text-decoration: underline dotted;
+}
+
+.mermaid-fullscreen-tooltip {
+  position: fixed;
+  z-index: 5001;
+  max-width: min(28rem, calc(100vw - 16px));
+  padding: 0.5rem 0.7rem;
+  border-radius: 4px;
+  background: var(--md-default-fg-color, #222);
+  color: var(--md-default-bg-color, #fff);
+  font: 0.8rem/1.4 system-ui, sans-serif;
+  white-space: pre-line;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}

@@ -4,9 +4,14 @@
  * n'est pas accessible. Le source est donc mémorisé au chargement (avant que
  * Material ne remplace le <pre class="mermaid">), puis redessiné avec
  * window.mermaid dans une surcouche qui couvre l'écran, avec zoom et défilement.
+ *
+ * Étiquettes de flèches à deux niveaux : |"court@@texte long"|. Le texte long
+ * est retiré du source avant que Material ne dessine le diagramme dans la page ;
+ * en plein écran, survoler ou toucher l'étiquette courte l'affiche en info-bulle.
  */
 (function () {
   const ZOOM_STEP = 1.25;
+  const DETAIL_SEPARATOR = "@@";
   let counter = 0;
 
   function closeOverlay(overlay) {
@@ -27,7 +32,69 @@
     return button;
   }
 
-  async function openOverlay(source) {
+  /* Sépare les étiquettes |"court@@long"| : renvoie le source avec les seules
+   * étiquettes courtes, et la liste {short, long} dans l'ordre des flèches. */
+  function splitLabels(source) {
+    const details = [];
+    const shortSource = source.replace(/\|"([^"]*)"\|/g, function (match, label) {
+      const index = label.indexOf(DETAIL_SEPARATOR);
+      if (index < 0) {
+        return match;
+      }
+      const short = label.slice(0, index).trim();
+      const long = label.slice(index + DETAIL_SEPARATOR.length).trim();
+      details.push({ short: short, long: long.replace(/<br\s*\/?>/g, "\n") });
+      return '|"' + short + '"|';
+    });
+    return { source: shortSource, details: details };
+  }
+
+  /* Rattache chaque texte long à son étiquette dessinée. Mermaid dessine les
+   * étiquettes dans l'ordre des flèches : à texte court égal (« horaire »
+   * deux fois), la première étiquette prend le premier texte long. */
+  function attachDetails(overlay, viewport, details) {
+    if (details.length === 0) {
+      return;
+    }
+    const tooltip = document.createElement("div");
+    tooltip.className = "mermaid-fullscreen-tooltip";
+    tooltip.hidden = true;
+    overlay.append(tooltip);
+    const remaining = details.slice();
+
+    function show(label, text) {
+      tooltip.textContent = text;
+      tooltip.hidden = false;
+      const box = label.getBoundingClientRect();
+      const width = tooltip.offsetWidth;
+      const left = Math.min(Math.max(box.left + box.width / 2 - width / 2, 8), window.innerWidth - width - 8);
+      tooltip.style.left = left + "px";
+      const below = box.bottom + 8;
+      tooltip.style.top = (below + tooltip.offsetHeight < window.innerHeight
+        ? below
+        : box.top - tooltip.offsetHeight - 8) + "px";
+    }
+
+    viewport.querySelectorAll("g.edgeLabel").forEach(function (label) {
+      const text = label.textContent.trim();
+      const index = remaining.findIndex(function (detail) { return detail.short === text; });
+      if (index < 0) {
+        return;
+      }
+      const long = remaining.splice(index, 1)[0].long;
+      label.classList.add("mermaid-fullscreen-has-detail");
+      label.addEventListener("mouseenter", function () { show(label, long); });
+      label.addEventListener("mouseleave", function () { tooltip.hidden = true; });
+      label.addEventListener("click", function (event) {
+        event.stopPropagation();
+        show(label, long);
+      });
+    });
+    viewport.addEventListener("click", function () { tooltip.hidden = true; });
+    viewport.addEventListener("scroll", function () { tooltip.hidden = true; });
+  }
+
+  async function openOverlay(source, details) {
     if (!window.mermaid) {
       return;
     }
@@ -44,6 +111,7 @@
     counter += 1;
     const { svg } = await window.mermaid.render("mermaid-fullscreen-" + counter, source);
     viewport.innerHTML = svg;
+    attachDetails(overlay, viewport, details);
     const svgElement = viewport.querySelector("svg");
     const naturalWidth = svgElement.viewBox.baseVal.width || svgElement.getBBox().width;
     svgElement.removeAttribute("height");
@@ -71,6 +139,12 @@
       }),
       makeButton("✕", "Fermer (Échap)", function () { closeOverlay(overlay); })
     );
+    if (details.length > 0) {
+      const hint = document.createElement("span");
+      hint.className = "mermaid-fullscreen-hint";
+      hint.textContent = "Survoler ou toucher une étiquette soulignée pour son détail";
+      toolbar.prepend(hint);
+    }
 
     // Par défaut : largeur de l'écran, sans descendre sous la taille réelle du texte.
     scale = Math.max(fitScale(), 1);
@@ -87,13 +161,16 @@
         return;
       }
       pre.dataset.fullscreenReady = "true";
-      const source = pre.textContent;
+      const split = splitLabels(pre.textContent);
+      // Material lit le source plus tard (mermaid se charge en asynchrone) :
+      // il ne dessine dans la page que les étiquettes courtes.
+      pre.textContent = split.source;
       const button = document.createElement("button");
       button.type = "button";
       button.className = "mermaid-fullscreen-button md-button";
       button.textContent = "⛶ Plein écran";
       button.title = "Afficher le diagramme en plein écran";
-      button.addEventListener("click", function () { openOverlay(source); });
+      button.addEventListener("click", function () { openOverlay(split.source, split.details); });
       pre.after(button);
     });
   }

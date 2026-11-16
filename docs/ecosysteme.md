@@ -41,34 +41,34 @@ flowchart LR
         PWA["PWA lmelp"]
     end
 
-    RSS -->|"nouvel épisode"| AUTO
-    AUTO --> NTFY
-    AUTO -->|"sync + transcription"| BACK
-    RF -->|"audio"| BACK
-    BACK <-->|"transcription"| PGX
-    BACK -->|"avis critiques"| AZ
-    FF -->|"cookie"| BACK
-    BACK <-->|"validation"| BAB
-    BACK <--> MONGO
-    BACK --> NTFY
-    CAL -->|"Synology Drive"| DRIVE
-    DRIVE -->|"metadata.db"| BACK
-    DRIVE -->|"00:05"| CWA
-    MONGO -->|"horaire"| EXPORT
-    DRIVE -->|"horaire"| EXPORT
-    EXPORT -->|"si changement"| REL
-    EXPORT --> NTFY
-    REL -->|"lmelp.db"| MOB
-    NTFY --> PHONE
-    PWA --> BACK
-    CI -->|"push main"| WT
-    WT --> BACK
-    WT --> EXPORT
+    RSS -->|"nouvel épisode@@nouvel épisode publié dans le flux RSS"| AUTO
+    AUTO -->|"notification@@notification d'un nouvel épisode"| NTFY
+    AUTO -->|"sync + transcription@@POST /api/rss/sync<br/>puis /api/pgx/transcription/start"| BACK
+    RF -->|"audio@@téléchargement audio : rss/sync<br/>ou manuel, page Ajouter une émission"| BACK
+    BACK <-->|"transcription@@ssh/scp : envoi audio, retour transcription<br/>réessai toutes les heures si PGX injoignable"| PGX
+    BACK -->|"avis critiques@@manuel : Génération Avis Critiques"| AZ
+    FF -->|"cookie@@manuel : copie du cookie<br/>valable ~5 min"| BACK
+    BACK <-->|"validation@@manuel : Valider avec Babelio, Liaison Babelio,<br/>couvertures ; 1 requête / BABELIO_FAIR_SEC,<br/>empreinte Firefox"| BAB
+    BACK <-->|"lecture/écriture@@chaque action"| MONGO
+    BACK -->|"notifications@@chaque étape traitée"| NTFY
+    CAL -->|"Synology Drive@@Synology Drive<br/>continu, quelques secondes"| DRIVE
+    DRIVE -->|"metadata.db@@lecture seule ;<br/>relue dès que metadata.db change"| BACK
+    DRIVE -->|"00:05@@synchronisation nocturne<br/>00:05"| CWA
+    MONGO -->|"horaire@@toutes les heures"| EXPORT
+    DRIVE -->|"horaire@@toutes les heures<br/>livres lus"| EXPORT
+    EXPORT -->|"si changement@@si les données ont changé :<br/>republie data-v{N}"| REL
+    EXPORT -->|"publication / échec@@nouvelles données publiées ;<br/>premier échec, puis rétablissement"| NTFY
+    REL -->|"lmelp.db@@détection au lancement (point vert) ;<br/>téléchargement manuel :<br/>À propos, Vérifier les mises à jour"| MOB
+    NTFY -->|"notifications"| PHONE
+    PWA -->|"navigation"| BACK
+    CI -->|"push main@@push sur main"| WT
+    WT -->|"nouvelles images@@recrée les conteneurs<br/>avec les nouvelles images"| BACK
+    WT -->|"nouvelle image@@redémarre sur la nouvelle image"| EXPORT
 ```
 
 ## Déclencheurs
 
-Le schéma ne garde que des étiquettes courtes ; le détail de chaque flux est ici.
+Le schéma ne garde que des étiquettes courtes. En plein écran, survoler ou toucher une étiquette affiche son détail ; le tableau reprend chaque flux.
 
 | Flux | Déclencheur |
 |---|---|
