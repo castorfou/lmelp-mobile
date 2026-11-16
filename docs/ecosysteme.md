@@ -1,6 +1,6 @@
 # Écosystème lmelp
 
-Vue d'ensemble des briques qui alimentent l'application lmelp-mobile : qui alimente qui, et **ce qui déclenche chaque flux**. Les détails propres à chaque brique sont dans la documentation de [back-office-lmelp](https://castorfou.github.io/back-office-lmelp/) et de docker-lmelp ; le parcours d'un nouvel épisode, pas à pas, est dans [Mise à jour d'un épisode](user/mise_a_jour_episode.md).
+Vue d'ensemble des briques qui alimentent l'application lmelp-mobile : qui alimente qui, et **ce qui déclenche chaque flux**. Les détails propres à chaque brique sont dans la documentation de [back-office-lmelp](https://castorfou.github.io/back-office-lmelp/) et de [docker-lmelp](https://castorfou.github.io/docker-lmelp/) ; le parcours d'un nouvel épisode, pas à pas, est dans [Mise à jour d'un épisode](user/mise_a_jour_episode.md).
 
 ## Schéma synoptique
 
@@ -32,7 +32,7 @@ flowchart LR
     end
 
     subgraph GH["GitHub"]
-        CI["CI docker-publish<br/>images ghcr.io"]
+        CI["CI GitHub Actions<br/>images ghcr.io"]
         REL["Release data-v{N}<br/>lmelp.db + metadata.json"]
     end
 
@@ -57,12 +57,13 @@ flowchart LR
     MONGO -->|"toutes les heures"| EXPORT
     DRIVE -->|"toutes les heures<br/>livres lus"| EXPORT
     EXPORT -->|"si les données ont changé :<br/>republie data-v{N}"| REL
-    EXPORT -->|"nouvelles données publiées<br/>ou échec"| NTFY
+    EXPORT -->|"nouvelles données publiées ;<br/>premier échec, puis rétablissement"| NTFY
     REL -->|"détection au lancement (point vert) ;<br/>téléchargement manuel :<br/>À propos, Vérifier les mises à jour"| MOB
     NTFY -->|"notifications"| PHONE
     PWA -->|"navigation"| BACK
     CI -->|"push sur main"| WT
     WT -->|"recrée les conteneurs<br/>avec les nouvelles images"| BACK
+    WT -->|"redémarre sur la nouvelle image"| EXPORT
 ```
 
 ## Déclencheurs
@@ -79,8 +80,8 @@ flowchart LR
 | Copie Drive → Calibre-Web-Automated | **chaque nuit à 00:05** (CWA seulement) |
 | MongoDB + Calibre → `lmelp-export` → release `data-v{N}` | **toutes les heures** (`PUBLISH_INTERVAL`), publication seulement si le contenu a changé ; immédiat avec `docker exec lmelp-export export-and-publish-release` |
 | Release → app mobile | détection au lancement de l'app ; téléchargement **manuel** (À propos → Vérifier les mises à jour) |
-| Nouvelle version de code | push sur `main` → CI → images ghcr.io → Watchtower recrée les conteneurs |
+| Nouvelle version de code | push sur `main` → CI → images ghcr.io → Watchtower recrée les conteneurs (back-office, `lmelp-export`) |
 | Sauvegarde MongoDB | **hebdomadaire** (anacron dans `lmelp-mongo`) |
 
 !!! note "La release `data-v{N}` est republiée sur place"
-    `N` est la version du schéma de la base (`PRAGMA user_version`, version Room), pas un numéro de publication. Chaque export qui publie remplace les fichiers de la même release `data-v{N}` ; le numéro ne change que lorsque le schéma change (voir [ADR 0001](dev/adr/0001-separation-maj-appli-donnees.md)). La date affichée par GitHub pour la release reste donc celle de sa création : la date réelle de la dernière publication est `export_datetime` dans `metadata.json`.
+    `N` est la version du schéma de la base, pas un numéro de publication : la date réelle de la dernière publication est `export_datetime` dans `metadata.json`, pas la date de la release. Détails dans [Mise à jour d'un épisode](user/mise_a_jour_episode.md#mettre-a-jour-la-base-depuis-lapplication).
