@@ -4,13 +4,13 @@ Vue d'ensemble des briques qui alimentent l'application lmelp-mobile : qui alime
 
 ## Schéma synoptique
 
+Le schéma se lit de haut en bas, dans l'ordre où circulent les données : Radio France, Automatisch, le back-office lmelp et ses services d'enrichissement, l'export, la release GitHub, puis le téléphone. Survoler ou toucher une étiquette soulignée affiche son détail ; le bouton **Plein écran** l'agrandit.
+
 ```mermaid
 flowchart TB
-    subgraph EXT["Sources externes"]
+    subgraph RADIO["Radio France"]
         RSS["France Inter<br/>flux RSS Le Masque et la Plume"]
         RF["radiofrance.fr<br/>page et audio de l'émission"]
-        BAB["Babelio<br/>recherche, pages livres et auteurs"]
-        AZ["Azure OpenAI<br/>LLM"]
     end
 
     subgraph LAPTOP["Laptop"]
@@ -18,23 +18,22 @@ flowchart TB
         CAL["Calibre<br/>bibliothèque source"]
     end
 
-    PGX["PGX<br/>transcription audio"]
     AUTO["Automatisch"]
-    NTFY["ntfy.sh<br/>notifications"]
 
     subgraph NAS["NAS Synology (Docker)"]
         BACK["lmelp backend + frontend<br/>lmelp.ascot63.synology.me"]
-        MONGO[("MongoDB<br/>lmelp-mongo")]
         DRIVE["Copie Drive<br/>Calibre Library"]
+        MONGO[("MongoDB<br/>lmelp-mongo")]
         CWA["Calibre-Web-Automated"]
         EXPORT["lmelp-export"]
-        WT["Watchtower"]
     end
 
-    subgraph GH["GitHub"]
-        CI["CI GitHub Actions<br/>images ghcr.io"]
-        REL["Release data-v{N}<br/>lmelp.db + metadata.json"]
-    end
+    PGX["PGX<br/>transcription audio"]
+    BAB["Babelio<br/>recherche, pages livres et auteurs"]
+    AZ["Azure OpenAI<br/>LLM"]
+
+    REL["GitHub : release data-v{N}<br/>lmelp.db + metadata.json"]
+    NTFY["ntfy.sh<br/>notifications"]
 
     subgraph PHONE["Téléphone"]
         MOB["app lmelp-mobile"]
@@ -42,33 +41,49 @@ flowchart TB
     end
 
     RSS -->|"nouvel épisode@@nouvel épisode publié dans le flux RSS<br/>flux interrogé toutes les 15 minutes"| AUTO
-    AUTO -->|"notification@@notification d'un nouvel épisode"| NTFY
     AUTO -->|"sync + transcription@@POST /api/rss/sync<br/>puis /api/pgx/transcription/start"| BACK
     RF -->|"audio@@téléchargement audio : rss/sync<br/>ou manuel, page Ajouter une émission"| BACK
-    BACK <-->|"transcription@@ssh/scp : envoi audio, retour transcription<br/>réessai toutes les heures si PGX injoignable"| PGX
-    BACK -->|"avis critiques@@manuel : Génération Avis Critiques"| AZ
     FF -->|"cookie@@manuel : copie du cookie<br/>valable ~5 min"| BACK
-    BACK <-->|"validation@@manuel : Valider avec Babelio, Liaison Babelio,<br/>couvertures ; 1 requête / BABELIO_FAIR_SEC,<br/>empreinte Firefox"| BAB
-    BACK <-->|"lecture/écriture@@chaque action"| MONGO
-    BACK -->|"notifications@@chaque étape traitée"| NTFY
     CAL -->|"Synology Drive@@Synology Drive<br/>continu, quelques secondes"| DRIVE
     DRIVE -->|"metadata.db@@lecture seule ;<br/>relue dès que metadata.db change"| BACK
+    BACK <-->|"transcription@@ssh/scp : envoi audio, retour transcription<br/>réessai toutes les heures si PGX injoignable"| PGX
+    BACK <-->|"validation@@manuel : Valider avec Babelio, Liaison Babelio,<br/>couvertures ; 1 requête / BABELIO_FAIR_SEC,<br/>empreinte Firefox"| BAB
+    BACK -->|"avis critiques@@manuel : Génération Avis Critiques"| AZ
+    BACK <-->|"lecture/écriture@@chaque action"| MONGO
     DRIVE -->|"00:05@@synchronisation nocturne<br/>00:05"| CWA
     MONGO -->|"horaire@@toutes les heures"| EXPORT
     DRIVE -->|"horaire@@toutes les heures<br/>livres lus"| EXPORT
     EXPORT -->|"si changement@@si les données ont changé :<br/>republie data-v{N}"| REL
-    EXPORT -->|"publication / échec@@nouvelles données publiées ;<br/>premier échec, puis rétablissement"| NTFY
     REL -->|"lmelp.db@@détection au lancement (point vert) ;<br/>téléchargement manuel :<br/>À propos, Vérifier les mises à jour"| MOB
+    BACK -->|"interface web@@navigation depuis le téléphone"| PWA
+    AUTO -->|"notification@@notification d'un nouvel épisode"| NTFY
+    BACK -->|"notifications@@chaque étape traitée"| NTFY
+    EXPORT -->|"publication / échec@@nouvelles données publiées ;<br/>premier échec, puis rétablissement"| NTFY
     NTFY -->|"notifications"| PHONE
-    PWA -->|"navigation"| BACK
-    CI -->|"push main@@push sur main"| WT
-    WT -->|"nouvelles images@@recrée les conteneurs<br/>avec les nouvelles images"| BACK
-    WT -->|"nouvelle image@@redémarre sur la nouvelle image"| EXPORT
+```
+
+## Mise à jour du code
+
+Indépendante du flux de données : chaque push sur `main` reconstruit les images Docker, que Watchtower installe sur le NAS.
+
+```mermaid
+flowchart TB
+    PUSH["push sur main<br/>back-office-lmelp, lmelp-mobile"]
+    CI["CI GitHub Actions<br/>images ghcr.io"]
+    subgraph NAS["NAS Synology (Docker)"]
+        WT["Watchtower"]
+        BACK["lmelp backend + frontend"]
+        EXPORT["lmelp-export"]
+    end
+    PUSH --> CI
+    CI -->|"nouvelles images@@images publiées sur ghcr.io,<br/>puis appel de l'API Watchtower du NAS"| WT
+    WT -->|"recrée@@recrée les conteneurs<br/>avec les nouvelles images"| BACK
+    WT -->|"redémarre@@redémarre sur la nouvelle image"| EXPORT
 ```
 
 ## Déclencheurs
 
-Le schéma ne garde que des étiquettes courtes. En plein écran, survoler ou toucher une étiquette affiche son détail ; le tableau reprend chaque flux.
+Le tableau reprend chaque flux en détail.
 
 | Flux | Déclencheur |
 |---|---|
