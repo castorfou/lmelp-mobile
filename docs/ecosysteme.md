@@ -41,46 +41,49 @@ flowchart LR
         PWA["PWA lmelp"]
     end
 
-    RSS -->|"nouvel épisode publié"| AUTO
-    AUTO -->|"notification"| NTFY
-    AUTO -->|"POST /api/rss/sync<br/>puis /api/pgx/transcription/start"| BACK
-    RF -->|"téléchargement audio : rss/sync<br/>ou manuel, page Ajouter une émission"| BACK
-    BACK <-->|"ssh/scp : envoi audio, retour transcription<br/>réessai toutes les heures si PGX injoignable"| PGX
-    BACK -->|"manuel : Génération Avis Critiques"| AZ
-    FF -->|"manuel : copie du cookie<br/>valable ~5 min"| BACK
-    BACK <-->|"manuel : Valider avec Babelio, Liaison Babelio,<br/>couvertures ; 1 requête / BABELIO_FAIR_SEC,<br/>empreinte Firefox"| BAB
-    BACK <-->|"chaque action"| MONGO
-    BACK -->|"chaque étape traitée"| NTFY
-    CAL -->|"Synology Drive<br/>continu, quelques secondes"| DRIVE
-    DRIVE -->|"lecture seule ;<br/>relue dès que metadata.db change"| BACK
-    DRIVE -->|"synchronisation nocturne<br/>00:05"| CWA
-    MONGO -->|"toutes les heures"| EXPORT
-    DRIVE -->|"toutes les heures<br/>livres lus"| EXPORT
-    EXPORT -->|"si les données ont changé :<br/>republie data-v{N}"| REL
-    EXPORT -->|"nouvelles données publiées ;<br/>premier échec, puis rétablissement"| NTFY
-    REL -->|"détection au lancement (point vert) ;<br/>téléchargement manuel :<br/>À propos, Vérifier les mises à jour"| MOB
-    NTFY -->|"notifications"| PHONE
-    PWA -->|"navigation"| BACK
-    CI -->|"push sur main"| WT
-    WT -->|"recrée les conteneurs<br/>avec les nouvelles images"| BACK
-    WT -->|"redémarre sur la nouvelle image"| EXPORT
+    RSS -->|"nouvel épisode"| AUTO
+    AUTO --> NTFY
+    AUTO -->|"sync + transcription"| BACK
+    RF -->|"audio"| BACK
+    BACK <-->|"transcription"| PGX
+    BACK -->|"avis critiques"| AZ
+    FF -->|"cookie"| BACK
+    BACK <-->|"validation"| BAB
+    BACK <--> MONGO
+    BACK --> NTFY
+    CAL -->|"Synology Drive"| DRIVE
+    DRIVE -->|"metadata.db"| BACK
+    DRIVE -->|"00:05"| CWA
+    MONGO -->|"horaire"| EXPORT
+    DRIVE -->|"horaire"| EXPORT
+    EXPORT -->|"si changement"| REL
+    EXPORT --> NTFY
+    REL -->|"lmelp.db"| MOB
+    NTFY --> PHONE
+    PWA --> BACK
+    CI -->|"push main"| WT
+    WT --> BACK
+    WT --> EXPORT
 ```
 
 ## Déclencheurs
 
+Le schéma ne garde que des étiquettes courtes ; le détail de chaque flux est ici.
+
 | Flux | Déclencheur |
 |---|---|
-| RSS → Automatisch → back-office (téléchargement audio, transcription) | publication d'un nouvel épisode dans le flux RSS |
+| RSS → Automatisch → back-office (`POST /api/rss/sync` puis `/api/pgx/transcription/start`) | publication d'un nouvel épisode dans le flux RSS |
 | Ajout d'une émission absente du RSS | manuel, page **Ajouter une émission** |
-| Transcription PGX | lancée par Automatisch ou à la main ; réessai **toutes les heures** si PGX est injoignable |
+| Transcription PGX (ssh/scp : envoi de l'audio, retour de la transcription) | lancée par Automatisch ou à la main ; réessai **toutes les heures** si PGX est injoignable |
 | Avis critiques (LLM) | manuel, page **Génération Avis Critiques** |
-| Babelio | manuel uniquement (aucune requête à l'ouverture des pages) ; cookie copié depuis Firefox **connecté** à Babelio, valable ~5 min |
+| Babelio (Valider avec Babelio, Liaison Babelio, couvertures) | manuel uniquement (aucune requête à l'ouverture des pages), 1 requête par `BABELIO_FAIR_SEC`, empreinte Firefox ; cookie copié depuis Firefox **connecté** à Babelio, valable ~5 min |
 | Calibre laptop → copie Drive | **continu** (Synology Drive, quelques secondes) |
-| Copie Drive → back-office | lecture directe, relue dès que `metadata.db` change |
+| Copie Drive → back-office | lecture seule, relue dès que `metadata.db` change |
 | Copie Drive → Calibre-Web-Automated | **chaque nuit à 00:05** (CWA seulement) |
-| MongoDB + Calibre → `lmelp-export` → release `data-v{N}` | **toutes les heures** (`PUBLISH_INTERVAL`), publication seulement si le contenu a changé ; immédiat avec `docker exec lmelp-export export-and-publish-release` |
-| Release → app mobile | détection au lancement de l'app ; téléchargement **manuel** (À propos → Vérifier les mises à jour) |
+| MongoDB + Calibre (livres lus) → `lmelp-export` → release `data-v{N}` | **toutes les heures** (`PUBLISH_INTERVAL`), publication seulement si le contenu a changé (la release est alors republiée sur place) ; immédiat avec `docker exec lmelp-export export-and-publish-release` |
+| Release → app mobile | détection au lancement de l'app (point vert) ; téléchargement **manuel** (À propos → Vérifier les mises à jour) |
 | Nouvelle version de code | push sur `main` → CI → images ghcr.io → Watchtower recrée les conteneurs (back-office, `lmelp-export`) |
+| Notifications ntfy | Automatisch : nouvel épisode ; back-office : chaque étape traitée ; `lmelp-export` : nouvelles données publiées, premier échec, puis rétablissement |
 | Sauvegarde MongoDB | **hebdomadaire** (anacron dans `lmelp-mongo`) |
 
 !!! note "La release `data-v{N}` est republiée sur place"
