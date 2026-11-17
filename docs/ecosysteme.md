@@ -64,7 +64,7 @@ flowchart TB
 
 ## Mise à jour du code
 
-Indépendante du flux de données. Chaque push sur `main` reconstruit les images Docker (back-office-lmelp, `lmelp-export` de lmelp-mobile, `lmelp-mongo` de docker-lmelp), que Watchtower installe sur le NAS, et publie une préversion de l'appli si le push la modifie ; un tag `vX.Y.Z` publie une version de l'appli. L'appli détecte elle-même les deux (voir [Installer et mettre à jour l'appli](user/installer_mettre_a_jour.md)).
+Indépendante du flux de données. Un push sur `main` reconstruit les images Docker concernées par les fichiers modifiés (back-office-lmelp, `lmelp-export` de lmelp-mobile, `lmelp-mongo` de docker-lmelp), que Watchtower installe sur le NAS, et publie une préversion de l'appli si le push la modifie ; un tag `vX.Y.Z` publie une version de l'appli. L'appli détecte elle-même les deux (voir [Installer et mettre à jour l'appli](user/installer_mettre_a_jour.md)).
 
 ```mermaid
 flowchart TB
@@ -89,12 +89,12 @@ flowchart TB
     end
 
     PUSH --> CI
-    PUSH -->|"préversion@@app-preview.yml, si le push touche l'appli :<br/>APK release signé X.Y.Z+N<br/>(N commits depuis le dernier tag stable) ;<br/>la release app-preview est supprimée puis recréée"| PREV
+    PUSH -->|"préversion@@app-preview.yml, si le push lmelp-mobile touche l'appli :<br/>APK release signé X.Y.Z+N<br/>(N commits depuis le dernier tag stable) ;<br/>la release app-preview est supprimée puis recréée"| PREV
     TAG -->|"version@@release.yml : APK release signé,<br/>signature vérifiée avec apksigner"| APK
     CI -->|"nouvelles images@@images publiées sur ghcr.io,<br/>puis appel de l'API Watchtower du NAS"| WT
     WT -->|"recrée@@recrée les conteneurs<br/>avec les nouvelles images"| BACK
-    WT -->|"redémarre@@redémarre sur la nouvelle image"| EXPORT
-    WT -->|"recrée@@recrée le conteneur mongo<br/>sur la nouvelle image lmelp-mongo<br/>(build-mongo-image.yml de docker-lmelp :<br/>push touchant mongodb.Dockerfile, scripts/<br/>ou config/mongod.conf)"| MONGO
+    WT -->|"recrée@@recrée le conteneur<br/>sur la nouvelle image"| EXPORT
+    WT -->|"recrée@@recrée le conteneur mongo<br/>sur la nouvelle image lmelp-mongo"| MONGO
     PREV -->|"nouvelle version@@détection au lancement de l'appli (badge) ;<br/>À propos : Télécharger et installer"| MOB
     APK -->|"nouvelle version@@détection au lancement de l'appli (badge) ;<br/>À propos : Télécharger et installer"| MOB
 ```
