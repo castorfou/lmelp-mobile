@@ -38,10 +38,13 @@
                 <action android:name="androidx.car.app.CarAppService"/>
                 <category android:name="androidx.car.app.category.POI"/>
             </intent-filter>
-            <meta-data
-                android:name="androidx.car.app.minApiLevel"
-                android:value="1"/>
         </service>
+
+        <!-- Lu par AppInfo.create() dans <application> uniquement : absent, Android Auto
+             affiche l'appli mais refuse de l'ouvrir (issue #99). -->
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="1"/>
 
         <!-- Partage des APK de mise à jour (cacheDir/updates) avec l'installateur, issue #162. -->
         <provider
