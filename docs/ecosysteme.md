@@ -4,7 +4,7 @@ Vue d'ensemble des briques qui alimentent l'application lmelp-mobile : qui alime
 
 ## Mise à jour des données
 
-Le schéma se lit de haut en bas, dans l'ordre où circulent les données : Radio France, Automatisch, le back-office lmelp et ses services d'enrichissement, l'export, la release GitHub, puis le téléphone. Survoler ou toucher une étiquette soulignée affiche son détail ; le bouton **Plein écran** l'agrandit.
+Le schéma se lit de haut en bas, dans l'ordre où circulent les données : Radio France, Automatisch, le back-office lmelp et ses services d'enrichissement, l'export, la release GitHub, puis le téléphone. À côté, lmelp-pap (Projet d'Archivage Patrimonial) croise l'INA, la Wayback Machine, radiofrance.fr et les émissions vérifiées de lmelp pour reconstituer les émissions de 1955 à 2016. Survoler ou toucher une étiquette soulignée affiche son détail ; le bouton **Plein écran** l'agrandit.
 
 ```mermaid
 flowchart TB
@@ -26,7 +26,12 @@ flowchart TB
         MONGO[("MongoDB<br/>lmelp-mongo")]
         CWA["Calibre-Web-Automated"]
         EXPORT["lmelp-export"]
+        PAP["lmelp-pap<br/>pap.lmelp.ascot63.synology.me"]
+        AUDIOS[("Fichiers audio<br/>volume Docker du NAS")]
     end
+
+    INA["INA<br/>catalogue.ina.fr"]
+    WB["Wayback Machine<br/>web.archive.org"]
 
     PGX["PGX<br/>transcription audio"]
     BAB["Babelio<br/>recherche, pages livres et auteurs"]
@@ -56,6 +61,13 @@ flowchart TB
     EXPORT -->|"si changement@@si les données ont changé :<br/>republie data-v{N}"| REL
     REL -->|"lmelp.db@@détection au lancement (point vert) ;<br/>téléchargement manuel :<br/>À propos, Vérifier les mises à jour"| MOB
     BACK -->|"interface web@@navigation depuis le téléphone"| PWA
+    INA -->|"notices@@manuel : notices « Le masque et la plume »<br/>du catalogue INA (Playwright)"| PAP
+    WB -->|"archives@@manuel : anciennes listes France Inter (2002-2012),<br/>fichiers audio du podcast (API CDX)"| PAP
+    RF -->|"fiches@@manuel : fiches d'émission<br/>des pages podcast radiofrance.fr"| PAP
+    MONGO -->|"émissions vérifiées@@manuel : lecture seule<br/>des épisodes lmelp (collection episodes)"| PAP
+    BACK <-->|"intégraux@@/volume1/docker/lmelp/audios<br/>intégraux valides des émissions"| AUDIOS
+    PAP <-->|"enregistrements@@/volume1/docker/lmelp/pap/audios<br/>enregistrements rapatriés"| AUDIOS
+    PAP -->|"interface web@@réseau local uniquement :<br/>reverse proxy DSM, port 8085 du NAS"| LAPTOP
     AUTO -->|"notification@@notification d'un nouvel épisode"| NTFY
     BACK -->|"notifications@@chaque étape traitée"| NTFY
     EXPORT -->|"publication / échec@@nouvelles données publiées ;<br/>premier échec, puis rétablissement"| NTFY
@@ -64,11 +76,11 @@ flowchart TB
 
 ## Mise à jour du code
 
-Indépendante du flux de données. Un push sur `main` reconstruit les images Docker concernées par les fichiers modifiés (back-office-lmelp, `lmelp-export` de lmelp-mobile, `lmelp-mongo` de docker-lmelp), que Watchtower installe sur le NAS, et publie une préversion de l'appli si le push la modifie ; un tag `vX.Y.Z` publie une version de l'appli. L'appli détecte elle-même les deux (voir [Installer et mettre à jour l'appli](user/installer_mettre_a_jour.md)).
+Indépendante du flux de données. Un push sur `main` reconstruit les images Docker concernées par les fichiers modifiés (back-office-lmelp, `lmelp-export` de lmelp-mobile, `lmelp-mongo` de docker-lmelp, lmelp-pap), que Watchtower installe sur le NAS, et publie une préversion de l'appli si le push la modifie ; un tag `vX.Y.Z` publie une version de l'appli. L'appli détecte elle-même les deux (voir [Installer et mettre à jour l'appli](user/installer_mettre_a_jour.md)).
 
 ```mermaid
 flowchart TB
-    PUSH["push sur main<br/>back-office-lmelp, lmelp-mobile, docker-lmelp"]
+    PUSH["push sur main<br/>back-office-lmelp, lmelp-mobile, docker-lmelp, lmelp-pap"]
     TAG["tag vX.Y.Z<br/>lmelp-mobile"]
 
     subgraph GH["GitHub"]
@@ -82,6 +94,7 @@ flowchart TB
         BACK["lmelp backend + frontend"]
         EXPORT["lmelp-export"]
         MONGO[("MongoDB<br/>lmelp-mongo")]
+        PAP["lmelp-pap"]
     end
 
     subgraph PHONE["Téléphone"]
@@ -95,6 +108,7 @@ flowchart TB
     WT -->|"recrée@@recrée les conteneurs<br/>avec les nouvelles images"| BACK
     WT -->|"recrée@@recrée le conteneur<br/>sur la nouvelle image"| EXPORT
     WT -->|"recrée@@recrée le conteneur mongo<br/>sur la nouvelle image lmelp-mongo"| MONGO
+    WT -->|"recrée@@recrée le conteneur pap<br/>sur la nouvelle image lmelp-pap"| PAP
     PREV -->|"nouvelle version@@détection au lancement de l'appli (badge) ;<br/>À propos : Télécharger et installer"| MOB
     APK -->|"nouvelle version@@détection au lancement de l'appli (badge) ;<br/>À propos : Télécharger et installer"| MOB
 ```
@@ -115,10 +129,13 @@ Le tableau reprend chaque flux en détail.
 | Copie Drive → Calibre-Web-Automated | **chaque nuit à 00:05 heure de Paris** (tâche planifiée DSM, CWA seulement) |
 | MongoDB + Calibre (livres lus) → `lmelp-export` → release `data-v{N}` | **toutes les heures** (`PUBLISH_INTERVAL`), publication seulement si le contenu a changé (la release est alors republiée sur place) ; immédiat avec `docker exec lmelp-export export-and-publish-release` |
 | Release → app mobile | détection au lancement de l'app (point vert) ; téléchargement **manuel** (À propos → Vérifier les mises à jour) |
-| Nouvelle version de code | push sur `main` → CI → images ghcr.io → Watchtower recrée les conteneurs : back-office (back-office-lmelp), `lmelp-export` (lmelp-mobile), `mongo` sur l'image `lmelp-mongo` (docker-lmelp, `build-mongo-image.yml` : push touchant `mongodb.Dockerfile`, `scripts/` ou `config/mongod.conf`) |
+| Nouvelle version de code | push sur `main` → CI → images ghcr.io → Watchtower recrée les conteneurs : back-office (back-office-lmelp), `lmelp-export` (lmelp-mobile), `mongo` sur l'image `lmelp-mongo` (docker-lmelp, `build-mongo-image.yml` : push touchant `mongodb.Dockerfile`, `scripts/` ou `config/mongod.conf`), `lmelp-pap` (lmelp-pap, `docker.yml`) |
 | Préversion de l'appli → release `app-preview` | push sur `main` qui touche l'appli (`app-preview.yml`), APK `X.Y.Z+N` ; rien si aucun commit depuis le dernier tag |
 | Version de l'appli → release `vX.Y.Z` | tag `vX.Y.Z` (`release.yml`) |
 | Release de l'appli → app mobile | détection au lancement de l'app (badge) ; installation **manuelle** (À propos → Télécharger et installer) |
+| Sources de lmelp-pap (INA, Wayback Machine, radiofrance.fr, MongoDB lmelp) | **manuel**, aucune tâche planifiée : une collecte par source (`lmelp-pap emissions`), mise en cache et pas relancée une fois terminée, sauf `--refresh` ; MongoDB en lecture seule (`masque_et_la_plume.episodes`, émissions vérifiées), écriture des arbitrages dans des collections `pap_*` à venir ([castorfou/lmelp-pap#65](https://github.com/castorfou/lmelp-pap/issues/65)) |
+| Fichiers audio (volume Docker du NAS) | back-office : `/volume1/docker/lmelp/audios` (`AUDIO_PATH`), intégraux valides des émissions, écrits à chaque téléchargement audio ; lmelp-pap : `/volume1/docker/lmelp/pap/audios` (`PAP_PATH_HOTE`, monté sur `/data`, qui contient aussi `cache/`, `processed/` et `logs/`), enregistrements rapatriés ; `cache/` et `processed/` de pap amorcés à la main depuis le dépôt lmelp-pap |
+| lmelp-pap → navigateur | appli web sur le réseau local uniquement : `https://pap.lmelp.ascot63.synology.me` (reverse proxy DSM, port 8085 du NAS, 8090 dans le conteneur) |
 | Notifications ntfy | Automatisch : nouvel épisode ; back-office : chaque étape traitée ; `lmelp-export` : nouvelles données publiées, premier échec, puis rétablissement |
 | Sauvegarde MongoDB | **hebdomadaire** (anacron dans `lmelp-mongo`, horaires en UTC) |
 
