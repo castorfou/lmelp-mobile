@@ -43,7 +43,7 @@ flowchart TB
     RSS -->|"nouvel épisode@@nouvel épisode publié dans le flux RSS<br/>flux interrogé toutes les 15 minutes"| AUTO
     AUTO -->|"sync + transcription@@POST /api/rss/sync<br/>puis /api/pgx/transcription/start"| BACK
     RF -->|"audio@@téléchargement audio : rss/sync<br/>ou manuel, page Ajouter une émission"| BACK
-    FF -->|"cookie@@manuel : copie du cookie<br/>valable ~5 min"| BACK
+    FF -->|"cookie@@manuel : copie du cookie<br/>valable ~30 min"| BACK
     CAL -->|"Synology Drive@@Synology Drive<br/>continu, quelques secondes"| DRIVE
     DRIVE -->|"metadata.db@@lecture seule ;<br/>relue dès que metadata.db change"| BACK
     BACK <-->|"transcription@@ssh/scp : envoi audio, retour transcription<br/>réessai toutes les heures si PGX injoignable"| PGX
@@ -109,7 +109,7 @@ Le tableau reprend chaque flux en détail.
 | Ajout d'une émission absente du RSS | manuel, page **Ajouter une émission** |
 | Transcription PGX (ssh/scp : envoi de l'audio, retour de la transcription) | lancée par Automatisch ou à la main ; réessai **toutes les heures** si PGX est injoignable |
 | Avis critiques (LLM) | manuel, page **Génération Avis Critiques** |
-| Babelio (Valider avec Babelio, Liaison Babelio, couvertures) | manuel uniquement (aucune requête à l'ouverture des pages), 1 requête par `BABELIO_FAIR_SEC`, empreinte Firefox ; cookie copié depuis Firefox **connecté** à Babelio, valable ~5 min |
+| Babelio (Valider avec Babelio, Liaison Babelio, couvertures) | manuel uniquement (aucune requête à l'ouverture des pages), 1 requête par `BABELIO_FAIR_SEC`, empreinte Firefox ; cookie copié depuis Firefox **connecté** à Babelio, valable ~30 min |
 | Calibre laptop → copie Drive | **continu** (Synology Drive, quelques secondes) |
 | Copie Drive → back-office | lecture seule, relue dès que `metadata.db` change |
 | Copie Drive → Calibre-Web-Automated | **chaque nuit à 00:05 heure de Paris** (tâche planifiée DSM, CWA seulement) |
