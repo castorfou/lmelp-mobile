@@ -160,6 +160,21 @@ EOF
     fi
 }
 
+# Vérificateur de syntaxe des schémas mermaid de la doc (scripts/check_mermaid)
+# mkdocs build ne valide pas les schémas, dessinés dans le navigateur : on les
+# analyse avec mermaid lui-même, sous jsdom. Versions figées par package-lock.json
+setup_mermaid_check() {
+    if ! command -v npm &> /dev/null; then
+        echo "⚠️  npm absent : vérificateur mermaid non installé"
+        return
+    fi
+    if npm ci --prefix scripts/check_mermaid --no-audit --no-fund --silent; then
+        echo "✅ Vérificateur mermaid installé (node scripts/check_mermaid/check_mermaid.mjs)"
+    else
+        echo "⚠️  Échec de npm ci dans scripts/check_mermaid"
+    fi
+}
+
 # Configuration Git
 # git commit, y compris sans identité : au premier build, le HOME est neuf et
 # l'identité de l'hôte n'arrive qu'après postCreateCommand. Identité ponctuelle
@@ -390,6 +405,7 @@ setup_timezone
 ensure_uv
 create_python_environment
 setup_node
+setup_mermaid_check
 setup_git
 setup_github
 setup_pre-commit

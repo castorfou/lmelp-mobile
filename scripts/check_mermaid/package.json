@@ -1,0 +1,14 @@
+{
+  "name": "lmelp-check-mermaid",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vérifie la syntaxe des schémas mermaid de la doc (docs/**/*.md) avec l'analyseur de mermaid",
+  "type": "module",
+  "bin": {
+    "check-mermaid": "check_mermaid.mjs"
+  },
+  "dependencies": {
+    "jsdom": "25.0.1",
+    "mermaid": "11.4.1"
+  }
+}
