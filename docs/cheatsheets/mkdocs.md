@@ -214,3 +214,12 @@ flowchart TB
 ````
 
 Avec ELK, un bloc se place au-dessus de ceux vers lesquels il pointe : orienter les flèches dans le sens de lecture voulu, et déclarer les blocs dans cet ordre.
+
+`mkdocs build --strict` ne valide pas les schémas, puisqu'ils sont dessinés dans le navigateur. Pour vérifier leur syntaxe avec l'analyseur de mermaid (installé par le devcontainer) :
+
+```bash
+node scripts/check_mermaid/check_mermaid.mjs                    # tous les .md de docs/
+node scripts/check_mermaid/check_mermaid.mjs docs/ecosysteme.md # un fichier
+```
+
+Hors devcontainer, installer d'abord les dépendances : `npm ci --prefix scripts/check_mermaid`.
