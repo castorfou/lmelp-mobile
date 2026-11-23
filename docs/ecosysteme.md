@@ -54,7 +54,7 @@ flowchart TB
     BACK <-->|"transcription@@ssh/scp : envoi audio, retour transcription<br/>réessai toutes les heures si PGX injoignable"| PGX
     BACK <-->|"validation@@manuel : Valider avec Babelio, Liaison Babelio,<br/>couvertures ; 1 requête / BABELIO_FAIR_SEC,<br/>empreinte Firefox"| BAB
     BACK -->|"avis critiques@@manuel : Génération Avis Critiques"| AZ
-    BACK <-->|"lecture/écriture@@chaque action"| MONGO
+    BACK <-->|"lecture/écriture@@chaque action ;<br/>fiches pap_remises en lecture seule<br/>(tuile d'accueil, cache de 5 min)"| MONGO
     DRIVE -->|"00:05@@synchronisation nocturne<br/>00:05 heure de Paris (tâche DSM)"| CWA
     MONGO -->|"horaire@@toutes les heures"| EXPORT
     DRIVE -->|"horaire@@toutes les heures<br/>livres lus"| EXPORT
@@ -64,9 +64,9 @@ flowchart TB
     INA -->|"notices@@manuel : notices « Le masque et la plume »<br/>du catalogue INA (Playwright)"| PAP
     WB -->|"archives@@manuel : anciennes listes France Inter (2002-2012),<br/>fichiers audio du podcast (API CDX)"| PAP
     RF -->|"fiches@@manuel : fiches d'émission<br/>des pages podcast radiofrance.fr"| PAP
-    MONGO <-->|"episodes + pap_*@@manuel : lecture seule des épisodes lmelp<br/>(collection episodes, émissions vérifiées) ;<br/>lecture/écriture des collections pap_* :<br/>maturité des enregistrements, vérification des URL des intégraux"| PAP
+    MONGO <-->|"episodes + pap_*@@manuel : lecture seule des épisodes lmelp<br/>(collection episodes, émissions vérifiées) ;<br/>lecture/écriture des collections pap_* :<br/>maturité des enregistrements, vérification des URL des intégraux,<br/>fiches pap_remises des enregistrements mis à disposition"| PAP
     BACK <-->|"intégraux@@/volume1/docker/lmelp/audios<br/>intégraux valides des émissions"| AUDIOS
-    PAP <-->|"enregistrements@@/volume1/docker/lmelp/pap/audios<br/>enregistrements rapatriés"| AUDIOS
+    PAP <-->|"enregistrements@@/volume1/docker/lmelp/pap/audios : enregistrements rapatriés ;<br/>manuel, bouton Mettre à disposition de lmelp :<br/>copie vers audios/année/nom du back-office (/audios-lmelp)"| AUDIOS
     PAP -->|"interface web@@réseau local uniquement :<br/>reverse proxy DSM, port 8085 du NAS"| LAPTOP
     AUTO -->|"notification@@notification d'un nouvel épisode"| NTFY
     BACK -->|"notifications@@chaque étape traitée"| NTFY
@@ -134,8 +134,9 @@ Le tableau reprend chaque flux en détail.
 | Version de l'appli → release `vX.Y.Z` | tag `vX.Y.Z` (`release.yml`) |
 | Release de l'appli → app mobile | détection au lancement de l'app (badge) ; installation **manuelle** (À propos → Télécharger et installer) |
 | Sources de lmelp-pap (INA, Wayback Machine, radiofrance.fr, MongoDB lmelp) | **manuel**, aucune tâche planifiée : une collecte par source (`lmelp-pap emissions`), mise en cache et pas relancée une fois terminée, sauf `--refresh` ; MongoDB en lecture seule (`masque_et_la_plume.episodes`, émissions vérifiées), écriture des arbitrages dans des collections `pap_*` à venir ([castorfou/lmelp-pap#65](https://github.com/castorfou/lmelp-pap/issues/65)) |
-| Fichiers audio (volume Docker du NAS) | back-office : `/volume1/docker/lmelp/audios` (`AUDIO_PATH`), intégraux valides des émissions, écrits à chaque téléchargement audio ; lmelp-pap : `/volume1/docker/lmelp/pap/audios` (`PAP_PATH_HOTE`, monté sur `/data`, qui contient aussi `cache/`, `processed/` et `logs/`), enregistrements rapatriés ; `cache/` et `processed/` de pap amorcés à la main depuis le dépôt lmelp-pap |
+| Fichiers audio (volume Docker du NAS) | back-office : `/volume1/docker/lmelp/audios` (`AUDIO_PATH`), intégraux valides des émissions, écrits à chaque téléchargement audio ; lmelp-pap : `/volume1/docker/lmelp/pap/audios` (`PAP_PATH_HOTE`, monté sur `/data`, qui contient aussi `cache/`, `processed/` et `logs/`), enregistrements rapatriés, avec le dossier du back-office monté sur `/audios-lmelp` pour la mise à disposition ; `cache/` et `processed/` de pap amorcés à la main depuis le dépôt lmelp-pap |
 | lmelp-pap ↔ MongoDB (collections `pap_*`) | pap reçoit `MONGO_URI=mongodb://mongo:27017` et `MONGO_DB` (`masque_et_la_plume` par défaut) : ses collections `pap_*` (maturité des enregistrements, vérification des URL des intégraux, ADR 0004 de lmelp-pap) sont dans la base `masque_et_la_plume` du service `mongo` ; vérification des URL **manuelle**, page `/liste` de pap, bouton **Vérifier les URL des intégraux** (`POST /api/verifications`) |
+| lmelp-pap → back-office (mise à disposition d'un enregistrement) | **manuel**, bouton **Mettre à disposition de lmelp** de pap : copie de `pap/audios/<année>/<nom>` vers `audios/<année>/<nom>` du back-office (dossier `AUDIO_PATH`, monté sur `/audios-lmelp` dans pap et sur `/app/audios` dans le backend) et fiche dans la collection `pap_remises` ; le back-office lit `pap_remises` en lecture seule pour sa tuile d'accueil (fiches dont le fichier est présent), recalculée à l'affichage de l'accueil dans le cache du dashboard (5 min), bouton **Actualiser** pour forcer ; une ligne `WARNING` par fichier absent dans les logs du backend signale un montage `/audios-lmelp` ↔ `/app/audios` mal réglé |
 | lmelp-pap → navigateur | appli web sur le réseau local uniquement : `https://pap.lmelp.ascot63.synology.me` (reverse proxy DSM, port 8085 du NAS, 8090 dans le conteneur) |
 | Notifications ntfy | Automatisch : nouvel épisode ; back-office : chaque étape traitée ; `lmelp-export` : nouvelles données publiées, premier échec, puis rétablissement |
 | Sauvegarde MongoDB | **hebdomadaire** (anacron dans `lmelp-mongo`, horaires en UTC) |
