@@ -64,7 +64,7 @@ flowchart TB
     INA -->|"notices@@manuel : notices « Le masque et la plume »<br/>du catalogue INA (Playwright)"| PAP
     WB -->|"archives@@manuel : anciennes listes France Inter (2002-2012),<br/>fichiers audio du podcast (API CDX)"| PAP
     RF -->|"fiches@@manuel : fiches d'émission<br/>des pages podcast radiofrance.fr"| PAP
-    MONGO -->|"émissions vérifiées@@manuel : lecture seule<br/>des épisodes lmelp (collection episodes)"| PAP
+    MONGO <-->|"episodes + pap_*@@manuel : lecture seule des épisodes lmelp<br/>(collection episodes, émissions vérifiées) ;<br/>lecture/écriture des collections pap_* :<br/>maturité des enregistrements, vérification des URL des intégraux"| PAP
     BACK <-->|"intégraux@@/volume1/docker/lmelp/audios<br/>intégraux valides des émissions"| AUDIOS
     PAP <-->|"enregistrements@@/volume1/docker/lmelp/pap/audios<br/>enregistrements rapatriés"| AUDIOS
     PAP -->|"interface web@@réseau local uniquement :<br/>reverse proxy DSM, port 8085 du NAS"| LAPTOP
@@ -135,6 +135,7 @@ Le tableau reprend chaque flux en détail.
 | Release de l'appli → app mobile | détection au lancement de l'app (badge) ; installation **manuelle** (À propos → Télécharger et installer) |
 | Sources de lmelp-pap (INA, Wayback Machine, radiofrance.fr, MongoDB lmelp) | **manuel**, aucune tâche planifiée : une collecte par source (`lmelp-pap emissions`), mise en cache et pas relancée une fois terminée, sauf `--refresh` ; MongoDB en lecture seule (`masque_et_la_plume.episodes`, émissions vérifiées), écriture des arbitrages dans des collections `pap_*` à venir ([castorfou/lmelp-pap#65](https://github.com/castorfou/lmelp-pap/issues/65)) |
 | Fichiers audio (volume Docker du NAS) | back-office : `/volume1/docker/lmelp/audios` (`AUDIO_PATH`), intégraux valides des émissions, écrits à chaque téléchargement audio ; lmelp-pap : `/volume1/docker/lmelp/pap/audios` (`PAP_PATH_HOTE`, monté sur `/data`, qui contient aussi `cache/`, `processed/` et `logs/`), enregistrements rapatriés ; `cache/` et `processed/` de pap amorcés à la main depuis le dépôt lmelp-pap |
+| lmelp-pap ↔ MongoDB (collections `pap_*`) | pap reçoit `MONGO_URI=mongodb://mongo:27017` et `MONGO_DB` (`masque_et_la_plume` par défaut) : ses collections `pap_*` (maturité des enregistrements, vérification des URL des intégraux, ADR 0004 de lmelp-pap) sont dans la base `masque_et_la_plume` du service `mongo` ; vérification des URL **manuelle**, page `/liste` de pap, bouton **Vérifier les URL des intégraux** (`POST /api/verifications`) |
 | lmelp-pap → navigateur | appli web sur le réseau local uniquement : `https://pap.lmelp.ascot63.synology.me` (reverse proxy DSM, port 8085 du NAS, 8090 dans le conteneur) |
 | Notifications ntfy | Automatisch : nouvel épisode ; back-office : chaque étape traitée ; `lmelp-export` : nouvelles données publiées, premier échec, puis rétablissement |
 | Sauvegarde MongoDB | **hebdomadaire** (anacron dans `lmelp-mongo`, horaires en UTC) |
