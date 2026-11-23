@@ -4,7 +4,7 @@ Vue d'ensemble des briques qui alimentent l'application lmelp-mobile : qui alime
 
 ## Mise à jour des données
 
-Le schéma se lit de haut en bas, dans l'ordre où circulent les données : Radio France, Automatisch, le back-office lmelp et ses services d'enrichissement, l'export, la release GitHub, puis le téléphone. À côté, lmelp-pap (Projet d'Archivage Patrimonial) croise l'INA, la Wayback Machine, radiofrance.fr et les émissions vérifiées de lmelp pour reconstituer les émissions de 1955 à 2016. Survoler ou toucher une étiquette soulignée affiche son détail ; le bouton **Plein écran** l'agrandit.
+Le schéma se lit de haut en bas, dans l'ordre où circulent les données : Radio France, Automatisch, le back-office lmelp et ses services d'enrichissement, l'export, la release GitHub, puis le téléphone. À côté, lmelp-pap (Projet d'Archivage Patrimonial) croise l'INA, la Wayback Machine, radiofrance.fr et les émissions vérifiées de lmelp pour reconstituer les émissions de 1955 à 2016 : il publie sa liste sur GitHub et met les enregistrements retrouvés à disposition du back-office, qui les intègre comme épisodes. Survoler ou toucher une étiquette soulignée affiche son détail ; le bouton **Plein écran** l'agrandit.
 
 ```mermaid
 flowchart TB
@@ -38,6 +38,7 @@ flowchart TB
     AZ["Azure OpenAI<br/>LLM"]
 
     REL["GitHub : release data-v{N}<br/>lmelp.db + metadata.json"]
+    REPO["GitHub : dépôt lmelp-pap<br/>main, CSV de la liste"]
     NTFY["ntfy.sh<br/>notifications"]
 
     subgraph PHONE["Téléphone"]
@@ -64,19 +65,21 @@ flowchart TB
     INA -->|"notices@@manuel : notices « Le masque et la plume »<br/>du catalogue INA (Playwright)"| PAP
     WB -->|"archives@@manuel : anciennes listes France Inter (2002-2012),<br/>fichiers audio du podcast (API CDX)"| PAP
     RF -->|"fiches@@manuel : fiches d'émission<br/>des pages podcast radiofrance.fr"| PAP
-    MONGO <-->|"episodes + pap_*@@manuel : lecture seule des épisodes lmelp<br/>(collection episodes, émissions vérifiées) ;<br/>lecture/écriture des collections pap_* :<br/>maturité des enregistrements, vérification des URL des intégraux,<br/>fiches pap_remises des enregistrements mis à disposition"| PAP
+    MONGO <-->|"episodes + pap_*@@manuel : lecture seule des épisodes lmelp<br/>(collection episodes, émissions vérifiées) ;<br/>lecture/écriture des collections pap_* :<br/>maturité des enregistrements, vérification des URL des intégraux,<br/>arbitrages, fiches pap_remises des enregistrements mis à disposition"| PAP
     BACK <-->|"intégraux@@/volume1/docker/lmelp/audios<br/>intégraux valides des émissions ;<br/>audio d'une émission ancienne livré par pap,<br/>empreinte SHA-256 vérifiée à l'intégration"| AUDIOS
     PAP <-->|"enregistrements@@/volume1/docker/lmelp/pap/audios : enregistrements rapatriés ;<br/>manuel, bouton Mettre à disposition de lmelp :<br/>copie vers audios/année/nom du back-office (/audios-lmelp)"| AUDIOS
     PAP -->|"interface web@@réseau local uniquement :<br/>reverse proxy DSM, port 8085 du NAS"| LAPTOP
+    PAP -->|"publication@@manuel : bouton Publier<br/>commit des CSV, push sur main"| REPO
     AUTO -->|"notification@@notification d'un nouvel épisode"| NTFY
     BACK -->|"notifications@@chaque étape traitée,<br/>dont l'intégration d'une émission ancienne (préfixe pap)"| NTFY
     EXPORT -->|"publication / échec@@nouvelles données publiées ;<br/>premier échec, puis rétablissement"| NTFY
+    PAP -->|"publication@@résultat de chaque publication"| NTFY
     NTFY -->|"notifications"| PHONE
 ```
 
 ## Mise à jour du code
 
-Indépendante du flux de données. Un push sur `main` reconstruit les images Docker concernées par les fichiers modifiés (back-office-lmelp, `lmelp-export` de lmelp-mobile, `lmelp-mongo` de docker-lmelp, lmelp-pap), que Watchtower installe sur le NAS, et publie une préversion de l'appli si le push la modifie ; un tag `vX.Y.Z` publie une version de l'appli. L'appli détecte elle-même les deux (voir [Installer et mettre à jour l'appli](user/installer_mettre_a_jour.md)).
+Indépendante du flux de données. Un push sur `main` reconstruit les images Docker concernées par les fichiers modifiés (back-office-lmelp, `lmelp-export` de lmelp-mobile, `lmelp-mongo` de docker-lmelp, lmelp-pap), que Watchtower installe sur le NAS, et publie une préversion de l'appli si le push la modifie ; un tag `vX.Y.Z` publie une version de l'appli. La publication de la liste lmelp-pap (bouton **Publier**) ne reconstruit pas l'image : son push ne touche que les CSV de `data/`, et le workflow `docker.yml` de lmelp-pap ne se déclenche que sur `src/**`, `pyproject.toml`, `uv.lock`, `README.md`, `Dockerfile`, `.dockerignore`, le workflow lui-même et `scripts/fumee_image.sh`. L'appli détecte elle-même les deux (voir [Installer et mettre à jour l'appli](user/installer_mettre_a_jour.md)).
 
 ```mermaid
 flowchart TB
@@ -130,16 +133,17 @@ Le tableau reprend chaque flux en détail.
 | Copie Drive → Calibre-Web-Automated | **chaque nuit à 00:05 heure de Paris** (tâche planifiée DSM, CWA seulement) |
 | MongoDB + Calibre (livres lus) → `lmelp-export` → release `data-v{N}` | **toutes les heures** (`PUBLISH_INTERVAL`), publication seulement si le contenu a changé (la release est alors republiée sur place) ; immédiat avec `docker exec lmelp-export export-and-publish-release` |
 | Release → app mobile | détection au lancement de l'app (point vert) ; téléchargement **manuel** (À propos → Vérifier les mises à jour) |
-| Nouvelle version de code | push sur `main` → CI → images ghcr.io → Watchtower recrée les conteneurs : back-office (back-office-lmelp), `lmelp-export` (lmelp-mobile), `mongo` sur l'image `lmelp-mongo` (docker-lmelp, `build-mongo-image.yml` : push touchant `mongodb.Dockerfile`, `scripts/` ou `config/mongod.conf`), `lmelp-pap` (lmelp-pap, `docker.yml`) |
+| Nouvelle version de code | push sur `main` → CI → images ghcr.io → Watchtower recrée les conteneurs : back-office (back-office-lmelp), `lmelp-export` (lmelp-mobile), `mongo` sur l'image `lmelp-mongo` (docker-lmelp, `build-mongo-image.yml` : push touchant `mongodb.Dockerfile`, `scripts/` ou `config/mongod.conf`), `lmelp-pap` (lmelp-pap, `docker.yml` : push touchant `src/**`, `pyproject.toml`, `uv.lock`, `README.md`, `Dockerfile`, `.dockerignore`, le workflow ou `scripts/fumee_image.sh`, donc pas une publication de la liste, qui ne touche que `data/`) |
 | Préversion de l'appli → release `app-preview` | push sur `main` qui touche l'appli (`app-preview.yml`), APK `X.Y.Z+N` ; rien si aucun commit depuis le dernier tag |
 | Version de l'appli → release `vX.Y.Z` | tag `vX.Y.Z` (`release.yml`) |
 | Release de l'appli → app mobile | détection au lancement de l'app (badge) ; installation **manuelle** (À propos → Télécharger et installer) |
-| Sources de lmelp-pap (INA, Wayback Machine, radiofrance.fr, MongoDB lmelp) | **manuel**, aucune tâche planifiée : une collecte par source (`lmelp-pap emissions`), mise en cache et pas relancée une fois terminée, sauf `--refresh` ; MongoDB en lecture seule (`masque_et_la_plume.episodes`, émissions vérifiées), écriture des arbitrages dans des collections `pap_*` à venir ([castorfou/lmelp-pap#65](https://github.com/castorfou/lmelp-pap/issues/65)) |
-| Fichiers audio (volume Docker du NAS) | back-office : `/volume1/docker/lmelp/audios` (`AUDIO_PATH`), intégraux valides des émissions, écrits à chaque téléchargement audio ; lmelp-pap : `/volume1/docker/lmelp/pap/audios` (`PAP_PATH_HOTE`, monté sur `/data`, qui contient aussi `cache/`, `processed/` et `logs/`), enregistrements rapatriés, avec le dossier du back-office monté sur `/audios-lmelp` pour la mise à disposition ; `cache/` et `processed/` de pap amorcés à la main depuis le dépôt lmelp-pap |
+| Sources de lmelp-pap (INA, Wayback Machine, radiofrance.fr, MongoDB lmelp) | **manuel**, aucune tâche planifiée : une collecte par source (`lmelp-pap emissions`), mise en cache et pas relancée une fois terminée, sauf `--refresh` ; MongoDB : `masque_et_la_plume.episodes` en lecture seule (émissions vérifiées) ; arbitrages écrits dans les collections `pap_*` ([castorfou/lmelp-pap#65](https://github.com/castorfou/lmelp-pap/issues/65)), après un import unique des arbitrages existants (`lmelp-pap arbitrages importer`) |
+| Fichiers audio (volume Docker du NAS) | back-office : `/volume1/docker/lmelp/audios` (`AUDIO_PATH`), intégraux valides des émissions, écrits à chaque téléchargement audio ; lmelp-pap : `/volume1/docker/lmelp/pap/audios` (`PAP_PATH_HOTE`, monté sur `/data`, qui contient aussi `cache/`, `processed/`, `logs/` et `depot/`, clone git de la publication), enregistrements rapatriés, avec le dossier du back-office monté sur `/audios-lmelp` pour la mise à disposition ; `cache/` et `processed/` de pap amorcés à la main depuis le dépôt lmelp-pap |
 | lmelp-pap ↔ MongoDB (collections `pap_*`) | pap reçoit `MONGO_URI=mongodb://mongo:27017` et `MONGO_DB` (`masque_et_la_plume` par défaut) : ses collections `pap_*` (maturité des enregistrements, vérification des URL des intégraux, ADR 0004 de lmelp-pap) sont dans la base `masque_et_la_plume` du service `mongo` ; vérification des URL **manuelle**, page `/liste` de pap, bouton **Vérifier les URL des intégraux** (`POST /api/verifications`) |
 | lmelp-pap → back-office (mise à disposition d'un enregistrement) | **manuel**, bouton **Mettre à disposition de lmelp** de pap : copie de `pap/audios/<année>/<nom>` vers `audios/<année>/<nom>` du back-office (dossier `AUDIO_PATH`, monté sur `/audios-lmelp` dans pap et sur `/app/audios` dans le backend) et fiche dans la collection `pap_remises` ; le back-office lit `pap_remises` en lecture seule pour sa tuile d'accueil **Émissions anciennes à intégrer** (fiches dont le fichier est présent, clé `pap_remises_a_integrer_count`), recalculée à l'affichage de l'accueil dans le cache du dashboard (5 min), bouton **Actualiser** pour forcer ; une ligne `WARNING` par fichier absent dans les logs du backend signale un montage `/audios-lmelp` ↔ `/app/audios` mal réglé |
+| lmelp-pap → dépôt GitHub `castorfou/lmelp-pap` | **manuel**, bouton **Publier** de l'appli : commit des CSV de la liste dans le clone `/data/depot` du conteneur (`/volume1/docker/lmelp/pap/depot` sur le NAS), push sur `main` (commit `chore(data): publication depuis le NAS`) avec `PAP_GH_TOKEN`, jeton fine-grained propre à pap (contents:write sur lmelp-pap seul), distinct du `GH_TOKEN` de `lmelp-export` |
 | lmelp-pap → navigateur | appli web sur le réseau local uniquement : `https://pap.lmelp.ascot63.synology.me` (reverse proxy DSM, port 8085 du NAS, 8090 dans le conteneur) |
-| Notifications ntfy | Automatisch : nouvel épisode ; back-office : chaque étape traitée, dont l'intégration d'une émission ancienne (préfixe `pap`, « Nouvel épisode Le Masque et la Plume intégré — jj/mm/aa », message = titre de l'épisode) ; `lmelp-export` : nouvelles données publiées, premier échec, puis rétablissement |
+| Notifications ntfy | Automatisch : nouvel épisode ; back-office : chaque étape traitée, dont l'intégration d'une émission ancienne (préfixe `pap`, « Nouvel épisode Le Masque et la Plume intégré — jj/mm/aa », message = titre de l'épisode) ; `lmelp-export` : nouvelles données publiées, premier échec, puis rétablissement ; lmelp-pap : résultat de chaque publication (titres `pap - …`), même topic (`NTFY_SERVER_URL` / `NTFY_TOPIC`) |
 | Sauvegarde MongoDB | **hebdomadaire** (anacron dans `lmelp-mongo`, horaires en UTC) |
 
 !!! note "La release `data-v{N}` est republiée sur place"
