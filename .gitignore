@@ -93,4 +93,4 @@ Thumbs.db
 desktop.ini
 
 # Dépendances npm (scripts/check_mermaid)
-node_modules/
+scripts/check_mermaid/node_modules/
