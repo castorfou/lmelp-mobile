@@ -36,6 +36,13 @@
 
     La suite manuelle ci-dessous est inchangée. Détails dans la doc back-office : [Ajouter une émission](https://castorfou.github.io/back-office-lmelp/user/ajout-emission/).
 
+!!! info "Émission ancienne livrée par lmelp-pap"
+    Une émission retrouvée par lmelp-pap et mise à disposition de lmelp (bouton **Mettre à disposition de lmelp** de pap : audio copié dans le dossier audio du back-office, fiche dans la collection `pap_remises`) s'intègre à la main, émission par émission.
+
+    Depuis ![](img/favicon_lmelp-backoffice.png) **lmelp-backoffice** - frontend, page **Émissions anciennes** (tuile d'accueil **Émissions anciennes à intégrer**) : bouton **Intégrer**. Le back-office vérifie l'empreinte SHA-256 du fichier, crée l'épisode, notifie **ntfy.sh** (« Nouvel épisode Le Masque et la Plume intégré », préfixe `pap`), puis lance la transcription PGX (avec réessai toutes les heures si PGX est injoignable), comme pour l'ajout depuis radiofrance.fr.
+
+    La suite manuelle ci-dessous est inchangée. Vue d'ensemble des flux : [Écosystème lmelp](../ecosysteme.md).
+
 la suite est manuelle :
 
 > ![](img/favicon_lmelp-backoffice.png) depuis **lmelp-backoffice** - frontend :
